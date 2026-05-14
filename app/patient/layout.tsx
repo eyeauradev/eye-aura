@@ -1,0 +1,115 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
+import { Home, Calendar, FileText, MessageSquare, User, LogOut, Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const navItems = [
+  { href: "/patient/dashboard", label: "Dashboard", icon: Home },
+  { href: "/patient/appointments", label: "Appointments", icon: Calendar },
+  { href: "/patient/prescriptions", label: "Prescriptions", icon: FileText },
+  { href: "/patient/support", label: "Support", icon: MessageSquare },
+  { href: "/patient/notifications", label: "Notifications", icon: Bell },
+  { href: "/patient/profile", label: "Profile", icon: User },
+];
+
+export default function PatientLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = "/auth/login";
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+      {/* Header */}
+      <header className="border-b border-primary/10 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="mx-auto max-w-7xl px-5 py-4 sm:px-8">
+          <div className="flex items-center justify-between">
+            <Link href="/patient/dashboard" className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#0F4F4B] to-[#1A6B66] flex items-center justify-center">
+                <span className="text-white font-bold text-lg">EA</span>
+              </div>
+              <span className="font-display text-xl text-primary hidden sm:block">Eye Aura</span>
+            </Link>
+            
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground hidden sm:block">
+                {user?.displayName || "Welcome"}
+              </span>
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
+        <div className="flex gap-8">
+          {/* Sidebar Navigation */}
+          <aside className="w-64 flex-shrink-0 hidden lg:block">
+            <nav className="sticky top-24 space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition ${
+                      isActive
+                        ? "bg-[#0F4F4B] text-white"
+                        : "text-muted-foreground hover:bg-white/50 hover:text-primary"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* Mobile Navigation */}
+          <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-primary/10 z-50">
+            <div className="flex justify-around py-3">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition ${
+                      isActive ? "text-[#0F4F4B]" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="text-xs font-medium">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+
+          {/* Main Content */}
+          <main className="flex-1 min-w-0 pb-20 lg:pb-0">
+            {children}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}

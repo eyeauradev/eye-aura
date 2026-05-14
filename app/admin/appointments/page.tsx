@@ -1,0 +1,205 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { appointmentsService, usersService } from "@/services/firestore";
+import { Search, Calendar, Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { SectionContainer } from "@/components/section-container";
+import Link from "next/link";
+import type { AppointmentDocument, UserDocument } from "@/types/firestore";
+
+export default function AdminAppointmentsPage() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [appointments, setAppointments] = useState<AppointmentDocument[]>([]);
+  const [patients, setPatients] = useState<Record<string, UserDocument>>({});
+  const [doctors, setDoctors] = useState<Record<string, UserDocument>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    async function loadAppointments() {
+      try {
+        setLoading(true);
+        const allAppointments = await appointmentsService.getAll();
+
+        // Load patients and doctors
+        const allUsers = await usersService.getAll();
+        const patientMap: Record<string, UserDocument> = {};
+        const doctorMap: Record<string, UserDocument> = {};
+        
+        allUsers.forEach((u: UserDocument) => {
+          if (u.role === "patient") patientMap[u.id] = u;
+          if (u.role === "doctor") doctorMap[u.id] = u;
+        });
+
+        setAppointments(allAppointments);
+        setPatients(patientMap);
+        setDoctors(doctorMap);
+      } catch (error) {
+        console.error("Error loading appointments:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadAppointments();
+  }, []);
+
+  const filteredAppointments = appointments.filter((apt) => {
+    const matchesSearch = 
+      patients[apt.patientId]?.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patients[apt.patientId]?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctors[apt.doctorId]?.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || apt.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  }).sort((a, b) => b.scheduledFor.getTime() - a.scheduledFor.getTime());
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading appointments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="font-display text-4xl text-primary mb-2">Appointments</h1>
+        <p className="text-xl text-muted-foreground">
+          Monitor all platform appointments
+        </p>
+      </div>
+
+      <SectionContainer>
+        <Card className="border-primary/10">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">All Appointments</CardTitle>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by patient or doctor..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-64"
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="cancellation_requested">Cancellation Requested</option>
+                </select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {filteredAppointments.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  {searchQuery || statusFilter !== "all" 
+                    ? "No appointments found matching your filters" 
+                    : "No appointments yet"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredAppointments.map((appointment) => (
+                  <AppointmentCard
+                    key={appointment.id}
+                    appointment={appointment}
+                    patient={patients[appointment.patientId]}
+                    doctor={doctors[appointment.doctorId]}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </SectionContainer>
+    </div>
+  );
+}
+
+function AppointmentCard({ 
+  appointment, 
+  patient, 
+  doctor 
+}: { 
+  appointment: AppointmentDocument; 
+  patient: any; 
+  doctor: any; 
+}) {
+  return (
+    <div className="flex items-center justify-between p-4 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
+      <div className="flex items-center gap-4">
+        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <Calendar className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <p className="font-medium text-primary">
+            {appointment.scheduledFor.toLocaleDateString("en-US", { 
+              weekday: "short",
+              month: "short", 
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            })}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {patient?.displayName || "Unknown"} → {doctor?.displayName || "Unknown"}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge className={getStatusColor(appointment.status)}>
+              {appointment.status}
+            </Badge>
+            {appointment.followUpRequired && (
+              <Badge className="bg-secondary text-white">Follow-up</Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <Link href={`/admin/appointments/${appointment.id}`}>
+        <Button variant="ghost" size="icon">
+          <Calendar className="h-4 w-4" />
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "completed":
+      return "bg-green-100 text-green-800 border-green-200";
+    case "confirmed":
+      return "bg-blue-100 text-blue-800 border-blue-200";
+    case "in_progress":
+      return "bg-purple-100 text-purple-800 border-purple-200";
+    case "cancelled":
+      return "bg-red-100 text-red-800 border-red-200";
+    case "cancellation_requested":
+      return "bg-orange-100 text-orange-800 border-orange-200";
+    default:
+      return "bg-gray-100 text-gray-800 border-gray-200";
+  }
+}
