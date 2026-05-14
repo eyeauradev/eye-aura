@@ -46,7 +46,7 @@ class AuthService {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
           displayName: userCredential.user.displayName || "",
-          photoURL: userCredential.user.photoURL,
+          photoURL: userCredential.user.photoURL || undefined,
           role: "patient", // Default to patient for email sign-in
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -84,7 +84,7 @@ class AuthService {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
           displayName: userCredential.user.displayName || "",
-          photoURL: userCredential.user.photoURL,
+          photoURL: userCredential.user.photoURL || undefined,
           role: "patient", // Default to patient for Google sign-up
           createdAt: new Date(),
           updatedAt: new Date(),

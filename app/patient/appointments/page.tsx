@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
-import { Calendar, Clock, FileText, Video, ArrowRight, Filter, Plus } from "lucide-react";
+import type { AppointmentDocument, ServiceDocument, UserDocument } from "@/types/firestore";
+import { Calendar, Clock, Video, Filter, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +14,8 @@ import { SectionContainer } from "@/components/section-container";
 export default function PatientAppointmentsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
-  const [pastAppointments, setPastAppointments] = useState<any[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<AppointmentDocument[]>([]);
+  const [pastAppointments, setPastAppointments] = useState<AppointmentDocument[]>([]);
   const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
 
   useEffect(() => {
@@ -27,8 +28,8 @@ export default function PatientAppointmentsPage() {
         const allAppointments = await appointmentsService.getByPatientId(user.id, 50);
         
         const now = new Date();
-        const upcoming: any[] = [];
-        const past: any[] = [];
+        const upcoming: AppointmentDocument[] = [];
+        const past: AppointmentDocument[] = [];
 
         for (const appointment of allAppointments) {
           const service = await servicesService.getById(appointment.serviceId);
@@ -74,7 +75,7 @@ export default function PatientAppointmentsPage() {
     cancellation_requested: { label: "Cancellation Requested", color: "bg-orange-100 text-orange-800 border-orange-200" },
   };
 
-  const AppointmentCard = ({ appointment }: { appointment: any }) => {
+  const AppointmentCard = ({ appointment }: { appointment: AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument } }) => {
     const isUpcoming = new Date(appointment.scheduledFor) > new Date();
     const canJoin = appointment.status === "confirmed" && new Date(appointment.scheduledFor) <= new Date(new Date().getTime() + 15 * 60000) && new Date(appointment.scheduledFor) > new Date(new Date().getTime() - (appointment.service?.duration || 30) * 60000);
 
