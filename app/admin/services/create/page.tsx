@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Check, X } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { servicesService } from "@/services/firestore";
-import type { ServiceType } from "@/types/firestore";
+import { servicesService, usersService } from "@/services/firestore";
+import type { ServiceType, UserDocument } from "@/types/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ export default function AdminServiceCreatePage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [doctorsLoading, setDoctorsLoading] = useState(true);
+  const [doctors, setDoctors] = useState<UserDocument[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -25,6 +27,7 @@ export default function AdminServiceCreatePage() {
     currency: "INR",
     duration: "30",
     suitableFor: [] as string[],
+    doctorIds: [] as string[],
   });
   const [symptomInput, setSymptomInput] = useState("");
   const [error, setError] = useState("");
@@ -36,6 +39,22 @@ export default function AdminServiceCreatePage() {
     "digital_eye_strain_guidance",
   ] as const;
 
+  useEffect(() => {
+    loadDoctors();
+  }, []);
+
+  const loadDoctors = async () => {
+    try {
+      setDoctorsLoading(true);
+      const allDoctors = await usersService.getByRole("doctor");
+      setDoctors(allDoctors);
+    } catch (err) {
+      console.error("Failed to load doctors:", err);
+    } finally {
+      setDoctorsLoading(false);
+    }
+  };
+
   const handleAddSymptom = () => {
     if (symptomInput.trim() && !formData.suitableFor.includes(symptomInput.trim())) {
       setFormData({ ...formData, suitableFor: [...formData.suitableFor, symptomInput.trim()] });
@@ -45,6 +64,14 @@ export default function AdminServiceCreatePage() {
 
   const handleRemoveSymptom = (symptom: string) => {
     setFormData({ ...formData, suitableFor: formData.suitableFor.filter((s) => s !== symptom) });
+  };
+
+  const handleToggleDoctor = (doctorId: string) => {
+    if (formData.doctorIds.includes(doctorId)) {
+      setFormData({ ...formData, doctorIds: formData.doctorIds.filter((id) => id !== doctorId) });
+    } else {
+      setFormData({ ...formData, doctorIds: [...formData.doctorIds, doctorId] });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,6 +88,11 @@ export default function AdminServiceCreatePage() {
       return;
     }
 
+    if (formData.doctorIds.length === 0) {
+      setError("Please select at least one doctor who can provide this service");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -73,6 +105,7 @@ export default function AdminServiceCreatePage() {
         currency: formData.currency,
         duration: parseInt(formData.duration),
         suitableFor: formData.suitableFor,
+        doctorIds: formData.doctorIds,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -223,6 +256,47 @@ export default function AdminServiceCreatePage() {
                     </span>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <Label>Assign Doctors *</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Select doctors who can provide this service
+                </p>
+                {doctorsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading doctors...</p>
+                ) : doctors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No doctors available. Please invite doctors first.</p>
+                ) : (
+                  <div className="grid gap-2 mt-3 max-h-60 overflow-y-auto">
+                    {doctors.map((doctor) => (
+                      <div
+                        key={doctor.id}
+                        onClick={() => handleToggleDoctor(doctor.id)}
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${
+                          formData.doctorIds.includes(doctor.id)
+                            ? "bg-primary/10 border-primary/30"
+                            : "bg-white/50 border-primary/10 hover:bg-primary/5"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-secondary/15 flex items-center justify-center text-secondary">
+                            {doctor.displayName?.charAt(0).toUpperCase() || "D"}
+                          </div>
+                          <div>
+                            <p className="font-medium text-primary">{doctor.displayName || "Doctor"}</p>
+                            <p className="text-sm text-muted-foreground">{doctor.email}</p>
+                          </div>
+                        </div>
+                        {formData.doctorIds.includes(doctor.id) ? (
+                          <Check className="h-5 w-5 text-primary" />
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-primary/30" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {error && (

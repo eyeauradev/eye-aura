@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { servicesService } from "@/services/firestore";
-import { Plus, Search, Edit2, ToggleLeft, ToggleRight } from "lucide-react";
+import { servicesService, usersService } from "@/services/firestore";
+import { Plus, Search, Edit2, ToggleLeft, ToggleRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { SectionContainer } from "@/components/section-container";
 import Link from "next/link";
-import type { ServiceDocument } from "@/types/firestore";
+import type { ServiceDocument, UserDocument } from "@/types/firestore";
 
 export default function AdminServicesPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [services, setServices] = useState<ServiceDocument[]>([]);
+  const [services, setServices] = useState<(ServiceDocument & { doctors: UserDocument[] })[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -23,7 +23,15 @@ export default function AdminServicesPage() {
       try {
         setLoading(true);
         const allServices = await servicesService.getAll();
-        setServices(allServices);
+        const servicesWithDoctors = await Promise.all(
+          allServices.map(async (service) => {
+            const doctors = await Promise.all(
+              service.doctorIds.map((doctorId) => usersService.getById(doctorId))
+            );
+            return { ...service, doctors: doctors.filter((d) => d !== null) as UserDocument[] };
+          })
+        );
+        setServices(servicesWithDoctors);
       } catch (error) {
         console.error("Error loading services:", error);
       } finally {
@@ -123,7 +131,7 @@ export default function AdminServicesPage() {
   );
 }
 
-function ServiceCard({ service, onToggle }: { service: ServiceDocument; onToggle: (id: string, current: boolean) => void }) {
+function ServiceCard({ service, onToggle }: { service: ServiceDocument & { doctors: UserDocument[] }; onToggle: (id: string, current: boolean) => void }) {
   return (
     <div className="flex items-center justify-between p-4 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
       <div className="flex items-center gap-4">
@@ -143,6 +151,14 @@ function ServiceCard({ service, onToggle }: { service: ServiceDocument; onToggle
               <Badge className="bg-gray-100 text-gray-800 border-gray-200">Inactive</Badge>
             )}
           </div>
+          {service.doctors.length > 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <User className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {service.doctors.map((d) => d.displayName || "Doctor").join(", ")}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2">

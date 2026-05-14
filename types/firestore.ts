@@ -65,6 +65,7 @@ export interface ServiceDocument {
   currency: string;
   duration: number; // in minutes
   suitableFor: string[];
+  doctorIds: string[]; // IDs of doctors who can provide this service
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

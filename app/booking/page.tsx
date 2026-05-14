@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { bookingService } from "@/services/booking/booking.service";
-import { servicesService } from "@/services/firestore";
-import type { ServiceDocument, DoctorSlotDocument } from "@/types/firestore";
+import { servicesService, usersService } from "@/services/firestore";
+import type { ServiceDocument, DoctorSlotDocument, UserDocument } from "@/types/firestore";
 import type { BookingState, BookingStep } from "@/types/booking";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Calendar, Clock, Check, FileText } from "lucide-react";
+import { ArrowRight, Calendar, Clock, Check, FileText, User } from "lucide-react";
 
 const STEPS: BookingStep[] = [
   { id: "service", title: "Choose Service", description: "Select your consultation type", completed: false },
@@ -31,7 +31,30 @@ export default function BookingPage() {
     error: null,
   });
   const [services, setServices] = useState<ServiceDocument[]>([]);
+  const [servicesWithDoctors, setServicesWithDoctors] = useState<(ServiceDocument & { doctors: UserDocument[] })[]>([]);
   const [availableSlots, setAvailableSlots] = useState<DoctorSlotDocument[]>([]);
+
+  useEffect(() => {
+    loadServicesWithDoctors();
+  }, []);
+
+  const loadServicesWithDoctors = async () => {
+    try {
+      const allServices = await servicesService.getAll();
+      const servicesWithDoctorsData = await Promise.all(
+        allServices.map(async (service) => {
+          const doctors = await Promise.all(
+            service.doctorIds.map((doctorId) => usersService.getById(doctorId))
+          );
+          return { ...service, doctors: doctors.filter((d) => d !== null) as UserDocument[] };
+        })
+      );
+      setServices(allServices);
+      setServicesWithDoctors(servicesWithDoctorsData);
+    } catch (error) {
+      console.error("Failed to load services:", error);
+    }
+  };
 
   // Redirect if not authenticated
   if (!authLoading && !user) {
@@ -133,7 +156,7 @@ export default function BookingPage() {
       <div className="mx-auto max-w-4xl px-5 pb-16 sm:px-8">
         {state.currentStep === 0 && (
           <ServiceSelectionStep
-            services={services}
+            servicesWithDoctors={servicesWithDoctors}
             onSelect={handleServiceSelect}
             selected={state.service}
           />
@@ -174,11 +197,11 @@ export default function BookingPage() {
 }
 
 function ServiceSelectionStep({
-  services,
+  servicesWithDoctors,
   onSelect,
   selected,
 }: {
-  services: ServiceDocument[];
+  servicesWithDoctors: (ServiceDocument & { doctors: UserDocument[] })[];
   onSelect: (service: ServiceDocument) => void;
   selected: ServiceDocument | null;
 }) {
@@ -192,7 +215,7 @@ function ServiceSelectionStep({
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        {services.map((service) => (
+        {servicesWithDoctors.map((service) => (
           <Card
             key={service.id}
             className={`cursor-pointer transition hover:-translate-y-1 hover:shadow-lg ${
@@ -214,6 +237,19 @@ function ServiceSelectionStep({
                 </span>
                 <Badge>{service.duration} min</Badge>
               </div>
+              {service.doctors.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-primary/10">
+                  <p className="text-sm font-bold text-muted-foreground mb-2">Available with:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {service.doctors.map((doctor) => (
+                      <div key={doctor.id} className="flex items-center gap-2 text-sm text-primary">
+                        <User className="h-4 w-4" />
+                        <span>{doctor.displayName || "Doctor"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
