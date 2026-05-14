@@ -83,8 +83,8 @@ function Header({ user }: { user: any }) {
           ))}
         </div>
         <Button asChild size="default" className="min-h-11 px-5">
-          <Link href={user ? "/booking" : "#care"}>
-            {user ? "Book Now" : "Start Consultation"}
+          <Link href={user ? "/patient/dashboard" : "/auth/login"}>
+            {user ? "Go to Dashboard" : "Begin Consultation"}
           </Link>
         </Button>
       </nav>
@@ -110,8 +110,8 @@ function Hero({ user }: { user: any }) {
           </p>
           <div className="mt-9 flex flex-col gap-4 sm:flex-row">
             <Button asChild size="lg">
-              <Link href={user ? "/booking" : "#care"}>
-                {user ? "Book Now" : "Start Consultation"} <ArrowRight className="h-5 w-5" />
+              <Link href={user ? "/patient/dashboard" : "/auth/login"}>
+                {user ? "Go to Dashboard" : "Begin Consultation"} <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
@@ -320,7 +320,7 @@ function ServicesSection({ user }: { user: any }) {
                 <div className="mt-8 flex items-center justify-between gap-4 pt-6 border-t border-primary/10">
                   <span className="font-display text-2xl text-secondary">{service.price}</span>
                   <Button variant="outline" asChild>
-                    <Link href={user ? "/booking" : "/auth/login"}>Book</Link>
+                    <Link href={user ? "/patient/dashboard" : "/auth/login"}>Book</Link>
                   </Button>
                 </div>
               </Card>
@@ -431,8 +431,8 @@ function FinalCta({ user }: { user: any }) {
           your screens, routines, and comfort.
         </p>
         <Button asChild size="lg" variant="secondary" className="mt-9">
-          <Link href={user ? "/booking" : "/auth/login"}>
-            {user ? "Book Now" : "Begin Consultation"} <ArrowRight className="h-5 w-5" />
+          <Link href={user ? "/patient/dashboard" : "/auth/login"}>
+            {user ? "Go to Dashboard" : "Begin Consultation"} <ArrowRight className="h-5 w-5" />
           </Link>
         </Button>
       </AnimatedSection>
