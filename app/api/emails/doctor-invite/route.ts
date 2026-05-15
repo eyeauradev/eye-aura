@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send email using Resend
-    const { data, error } = await resend.emails.send({
+    const result = await resend.emails.send({
       from: "Eye Aura <onboarding@resend.dev>",
       to: email,
       subject: "You're invited to join Eye Aura as a Doctor",
@@ -208,17 +208,9 @@ export async function POST(request: NextRequest) {
       `,
     });
 
-    if (error) {
-      console.error("Resend API error:", error);
-      return NextResponse.json(
-        { error: "Failed to send email", details: error.message },
-        { status: 500 }
-      );
-    }
-
     // Return success response
     return NextResponse.json(
-      { success: true, message: "Email sent successfully", data },
+      { success: true, message: "Email sent successfully", data: result },
       { status: 200 }
     );
 
