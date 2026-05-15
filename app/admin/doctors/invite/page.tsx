@@ -82,7 +82,8 @@ export default function AdminDoctorInvitePage() {
         year: "numeric",
       });
 
-      // Send email
+      // Send email via server-side API route
+      // This avoids CORS issues and keeps the API key secure on the server
       await sendDoctorInviteEmail(formData.email, {
         doctorName: formData.doctorName,
         inviteLink,
@@ -91,7 +92,12 @@ export default function AdminDoctorInvitePage() {
 
       setSuccess(true);
     } catch (err: any) {
-      setError(err.message || "Failed to send invite");
+      // Provide more specific error messages
+      if (err.message.includes("Failed to send email")) {
+        setError("Failed to send invite email. Please try again or contact support.");
+      } else {
+        setError(err.message || "Failed to send invite");
+      }
     } finally {
       setLoading(false);
     }
