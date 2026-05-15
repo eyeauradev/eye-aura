@@ -492,20 +492,24 @@ Public website components check auth state via `useAuth()` hook:
 - `currency` (string) - Currency code
 - `duration` (number) - Duration in minutes
 - `suitableFor` (array) - Array of suitable conditions/symptoms
+- `doctorIds` (array) - Array of doctor user IDs who can provide this service
 - `isActive` (boolean) - Whether service is active
 - `createdAt` (timestamp) - Creation date
 - `updatedAt` (timestamp) - Last update date
 
 **Relationships**:
 - One-to-many with appointments
+- Many-to-many with users (doctors) via doctorIds
 
 **Role Access**:
 - Public read access
-- Admins can create/update/delete services
+- Admins can create/update/delete services and assign doctors
 
 **Business Rules**:
 - Only active services are bookable
 - Price and duration are fixed per service
+- Services can be assigned to multiple doctors
+- Patients can select from available doctors when booking
 
 ---
 
@@ -560,10 +564,10 @@ Public website components check auth state via `useAuth()` hook:
 #### `/patient/dashboard`
 - **Purpose**: Patient home dashboard
 - **Accessible Role**: patient
-- **Main Features**: Upcoming appointments, recent prescriptions, quick actions
-- **Data Dependencies**: Appointments, prescriptions, notifications
-- **Related Firestore Collections**: appointments, prescriptions, notifications
-- **Business Logic**: Fetch patient's appointments and prescriptions, display summary
+- **Main Features**: Upcoming appointments, recent prescriptions, available services with doctors, quick actions
+- **Data Dependencies**: Appointments, prescriptions, notifications, services, users
+- **Related Firestore Collections**: appointments, prescriptions, notifications, services, users
+- **Business Logic**: Fetch patient's appointments and prescriptions, display services with associated doctors
 
 #### `/patient/profile`
 - **Purpose**: Patient profile management
@@ -708,10 +712,10 @@ Public website components check auth state via `useAuth()` hook:
 #### `/booking`
 - **Purpose**: Booking flow entry
 - **Accessible Role**: patient (requires auth)
-- **Main Features**: Service selection
-- **Data Dependencies**: Services collection
-- **Related Firestore Collections**: services
-- **Business Logic**: Display available services
+- **Main Features**: Service selection with doctor assignment display, doctor selection, slot selection, notes, confirmation
+- **Data Dependencies**: Services collection, users collection (doctors)
+- **Related Firestore Collections**: services, users
+- **Business Logic**: Display available services with associated doctors, enable doctor selection
 
 #### `/booking/service/[serviceId]`
 - **Purpose**: Slot selection for service
@@ -774,10 +778,18 @@ Public website components check auth state via `useAuth()` hook:
 #### `/admin/services/create`
 - **Purpose**: Create new service
 - **Accessible Role**: admin
-- **Main Features**: Service creation form
-- **Data Dependencies**: Services collection
-- **Related Firestore Collections**: services
-- **Business Logic**: Create service document
+- **Main Features**: Service creation form with doctor assignment
+- **Data Dependencies**: Services collection, users collection (doctors)
+- **Related Firestore Collections**: services, users
+- **Business Logic**: Create service document, assign doctors via doctorIds array
+
+#### `/admin/services/[id]/edit`
+- **Purpose**: Edit service and assign doctors
+- **Accessible Role**: admin
+- **Main Features**: Service details editing, doctor assignment via checkboxes
+- **Data Dependencies**: Services collection, users collection (doctors)
+- **Related Firestore Collections**: services, users
+- **Business Logic**: Update service document, assign/remove doctors via doctorIds array
 
 #### `/admin/services/[id]`
 - **Purpose**: Service detail and management
@@ -1462,6 +1474,37 @@ This changelog section must be updated with every significant change to the plat
 
 ---
 
+#### 2026-05-15 - Service-Doctor Assignment & Index Updates
+
+**Changed**
+- Updated booking flow to include doctor selection step
+- Services now display associated doctors in patient dashboard and booking flow
+- Enhanced service creation page to include doctor assignment
+- Updated service converter to handle missing doctorIds with fallback to empty array
+
+**Added**
+- `doctorIds` field to ServiceDocument type to track which doctors can provide each service
+- `/admin/services/[id]/edit` - Edit service page with doctor assignment via checkboxes
+- Textarea UI component for multi-line input
+- Checkbox UI component for selection lists with Radix UI
+- Firestore indexes for doctor_slots (doctorId + startTime ASC)
+- Firestore indexes for appointments (status + scheduledFor ASC, doctorId + scheduledFor DESC)
+
+**Fixed**
+- Fixed doctor_slots index: changed startTime order from DESC to ASC to match query requirements
+- Fixed checkbox infinite loop in edit service page by using onCheckedChange instead of onChange
+- Fixed all TypeScript build errors including BookingState doctor field
+- Fixed missing doctorIds handling in admin and booking pages
+- Resolved Firestore index errors across all pages
+
+**Technical**
+- Updated BookingState interface to include doctor field
+- Updated service converter to safely handle doctorIds with fallback
+- Installed @radix-ui/react-checkbox package
+- All Firestore indexes now match actual query patterns used in application
+
+---
+
 ## 16. FINAL AUDIT
 
 ### Verification Checklist
@@ -1530,6 +1573,6 @@ This document must be updated whenever:
 - Type definitions change
 - Role logic changes
 
-**LAST UPDATED**: 2025-01-14
-**CURRENT PHASE**: Phase 6 Complete
-**NEXT PHASE**: Phase 7 - Admin Module
+**LAST UPDATED**: 2026-05-15
+**CURRENT PHASE**: Phase 7 Complete
+**NEXT PHASE**: Phase 8 - Payments & Automation

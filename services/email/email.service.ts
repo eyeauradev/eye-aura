@@ -1,6 +1,12 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "");
+const resendApiKey = process.env.NEXT_PUBLIC_RESEND_API_KEY;
+
+if (!resendApiKey) {
+  console.warn("NEXT_PUBLIC_RESEND_API_KEY not set. Email functionality will be disabled.");
+}
+
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 interface DoctorInviteEmailProps {
   doctorName: string;
@@ -12,6 +18,11 @@ export async function sendDoctorInviteEmail(
   email: string,
   props: DoctorInviteEmailProps
 ): Promise<void> {
+  if (!resend) {
+    console.warn("Resend API key not set. Skipping email send.");
+    return;
+  }
+
   try {
     await resend.emails.send({
       from: "Eye Aura <onboarding@resend.dev>",
