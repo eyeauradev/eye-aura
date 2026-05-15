@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { bookingService } from "@/services/booking/booking.service";
-import { servicesService, usersService } from "@/services/firestore";
-import type { ServiceDocument, DoctorSlotDocument, UserDocument } from "@/types/firestore";
+import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
+import { servicesService, usersService, doctorAvailabilityService } from "@/services/firestore";
+import type { ServiceDocument, UserDocument, DoctorAvailabilityDocument } from "@/types/firestore";
 import type { BookingState, BookingStep } from "@/types/booking";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +15,9 @@ import { ArrowRight, Calendar, Clock, Check, FileText, User, Star } from "lucide
 const STEPS: BookingStep[] = [
   { id: "service", title: "Choose Service", description: "Select your consultation type", completed: false },
   { id: "doctor", title: "Choose Doctor", description: "Select your preferred doctor", completed: false },
-  { id: "slot", title: "Choose Slot", description: "Pick a convenient time", completed: false },
+  { id: "time", title: "Choose Time", description: "Pick a convenient time", completed: false },
   { id: "notes", title: "Add Notes", description: "Share any concerns", completed: false },
-  { id: "confirm", title: "Confirm", description: "Review and book", completed: false },
+  { id: "confirm", title: "Submit Request", description: "Review and submit", completed: false },
 ];
 
 export default function BookingPage() {
@@ -34,7 +34,8 @@ export default function BookingPage() {
   });
   const [services, setServices] = useState<ServiceDocument[]>([]);
   const [servicesWithDoctors, setServicesWithDoctors] = useState<(ServiceDocument & { doctors: UserDocument[] })[]>([]);
-  const [availableSlots, setAvailableSlots] = useState<DoctorSlotDocument[]>([]);
+  const [selectedTime, setSelectedTime] = useState<Date | null>(null);
+  const [doctorAvailability, setDoctorAvailability] = useState<DoctorAvailabilityDocument[]>([]);
 
   useEffect(() => {
     loadServicesWithDoctors();
@@ -70,13 +71,22 @@ export default function BookingPage() {
     setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
   };
 
-  const handleDoctorSelect = (doctor: UserDocument) => {
+  const handleDoctorSelect = async (doctor: UserDocument) => {
     setState({ ...state, doctor });
+    
+    // Load doctor's availability
+    try {
+      const availability = await doctorAvailabilityService.getByDoctorId(doctor.id);
+      setDoctorAvailability(availability);
+    } catch (error) {
+      console.error("Failed to load doctor availability:", error);
+    }
+    
     setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
   };
 
-  const handleSlotSelect = (slot: DoctorSlotDocument) => {
-    setState({ ...state, slot });
+  const handleTimeSelect = (time: Date) => {
+    setSelectedTime(time);
     setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
   };
 
@@ -85,22 +95,22 @@ export default function BookingPage() {
   };
 
   const handleConfirm = async () => {
-    if (!state.service || !state.slot || !state.doctor || !user) return;
+    if (!state.service || !state.doctor || !selectedTime || !user) return;
 
     setState({ ...state, loading: true, error: null });
 
     try {
-      const appointment = await bookingService.initiateBooking(
-        {
-          serviceId: state.service.id,
-          slotId: state.slot.id,
-          notes: state.notes,
-        },
-        user.id,
-        state.doctor.id
-      );
+      // Create booking request instead of appointment
+      const bookingRequest = await bookingRequestsService.create({
+        patientId: user.id,
+        doctorId: state.doctor.id,
+        serviceId: state.service.id,
+        requestedTime: selectedTime,
+        status: "requested",
+        notes: state.notes,
+      });
 
-      router.push(`/booking/confirmation/${appointment.id}`);
+      router.push(`/booking/request-submitted/${bookingRequest.id}`);
     } catch (error: any) {
       setState({ ...state, loading: false, error: error.message });
     }
@@ -117,9 +127,9 @@ export default function BookingPage() {
       {/* Header */}
       <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <h1 className="font-display text-3xl text-primary sm:text-4xl">Book Consultation</h1>
+          <h1 className="font-display text-3xl text-primary sm:text-4xl">Request Consultation</h1>
           <p className="mt-2 text-base text-muted-foreground">
-            A calm, guided booking experience
+            Submit a booking request for doctor approval
           </p>
         </div>
       </div>
@@ -181,10 +191,10 @@ export default function BookingPage() {
         )}
 
         {state.currentStep === 2 && (
-          <SlotSelectionStep
-            availableSlots={availableSlots}
-            onSelect={handleSlotSelect}
-            selected={state.slot}
+          <TimeSelectionStep
+            doctorAvailability={doctorAvailability}
+            onSelect={handleTimeSelect}
+            selected={selectedTime}
             onBack={handleBack}
           />
         )}
@@ -202,7 +212,7 @@ export default function BookingPage() {
           <ConfirmationStep
             service={state.service}
             doctor={state.doctor}
-            slot={state.slot}
+            selectedTime={selectedTime}
             notes={state.notes}
             onConfirm={handleConfirm}
             onBack={handleBack}
@@ -353,24 +363,80 @@ function DoctorSelectionStep({
   );
 }
 
-function SlotSelectionStep({
-  availableSlots,
+function TimeSelectionStep({
+  doctorAvailability,
   onSelect,
   selected,
   onBack,
 }: {
-  availableSlots: DoctorSlotDocument[];
-  onSelect: (slot: DoctorSlotDocument) => void;
-  selected: DoctorSlotDocument | null;
+  doctorAvailability: DoctorAvailabilityDocument[];
+  onSelect: (time: Date) => void;
+  selected: Date | null;
   onBack: () => void;
 }) {
+  // Generate available time slots for the next 2 weeks
+  const generateTimeSlots = () => {
+    const slots: Date[] = [];
+    const today = new Date();
+    const twoWeeksLater = new Date();
+    twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
+
+    const dayMap: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+
+    let currentDate = new Date(today);
+    while (currentDate <= twoWeeksLater) {
+      const dayOfWeek = currentDate.getDay();
+      
+      // Find availability for this day
+      const dayName = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
+      const availability = doctorAvailability.find(a => a.dayOfWeek === dayName && !a.isOff);
+
+      if (availability && dayName) {
+        availability.timeRanges.forEach((range) => {
+          const [startHours, startMinutes] = range.startTime.split(":").map(Number);
+          const [endHours, endMinutes] = range.endTime.split(":").map(Number);
+
+          const startTime = new Date(currentDate);
+          startTime.setHours(startHours, startMinutes, 0, 0);
+
+          const endTime = new Date(currentDate);
+          endTime.setHours(endHours, endMinutes, 0, 0);
+
+          // Generate slots at the configured duration
+          let slotStart = new Date(startTime);
+          while (slotStart.getTime() + availability.duration * 60000 <= endTime.getTime()) {
+            // Only add slots that are in the future
+            if (slotStart > new Date()) {
+              slots.push(new Date(slotStart));
+            }
+            slotStart = new Date(slotStart.getTime() + availability.duration * 60000);
+          }
+        });
+      }
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return slots.slice(0, 50); // Limit to first 50 slots
+  };
+
+  const timeSlots = generateTimeSlots();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-2xl text-primary">Choose Your Time</h2>
           <p className="mt-2 text-base text-muted-foreground">
-            Select a convenient slot for your consultation
+            Select a convenient time for your consultation
           </p>
         </div>
         <Button variant="outline" onClick={onBack}>
@@ -378,32 +444,46 @@ function SlotSelectionStep({
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {availableSlots.map((slot) => (
-          <Card
-            key={slot.id}
-            className={`cursor-pointer transition hover:-translate-y-1 hover:shadow-lg ${
-              selected?.id === slot.id ? "border-secondary ring-2 ring-secondary/20" : ""
-            }`}
-            onClick={() => onSelect(slot)}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <Calendar className="h-5 w-5 text-secondary" />
-                <span className="text-sm font-bold text-primary">
-                  {slot.startTime.toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-secondary" />
-                <span className="font-display text-xl text-primary">
-                  {slot.startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {timeSlots.length === 0 ? (
+        <Card className="border-primary/10 bg-primary/5">
+          <CardContent className="p-8 text-center">
+            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-base text-muted-foreground mb-2">
+              No available time slots in the next 2 weeks
+            </p>
+            <p className="text-sm text-muted-foreground">
+              The doctor may have limited availability or be fully booked
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-3">
+          {timeSlots.map((time, index) => (
+            <Card
+              key={index}
+              className={`cursor-pointer transition hover:-translate-y-1 hover:shadow-lg ${
+                selected?.getTime() === time.getTime() ? "border-secondary ring-2 ring-secondary/20" : ""
+              }`}
+              onClick={() => onSelect(time)}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <Calendar className="h-5 w-5 text-secondary" />
+                  <span className="text-sm font-bold text-primary">
+                    {time.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-secondary" />
+                  <span className="font-display text-xl text-primary">
+                    {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -463,7 +543,7 @@ function NotesStep({
 function ConfirmationStep({
   service,
   doctor,
-  slot,
+  selectedTime,
   notes,
   onConfirm,
   onBack,
@@ -472,7 +552,7 @@ function ConfirmationStep({
 }: {
   service: ServiceDocument | null;
   doctor: UserDocument | null;
-  slot: DoctorSlotDocument | null;
+  selectedTime: Date | null;
   notes: string;
   onConfirm: () => void;
   onBack: () => void;
@@ -483,9 +563,9 @@ function ConfirmationStep({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-display text-2xl text-primary">Confirm Your Booking</h2>
+          <h2 className="font-display text-2xl text-primary">Submit Booking Request</h2>
           <p className="mt-2 text-base text-muted-foreground">
-            Review your details before confirming
+            Review your details before submitting
           </p>
         </div>
         <Button variant="outline" onClick={onBack}>
@@ -497,7 +577,7 @@ function ConfirmationStep({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Check className="h-5 w-5 text-secondary" />
-            Booking Summary
+            Request Summary
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -516,13 +596,13 @@ function ConfirmationStep({
 
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-xs font-bold text-muted-foreground mb-1">Date</p>
-              <p className="font-bold text-primary text-lg">{slot?.startTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</p>
+              <p className="text-xs font-bold text-muted-foreground mb-1">Requested Date</p>
+              <p className="font-bold text-primary text-lg">{selectedTime?.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</p>
             </div>
             <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-xs font-bold text-muted-foreground mb-1">Time</p>
+              <p className="text-xs font-bold text-muted-foreground mb-1">Requested Time</p>
               <p className="font-bold text-primary text-lg">
-                {slot?.startTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                {selectedTime?.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>
           </div>
@@ -545,6 +625,15 @@ function ConfirmationStep({
               <p className="text-base text-primary">{notes}</p>
             </div>
           )}
+
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
+            <p className="text-sm font-bold text-amber-800 mb-1">
+              ⚠️ Request Pending Approval
+            </p>
+            <p className="text-xs text-amber-700">
+              Your booking request will be reviewed by the doctor. You'll receive a notification once it's accepted or if a reschedule is needed.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -559,7 +648,7 @@ function ConfirmationStep({
           Back
         </Button>
         <Button onClick={onConfirm} size="lg" disabled={loading} className="min-w-[200px]">
-          {loading ? "Confirming..." : "Confirm Booking"}
+          {loading ? "Submitting..." : "Submit Request"}
         </Button>
       </div>
     </div>

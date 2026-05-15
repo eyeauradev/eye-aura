@@ -27,13 +27,15 @@ To provide accessible, premium digital eye care through a calm, operationally ef
 - Track patient consultation history and follow-ups
 
 ### Current Maturity Stage
-Phases 1-6 completed:
+Phases 1-8 completed:
 - ✅ Phase 1: Foundation (Next.js, TypeScript, Tailwind, components)
 - ✅ Phase 2: Public Website (homepage, services, navigation)
 - ✅ Phase 3: Auth & Backend (login, signup, middleware, roles)
 - ✅ Phase 4: Booking Engine (booking flow, slots, reschedule)
 - ✅ Phase 5: Patient Module (dashboard, appointments, prescriptions, support)
 - ✅ Phase 6: Doctor Module (dashboard, appointments, slots, patients, prescriptions)
+- ✅ Phase 7: Admin Module (doctor invites, service management, user management, analytics)
+- ✅ Phase 8: Scheduling System Refactor (request/approval system, weekly availability, smart slot generation, FullCalendar integration)
 
 ### Finalized Architecture Decisions
 - **NO Firebase Storage** - All data is structured Firestore data
@@ -299,8 +301,99 @@ Public website components check auth state via `useAuth()` hook:
 - Doctor can cancel confirmed appointments
 - Prescription can only be generated for completed appointments
 
+#### doctor_availability
+**Purpose**: Store doctor weekly availability configuration for smart slot generation
+
+**Key Fields**:
+- `id` (string) - Availability ID
+- `doctorId` (string) - Reference to users collection
+- `dayOfWeek` (string) - Day of week: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+- `isOff` (boolean) - Whether doctor is off on this day
+- `timeRanges` (array) - Array of time range objects
+  - `startTime` (string) - Start time in HH:MM format
+  - `endTime` (string) - End time in HH:MM format
+- `duration` (number) - Consultation duration in minutes
+- `createdAt` (timestamp) - Creation date
+- `updatedAt` (timestamp) - Last update date
+
+**Relationships**:
+- Many-to-one with users (doctor)
+
+**Role Access**:
+- Doctors can create/read/update/delete their own availability
+- Patients can read doctor availability
+- Admins can read all availability
+
+**Business Rules**:
+- Each day has at most one availability record per doctor
+- Time ranges cannot overlap on same day
+- Duration applies to all time ranges for that day
+- Used by smart slot generation to create available slots
+
+#### doctor_blocks
+**Purpose**: Store doctor blocked time ranges (vacations, breaks, unavailability)
+
+**Key Fields**:
+- `id` (string) - Block ID
+- `doctorId` (string) - Reference to users collection
+- `start` (timestamp) - Block start date/time
+- `end` (timestamp) - Block end date/time
+- `repeatWeekly` (boolean) - Whether block repeats weekly
+- `reason` (string, optional) - Reason for blocking
+- `createdAt` (timestamp) - Creation date
+- `updatedAt` (timestamp) - Last update date
+
+**Relationships**:
+- Many-to-one with users (doctor)
+
+**Role Access**:
+- Doctors can create/read/update/delete their own blocks
+- Patients can read doctor blocks
+- Admins can read all blocks
+
+**Business Rules**:
+- Blocks exclude time from availability
+- Overlapping blocks are allowed
+- Used by smart slot generation to exclude unavailable times
+
+#### booking_requests
+**Purpose**: Store patient booking requests for doctor approval
+
+**Key Fields**:
+- `id` (string) - Request ID
+- `patientId` (string) - Reference to users collection
+- `doctorId` (string) - Reference to users collection
+- `serviceId` (string) - Reference to services collection
+- `requestedTime` (timestamp) - Patient's requested time
+- `proposedTime` (timestamp, optional) - Doctor's proposed time (for reschedule)
+- `status` (string) - "requested" | "accepted" | "rejected" | "reschedule_requested" | "cancelled"
+- `notes` (string, optional) - Patient notes
+- `rejectionReason` (string, optional) - Reason for rejection
+- `rescheduleReason` (string, optional) - Reason for reschedule request
+- `appointmentId` (string, optional) - Reference to appointments collection when accepted
+- `createdAt` (timestamp) - Creation date
+- `updatedAt` (timestamp) - Last update date
+
+**Relationships**:
+- Many-to-one with users (patient)
+- Many-to-one with users (doctor)
+- Many-to-one with services
+- One-to-one with appointments (when accepted)
+
+**Role Access**:
+- Patients can create/read their own requests
+- Doctors can read/update requests directed to them
+- Admins can read all requests
+
+**Business Rules**:
+- Status transitions: requested → accepted → (appointment created) OR requested → rejected OR requested → reschedule_requested
+- Patients can cancel pending requests
+- Doctors can accept, reject, or propose reschedule
+- When accepted, appointment is created and linked
+- Reschedule requires patient approval
+
 #### doctor_slots
-**Purpose**: Store doctor availability slots for booking
+**Purpose**: Store doctor availability slots for booking (legacy - being replaced by availability-based system)
 
 **Key Fields**:
 - `id` (string) - Slot ID
@@ -327,6 +420,7 @@ Public website components check auth state via `useAuth()` hook:
 - Slots cannot overlap for same doctor
 - Booked slots cannot be modified
 - Blocked slots are not available for booking
+- **DEPRECATED**: Being replaced by doctor_availability + smart slot generation
 
 #### prescriptions
 **Purpose**: Store structured prescription data generated from consultations
@@ -633,6 +727,14 @@ Public website components check auth state via `useAuth()` hook:
 - **Related Firestore Collections**: notifications
 - **Business Logic**: Fetch notifications, update read status, delete notification
 
+#### `/patient/requests`
+- **Purpose**: Patient booking requests management
+- **Accessible Role**: patient
+- **Main Features**: View all booking requests, see status changes, respond to reschedule proposals
+- **Data Dependencies**: Booking requests collection
+- **Related Firestore Collections**: booking_requests
+- **Business Logic**: Fetch patient's requests, display status, handle reschedule responses
+
 ### DOCTOR ROUTES
 
 #### `/doctor/dashboard`
@@ -660,12 +762,28 @@ Public website components check auth state via `useAuth()` hook:
 - **Business Logic**: Fetch appointment, update status, add notes, create prescription
 
 #### `/doctor/slots`
-- **Purpose**: Doctor availability management
+- **Purpose**: Doctor availability management with FullCalendar integration
 - **Accessible Role**: doctor
-- **Main Features**: Create slots, block dates, edit/delete slots
-- **Data Dependencies**: Doctor slots collection
-- **Related Firestore Collections**: doctor_slots
-- **Business Logic**: Fetch doctor's slots, create/update/delete slots, prevent overlaps
+- **Main Features**: Calendar view of availability and blocks, block time ranges, delete blocks
+- **Data Dependencies**: Doctor availability collection, doctor blocks collection
+- **Related Firestore Collections**: doctor_availability, doctor_blocks
+- **Business Logic**: Display availability and blocks on FullCalendar, create/delete blocks
+
+#### `/doctor/schedule`
+- **Purpose**: Doctor weekly availability configuration
+- **Accessible Role**: doctor
+- **Main Features**: Configure weekly working hours, set off days, set consultation duration, copy schedule between days
+- **Data Dependencies**: Doctor availability collection
+- **Related Firestore Collections**: doctor_availability
+- **Business Logic**: Create/update/delete weekly availability configuration
+
+#### `/doctor/requests`
+- **Purpose**: Doctor booking request management
+- **Accessible Role**: doctor
+- **Main Features**: View pending requests, accept/reject/reschedule requests
+- **Data Dependencies**: Booking requests collection
+- **Related Firestore Collections**: booking_requests
+- **Business Logic**: Fetch pending requests, accept (create appointment), reject (with reason), propose reschedule
 
 #### `/doctor/patients`
 - **Purpose**: Doctor patient list
@@ -710,28 +828,20 @@ Public website components check auth state via `useAuth()` hook:
 ### BOOKING ROUTES
 
 #### `/booking`
-- **Purpose**: Booking flow entry
+- **Purpose**: Booking flow entry with request/approval system
 - **Accessible Role**: patient (requires auth)
-- **Main Features**: Service selection with doctor assignment display, doctor selection, slot selection, notes, confirmation
-- **Data Dependencies**: Services collection, users collection (doctors)
-- **Related Firestore Collections**: services, users
-- **Business Logic**: Display available services with associated doctors, enable doctor selection
+- **Main Features**: Multi-step wizard: service selection, doctor selection, time selection (from availability), notes, confirmation
+- **Data Dependencies**: Services collection, users collection (doctors), doctor availability collection
+- **Related Firestore Collections**: services, users, doctor_availability
+- **Business Logic**: Display services with doctors, load doctor availability, generate time slots, create booking request
 
-#### `/booking/service/[serviceId]`
-- **Purpose**: Slot selection for service
+#### `/booking/request-submitted/[id]`
+- **Purpose**: Booking request confirmation page
 - **Accessible Role**: patient
-- **Main Features**: Available slots display, date selection
-- **Data Dependencies**: Doctor slots, services
-- **Related Firestore Collections**: doctor_slots, services
-- **Business Logic**: Fetch available slots for service, filter by date
-
-#### `/booking/slot/[slotId]`
-- **Purpose**: Booking confirmation
-- **Accessible Role**: patient
-- **Main Features**: Appointment summary, confirmation
-- **Data Dependencies**: Doctor slots, appointments
-- **Related Firestore Collections**: doctor_slots, appointments
-- **Business Logic**: Create appointment, mark slot as booked
+- **Main Features**: Request submitted confirmation, next steps, what to expect
+- **Data Dependencies**: Booking requests collection
+- **Related Firestore Collections**: booking_requests
+- **Business Logic**: Display request details, explain approval process, provide navigation options
 
 ### ADMIN ROUTES
 
@@ -869,42 +979,63 @@ Public website components check auth state via `useAuth()` hook:
 
 ## 8. BUSINESS LOGIC FLOWS
 
-### BOOKING FLOW
+### BOOKING FLOW (NEW REQUEST/APPROVAL SYSTEM)
 
 **Patient selects service**
 1. Patient navigates to `/booking`
 2. Services fetched from `services` collection (filtered by `isActive: true`)
 3. Patient selects service
-4. Patient navigates to `/booking/service/[serviceId]`
+4. Patient navigates to next step
 
-**Selects slot**
-1. Doctor slots fetched from `doctor_slots` collection
-2. Filtered by:
-   - `isAvailable: true`
-   - `isBlocked: false`
-   - `startTime` in future
-   - `serviceId` matches selected service
-3. Slots displayed grouped by date
-4. Patient selects slot
-5. Patient navigates to `/booking/slot/[slotId]`
+**Selects doctor**
+1. Doctors fetched from `users` collection filtered by service.doctorIds
+2. Patient selects doctor
+3. Doctor availability fetched from `doctor_availability` collection
 
-**Makes payment** (placeholder)
-1. Payment details displayed
-2. Patient confirms payment (not implemented)
-3. Payment would be processed (future phase)
+**Selects time**
+1. Smart slot generation from doctor availability
+2. Time slots generated based on:
+   - Weekly availability configuration
+   - Blocked time ranges
+   - Existing appointments
+   - Consultation duration
+3. Patient selects preferred time
+4. Patient adds optional notes
+
+**Submits request**
+1. Booking request document created in `booking_requests` collection:
+   - `patientId`: current user ID
+   - `doctorId`: selected doctor
+   - `serviceId`: selected service
+   - `requestedTime`: selected time
+   - `status`: "requested"
+   - `notes`: patient notes (optional)
+2. Patient redirected to `/booking/request-submitted/[requestId]`
+
+**Doctor reviews request**
+1. Doctor sees pending requests in dashboard
+2. Doctor can accept, reject, or propose reschedule
+3. If accept: appointment created and linked to request
+4. If reject: rejection reason stored
+5. If reschedule: proposed time stored with reason
+
+**Patient notified**
+1. Patient sees request status in dashboard
+2. If accepted: appointment confirmed with details
+3. If rejected: rejection reason displayed
+4. If reschedule requested: proposed time displayed for approval
 
 **Appointment confirmed**
-1. Appointment document created in `appointments` collection:
-   - `patientId`: current user ID
-   - `doctorId`: from slot
-   - `serviceId`: selected service
-   - `slotId`: selected slot
-   - `status`: "pending"
-   - `scheduledFor`: slot startTime
-2. Slot updated:
-   - `isAvailable: false`
+1. When doctor accepts, appointment document created in `appointments` collection:
+   - `patientId`: from request
+   - `doctorId`: from request
+   - `serviceId`: from request
+   - `status`: "accepted"
+   - `scheduledFor`: requestedTime or proposedTime
+2. Request updated:
+   - `status`: "accepted"
    - `appointmentId`: new appointment ID
-3. Patient redirected to `/patient/appointments`
+3. Patient notified via notification system
 
 **Doctor consultation**
 1. Doctor views appointment in `/doctor/appointments/[id]`
@@ -915,6 +1046,14 @@ Public website components check auth state via `useAuth()` hook:
 **Prescription generated**
 1. Doctor navigates to `/doctor/prescriptions/create/[appointmentId]`
 2. Prescription created and linked to appointment
+
+### LEGACY BOOKING FLOW (DEPRECATED)
+
+**Direct slot booking has been replaced with request/approval system**
+- Previous flow used `doctor_slots` collection
+- Patients selected from pre-created slots
+- No approval process
+- This flow is deprecated but may still exist in codebase for backward compatibility
 
 ### PRESCRIPTION FLOW
 
@@ -1093,22 +1232,35 @@ Public website components check auth state via `useAuth()` hook:
 - Analytics dashboard
 - Public signup restricted to patient role only
 
+#### Phase 8 — Scheduling System Refactor
+- Request/approval booking system replacing direct slot booking
+- Weekly availability configuration for doctors
+- Smart slot generation from working hours
+- FullCalendar integration for doctor slots page
+- Doctor block time management
+- Booking requests service with accept/reject/reschedule
+- Updated doctor dashboard with pending requests
+- Updated patient dashboard with request status tracking
+- Switch UI component for toggles
+- Firestore collections: doctor_availability, doctor_blocks, booking_requests
+- Smart slot generator utility
+
 ### PENDING
 
-#### Phase 8 — Payments & Automation
+#### Phase 9 — Payments & Automation
 - Payment gateway integration
 - Automated reminders
 - Invoice generation
 - Payment history
 - Refund handling
 
-#### Phase 9 — Visual Acuity System
+#### Phase 10 — Visual Acuity System
 - Visual acuity test interface
 - Test result storage
 - Historical tracking
 - Comparison tools
 
-#### Phase 10 — Production Hardening
+#### Phase 11 — Production Hardening
 - Error monitoring
 - Performance optimization
 - Security hardening
@@ -1505,6 +1657,56 @@ This changelog section must be updated with every significant change to the plat
 
 ---
 
+#### 2026-05-16 - Phase 8 Scheduling System Refactor
+
+**Changed**
+- Refactored booking flow from direct slot booking to request/approval system
+- Updated booking page to use bookingRequestsService instead of bookingService
+- Changed step titles to reflect request/approval process
+- Updated ConfirmationStep to display requested time instead of specific slot
+- Updated doctor dashboard to show pending booking requests with accept/reject/reschedule actions
+- Updated patient dashboard to show booking requests with status tracking
+- Updated middleware for role-based authentication redirects
+- Marked doctor_slots collection as deprecated in favor of availability-based system
+
+**Added**
+- `/doctor/schedule` - Weekly availability configuration UI for doctors
+- `/doctor/requests` - Doctor booking request management page
+- `/patient/requests` - Patient booking requests management page
+- `/booking/request-submitted/[id]` - Booking request confirmation page
+- `doctor_availability` Firestore collection - Weekly availability configuration
+- `doctor_blocks` Firestore collection - Doctor blocked time ranges
+- `booking_requests` Firestore collection - Patient booking requests
+- `bookingRequestsService` - Service for booking requests CRUD operations
+- `doctorAvailabilityService` - Service for doctor availability CRUD operations
+- `doctorBlocksService` - Service for doctor blocks CRUD operations
+- `SlotGenerator` utility class - Smart slot generation from working hours
+- FullCalendar integration for doctor slots page with availability and blocks display
+- Switch UI component for toggles using Radix UI
+- TimeSelectionStep component - Time selection based on doctor availability
+- Request status badges and icons for tracking request lifecycle
+- Firestore indexes for new collections (doctor_availability, doctor_blocks, booking_requests)
+
+**Fixed**
+- Updated TypeScript types for new scheduling system (DoctorAvailabilityDocument, DoctorBlockDocument, BookingRequestDocument)
+- Added converters for new collection types
+- Fixed middleware role-based redirects for proper routing
+- Updated appointment status to include "accepted" for request-approved bookings
+
+**Technical**
+- Installed FullCalendar packages (@fullcalendar/react, @fullcalendar/daygrid, @fullcalendar/timegrid, @fullcalendar/interaction)
+- Installed @radix-ui/react-switch for Switch component
+- Created smart slot generation utility that considers availability, blocks, and existing appointments
+- Implemented request/approval workflow with status transitions (requested → accepted/rejected/reschedule_requested)
+- Updated dashboards to show real-time request status and pending actions
+
+**Breaking Changes**
+- Booking flow no longer uses direct slot selection - patients submit requests that require doctor approval
+- doctor_slots collection is deprecated - new system uses doctor_availability + smart generation
+- Appointment status now includes "accepted" in addition to existing statuses
+
+---
+
 ## 16. FINAL AUDIT
 
 ### Verification Checklist
@@ -1512,10 +1714,11 @@ This changelog section must be updated with every significant change to the plat
 #### All Routes Documented
 - ✅ Public routes: `/`, `/services`, `/services/[slug]`
 - ✅ Auth routes: `/auth/login`, `/auth/signup`
-- ✅ Patient routes: `/patient/dashboard`, `/patient/profile`, `/patient/appointments`, `/patient/appointments/[id]`, `/patient/prescriptions`, `/patient/prescriptions/[id]`, `/patient/support`, `/patient/support/[id]`, `/patient/notifications`
-- ✅ Doctor routes: `/doctor/dashboard`, `/doctor/appointments`, `/doctor/appointments/[id]`, `/doctor/slots`, `/doctor/patients`, `/doctor/patients/[id]`, `/doctor/prescriptions/create/[appointmentId]`, `/doctor/prescriptions/[id]`, `/doctor/profile`
-- ✅ Booking routes: `/booking`, `/booking/service/[serviceId]`, `/booking/slot/[slotId]`
-- ✅ Admin routes: Documented as pending (Phase 7)
+- ✅ Patient routes: `/patient/dashboard`, `/patient/profile`, `/patient/appointments`, `/patient/appointments/[id]`, `/patient/prescriptions`, `/patient/prescriptions/[id]`, `/patient/support`, `/patient/support/[id]`, `/patient/notifications`, `/patient/requests`
+- ✅ Doctor routes: `/doctor/dashboard`, `/doctor/appointments`, `/doctor/appointments/[id]`, `/doctor/slots`, `/doctor/schedule`, `/doctor/requests`, `/doctor/patients`, `/doctor/patients/[id]`, `/doctor/prescriptions/create/[appointmentId]`, `/doctor/prescriptions/[id]`, `/doctor/profile`
+- ✅ Booking routes: `/booking`, `/booking/request-submitted/[id]`
+- ✅ Admin routes: `/admin/dashboard`, `/admin/doctors`, `/admin/doctors/invite`, `/admin/doctors/[id]`, `/admin/services`, `/admin/services/create`, `/admin/services/[id]/edit`, `/admin/services/[id]`, `/admin/appointments`, `/admin/appointments/[id]`, `/admin/support`, `/admin/support/[id]`, `/admin/users`, `/admin/settings`, `/admin/analytics`
+- ✅ Invite routes: `/invite/[token]`
 
 #### All Roles Documented
 - ✅ patient role documented
@@ -1527,12 +1730,16 @@ This changelog section must be updated with every significant change to the plat
 #### All Collections Documented
 - ✅ users collection documented
 - ✅ appointments collection documented
-- ✅ doctor_slots collection documented
+- ✅ doctor_availability collection documented
+- ✅ doctor_blocks collection documented
+- ✅ booking_requests collection documented
+- ✅ doctor_slots collection documented (deprecated)
 - ✅ prescriptions collection documented
 - ✅ notifications collection documented
 - ✅ support_tickets collection documented
 - ✅ payments collection documented
 - ✅ services collection documented
+- ✅ doctor_invites collection documented
 
 #### All Flows Documented
 - ✅ Booking flow documented
@@ -1541,8 +1748,8 @@ This changelog section must be updated with every significant change to the plat
 - ✅ Support flow documented
 
 #### All Phases Documented
-- ✅ Phase 1-6 marked as completed
-- ✅ Phase 7-10 marked as pending
+- ✅ Phase 1-8 marked as completed
+- ✅ Phase 9-11 marked as pending
 - ✅ Phase descriptions provided
 
 #### No Outdated Upload/Storage Assumptions
@@ -1559,7 +1766,7 @@ This changelog section must be updated with every significant change to the plat
 - ✅ Architecture matches actual folder structure
 
 ### Conclusion
-This document accurately reflects the current state of the Eye Aura platform as of Phase 6 completion. All architectural decisions, business logic, and implementation details are documented for future reference by developers and AI systems.
+This document accurately reflects the current state of the Eye Aura platform as of Phase 8 completion. All architectural decisions, business logic, and implementation details are documented for future reference by developers and AI systems.
 
 ---
 
@@ -1573,6 +1780,6 @@ This document must be updated whenever:
 - Type definitions change
 - Role logic changes
 
-**LAST UPDATED**: 2026-05-15
-**CURRENT PHASE**: Phase 7 Complete
-**NEXT PHASE**: Phase 8 - Payments & Automation
+**LAST UPDATED**: 2026-05-16
+**CURRENT PHASE**: Phase 8 Complete
+**NEXT PHASE**: Phase 9 - Payments & Automation

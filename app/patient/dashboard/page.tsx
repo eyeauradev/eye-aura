@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
-import { Calendar, Clock, FileText, Plus, Video, ArrowRight, Droplets, Sun, Eye as EyeIcon, Heart, User, Star } from "lucide-react";
+import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
+import type { BookingRequestDocument } from "@/types/firestore";
+import { Calendar, Clock, FileText, Plus, Video, ArrowRight, Droplets, Sun, Eye as EyeIcon, Heart, User, Star, Bell, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +18,7 @@ export default function PatientDashboard() {
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [recentPrescriptions, setRecentPrescriptions] = useState<any[]>([]);
   const [servicesWithDoctors, setServicesWithDoctors] = useState<any[]>([]);
+  const [bookingRequests, setBookingRequests] = useState<BookingRequestDocument[]>([]);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -42,6 +45,10 @@ export default function PatientDashboard() {
         );
 
         setUpcomingAppointments(enrichedAppointments);
+
+        // Load booking requests
+        const requests = await bookingRequestsService.getByPatientId(user.id);
+        setBookingRequests(requests.slice(0, 5));
 
         // Load available services with doctors
         const allServices = await servicesService.getAll();
@@ -99,9 +106,29 @@ export default function PatientDashboard() {
   const statusConfig = {
     pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
     confirmed: { label: "Confirmed", color: "bg-green-100 text-green-800 border-green-200" },
+    accepted: { label: "Accepted", color: "bg-green-100 text-green-800 border-green-200" },
     in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800 border-blue-200" },
     completed: { label: "Completed", color: "bg-gray-100 text-gray-800 border-gray-200" },
     cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800 border-red-200" },
+    requested: { label: "Requested", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+    reschedule_requested: { label: "Reschedule Requested", color: "bg-orange-100 text-orange-800 border-orange-200" },
+    rejected: { label: "Rejected", color: "bg-red-100 text-red-800 border-red-200" },
+  };
+
+  const getRequestStatusIcon = (status: string) => {
+    switch (status) {
+      case "requested":
+        return <Clock className="h-5 w-5" />;
+      case "accepted":
+      case "confirmed":
+        return <CheckCircle2 className="h-5 w-5" />;
+      case "rejected":
+        return <XCircle className="h-5 w-5" />;
+      case "reschedule_requested":
+        return <AlertCircle className="h-5 w-5" />;
+      default:
+        return <Clock className="h-5 w-5" />;
+    }
   };
 
   if (loading) {
@@ -132,7 +159,7 @@ export default function PatientDashboard() {
             <Link href="/booking">
               <Button size="lg" className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                Book Appointment
+                Request Consultation
               </Button>
             </Link>
           </div>
@@ -144,6 +171,84 @@ export default function PatientDashboard() {
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Booking Requests */}
+              {bookingRequests.length > 0 && (
+                <Card className="border-amber-200 bg-amber-50">
+                  <CardHeader className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <Bell className="h-5 w-5 text-amber-600" />
+                        Booking Requests
+                      </CardTitle>
+                      <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+                        {bookingRequests.length}
+                      </Badge>
+                    </div>
+                    <Link href="/patient/requests">
+                      <Button variant="ghost" className="flex items-center gap-2">
+                        View All
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {bookingRequests.slice(0, 3).map((request) => (
+                        <div
+                          key={request.id}
+                          className="flex items-start gap-4 p-4 rounded-2xl bg-white/50 border border-amber-200"
+                        >
+                          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-600">
+                            {getRequestStatusIcon(request.status)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4 mb-2">
+                              <div>
+                                <p className="font-bold text-primary">Request #{request.id.slice(-6)}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Requested: {new Date(request.requestedTime).toLocaleString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                              <Badge className={statusConfig[request.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
+                                {statusConfig[request.status as keyof typeof statusConfig]?.label || request.status}
+                              </Badge>
+                            </div>
+                            {request.status === "reschedule_requested" && request.proposedTime && (
+                              <div className="flex items-center gap-2 text-sm text-amber-700 mt-2">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>
+                                  Doctor proposed: {new Date(request.proposedTime).toLocaleString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            )}
+                            {request.rejectionReason && (
+                              <p className="text-sm text-red-600 mt-2">
+                                Reason: {request.rejectionReason}
+                              </p>
+                            )}
+                            {request.rescheduleReason && (
+                              <p className="text-sm text-orange-600 mt-2">
+                                Reason: {request.rescheduleReason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Upcoming Appointments */}
               <Card className="border-primary/10">
                 <CardHeader className="flex items-center justify-between">
@@ -208,7 +313,7 @@ export default function PatientDashboard() {
                           You don't have any upcoming appointments
                         </p>
                         <Link href="/booking">
-                          <Button>Book Your First Appointment</Button>
+                          <Button>Request Your First Consultation</Button>
                         </Link>
                       </CardContent>
                     </Card>
@@ -316,9 +421,17 @@ export default function PatientDashboard() {
                   <Link href="/booking" className="block">
                     <Button variant="outline" size="lg" className="w-full justify-start">
                       <Plus className="h-5 w-5 mr-3" />
-                      Book Appointment
+                      Request Consultation
                     </Button>
                   </Link>
+                  {bookingRequests.length > 0 && (
+                    <Link href="/patient/requests" className="block">
+                      <Button variant="outline" size="lg" className="w-full justify-start">
+                        <Bell className="h-5 w-5 mr-3" />
+                        My Requests
+                      </Button>
+                    </Link>
+                  )}
                   <Link href="/patient/appointments" className="block">
                     <Button variant="outline" size="lg" className="w-full justify-start">
                       <Calendar className="h-5 w-5 mr-3" />
@@ -333,7 +446,7 @@ export default function PatientDashboard() {
                   </Link>
                   <Link href="/patient/profile" className="block">
                     <Button variant="outline" size="lg" className="w-full justify-start">
-                      <FileText className="h-5 w-5 mr-3" />
+                      <User className="h-5 w-5 mr-3" />
                       My Profile
                     </Button>
                   </Link>

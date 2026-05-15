@@ -124,6 +124,41 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Doctor Availability Collection
+    match /doctor_availability/{availabilityId} {
+      allow read: if true;
+      
+      allow create: if isDoctorOrAdmin()
+        && request.resource.data.doctorId == request.auth.uid;
+      
+      allow update: if isOwner(resource.data.doctorId) || isAdmin();
+      allow delete: if isOwner(resource.data.doctorId) || isAdmin();
+    }
+
+    // Doctor Blocks Collection
+    match /doctor_blocks/{blockId} {
+      allow read: if true;
+      
+      allow create: if isDoctorOrAdmin()
+        && request.resource.data.doctorId == request.auth.uid;
+      
+      allow update: if isOwner(resource.data.doctorId) || isAdmin();
+      allow delete: if isOwner(resource.data.doctorId) || isAdmin();
+    }
+
+    // Booking Requests Collection
+    match /booking_requests/{requestId} {
+      allow read: if isOwner(resource.data.patientId)
+        || isOwner(resource.data.doctorId)
+        || isAdmin();
+      
+      allow create: if signedIn()
+        && request.resource.data.patientId == request.auth.uid;
+      
+      allow update: if isOwner(resource.data.doctorId) || isAdmin();
+      allow delete: if isOwner(resource.data.patientId) || isAdmin();
+    }
+
     // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;

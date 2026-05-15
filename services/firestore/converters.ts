@@ -14,6 +14,9 @@ import type {
   SupportTicketDocument,
   ServiceDocument,
   DoctorInviteDocument,
+  DoctorAvailabilityDocument,
+  DoctorBlockDocument,
+  BookingRequestDocument,
 } from "@/types/firestore";
 
 // Timestamp converter helpers
@@ -245,6 +248,81 @@ export const paymentConverter = {
       refundedAt: data.refundedAt?.toDate(),
       createdAt: data.createdAt?.toDate(),
       updatedAt: data.updatedAt?.toDate(),
+    };
+  },
+};
+
+// Doctor Availability converter (New Scheduling System)
+export const doctorAvailabilityConverter = {
+  toFirestore: (availability: DoctorAvailabilityDocument): DocumentData => ({
+    ...availability,
+    createdAt: toTimestamp(availability.createdAt),
+    updatedAt: toTimestamp(availability.updatedAt),
+  }),
+  fromFirestore: (snapshot: QueryDocumentSnapshot): DoctorAvailabilityDocument => {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      doctorId: data.doctorId,
+      dayOfWeek: data.dayOfWeek,
+      timeRanges: data.timeRanges || [],
+      duration: data.duration || 30,
+      isOff: data.isOff || false,
+      createdAt: fromTimestamp(data.createdAt),
+      updatedAt: fromTimestamp(data.updatedAt),
+    };
+  },
+};
+
+// Doctor Block converter (New Scheduling System)
+export const doctorBlockConverter = {
+  toFirestore: (block: DoctorBlockDocument): DocumentData => ({
+    ...block,
+    start: toTimestamp(block.start),
+    end: toTimestamp(block.end),
+    createdAt: toTimestamp(block.createdAt),
+    updatedAt: toTimestamp(block.updatedAt),
+  }),
+  fromFirestore: (snapshot: QueryDocumentSnapshot): DoctorBlockDocument => {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      doctorId: data.doctorId,
+      start: fromTimestamp(data.start),
+      end: fromTimestamp(data.end),
+      reason: data.reason,
+      repeatWeekly: data.repeatWeekly || false,
+      createdAt: fromTimestamp(data.createdAt),
+      updatedAt: fromTimestamp(data.updatedAt),
+    };
+  },
+};
+
+// Booking Request converter (New Scheduling System)
+export const bookingRequestConverter = {
+  toFirestore: (request: BookingRequestDocument): DocumentData => ({
+    ...request,
+    requestedTime: toTimestamp(request.requestedTime),
+    proposedTime: request.proposedTime ? toTimestamp(request.proposedTime) : null,
+    createdAt: toTimestamp(request.createdAt),
+    updatedAt: toTimestamp(request.updatedAt),
+  }),
+  fromFirestore: (snapshot: QueryDocumentSnapshot): BookingRequestDocument => {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      patientId: data.patientId,
+      doctorId: data.doctorId,
+      serviceId: data.serviceId,
+      requestedTime: fromTimestamp(data.requestedTime),
+      proposedTime: data.proposedTime ? fromTimestamp(data.proposedTime) : undefined,
+      status: data.status,
+      notes: data.notes,
+      rejectionReason: data.rejectionReason,
+      rescheduleReason: data.rescheduleReason,
+      createdAt: fromTimestamp(data.createdAt),
+      updatedAt: fromTimestamp(data.updatedAt),
+      appointmentId: data.appointmentId,
     };
   },
 };

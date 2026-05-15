@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService } from "@/services/firestore";
-import type { AppointmentDocument } from "@/types/firestore";
-import { Calendar, Clock, Users, FileText, Settings, ArrowRight, Video, CheckCircle2 } from "lucide-react";
+import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
+import type { AppointmentDocument, BookingRequestDocument } from "@/types/firestore";
+import { Calendar, Clock, Users, FileText, Settings, ArrowRight, Video, CheckCircle2, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +17,12 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [todayAppointments, setTodayAppointments] = useState<AppointmentDocument[]>([]);
   const [followUpAppointments, setFollowUpAppointments] = useState<AppointmentDocument[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<BookingRequestDocument[]>([]);
   const [stats, setStats] = useState({
     totalUpcoming: 0,
     completedToday: 0,
     pendingPrescriptions: 0,
+    pendingRequests: 0,
   });
 
   useEffect(() => {
@@ -46,9 +49,12 @@ export default function DoctorDashboard() {
         // Filter follow-up appointments
         const followUpAppts = allAppointments.filter(apt => apt.followUpRequired);
 
+        // Get pending booking requests
+        const requests = await bookingRequestsService.getByDoctorIdAndStatus(user.id, "requested");
+
         // Calculate stats
         const upcoming = allAppointments.filter(apt => 
-          apt.status === "pending" || apt.status === "confirmed"
+          apt.status === "pending" || apt.status === "confirmed" || apt.status === "accepted"
         ).length;
 
         const completed = todayAppts.filter(apt => 
@@ -62,10 +68,12 @@ export default function DoctorDashboard() {
 
         setTodayAppointments(todayAppts);
         setFollowUpAppointments(followUpAppts);
+        setPendingRequests(requests);
         setStats({
           totalUpcoming: upcoming,
           completedToday: completed,
           pendingPrescriptions,
+          pendingRequests: requests.length,
         });
       } catch (error) {
         console.error("Error loading dashboard data:", error);
@@ -103,15 +111,45 @@ export default function DoctorDashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "confirmed":
+      case "accepted":
         return "bg-green-100 text-green-800 border-green-200";
       case "pending":
+      case "requested":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "completed":
         return "bg-blue-100 text-blue-800 border-blue-200";
       case "cancelled":
+      case "rejected":
         return "bg-red-100 text-red-800 border-red-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      await bookingRequestsService.acceptRequest(requestId);
+      // Reload requests
+      const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "requested");
+      setPendingRequests(requests);
+      setStats(prev => ({ ...prev, pendingRequests: requests.length }));
+    } catch (error) {
+      console.error("Error accepting request:", error);
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    const reason = prompt("Please provide a reason for rejecting this request:");
+    if (!reason) return;
+
+    try {
+      await bookingRequestsService.rejectRequest(requestId, reason);
+      // Reload requests
+      const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "requested");
+      setPendingRequests(requests);
+      setStats(prev => ({ ...prev, pendingRequests: requests.length }));
+    } catch (error) {
+      console.error("Error rejecting request:", error);
     }
   };
 
@@ -157,6 +195,14 @@ export default function DoctorDashboard() {
             <div className="text-3xl font-bold text-primary">{stats.completedToday}</div>
           </CardContent>
         </Card>
+        <Card className={`border-primary/10 bg-white/50 ${stats.pendingRequests > 0 ? "ring-2 ring-amber-400" : ""}`}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-primary">{stats.pendingRequests}</div>
+          </CardContent>
+        </Card>
         <Card className="border-primary/10 bg-white/50">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Pending Prescriptions</CardTitle>
@@ -165,15 +211,74 @@ export default function DoctorDashboard() {
             <div className="text-3xl font-bold text-primary">{stats.pendingPrescriptions}</div>
           </CardContent>
         </Card>
-        <Card className="border-primary/10 bg-white/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Follow-Ups</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-primary">{followUpAppointments.length}</div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Pending Booking Requests */}
+      {pendingRequests.length > 0 && (
+        <SectionContainer>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <h2 className="font-display text-2xl text-primary">Pending Booking Requests</h2>
+              <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+                {pendingRequests.length} new
+              </Badge>
+            </div>
+            <Link href="/doctor/requests">
+              <Button variant="outline">View All</Button>
+            </Link>
+          </div>
+
+          <div className="grid gap-4">
+            {pendingRequests.slice(0, 3).map((request) => (
+              <Card key={request.id} className="border-amber-200 bg-amber-50">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                          <Bell className="h-6 w-6 text-amber-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-primary">Patient ID: {request.patientId}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Requested: {new Date(request.requestedTime).toLocaleString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      {request.notes && (
+                        <p className="text-sm text-muted-foreground mt-2 italic">
+                          "{request.notes}"
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => handleAcceptRequest(request.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Accept
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleRejectRequest(request.id)}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </SectionContainer>
+      )}
 
       {/* Today's Consultations */}
       <SectionContainer>
@@ -306,11 +411,11 @@ export default function DoctorDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-primary" />
+                    <Calendar className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium text-primary">Manage Slots</p>
-                    <p className="text-sm text-muted-foreground">Configure your availability</p>
+                    <p className="font-medium text-primary">Calendar</p>
+                    <p className="text-sm text-muted-foreground">View your schedule</p>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
                 </div>
@@ -318,16 +423,52 @@ export default function DoctorDashboard() {
             </Card>
           </Link>
 
+          <Link href="/doctor/schedule">
+            <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-primary">Edit Schedule</p>
+                    <p className="text-sm text-muted-foreground">Configure weekly availability</p>
+                  </div>
+                  <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {pendingRequests.length > 0 && (
+            <Link href="/doctor/requests">
+              <Card className="border-amber-200 bg-amber-50 hover:border-amber-300 transition cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                      <Bell className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-primary">Review Requests</p>
+                      <p className="text-sm text-muted-foreground">{pendingRequests.length} pending</p>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+
           <Link href="/doctor/appointments">
             <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Calendar className="h-6 w-6 text-primary" />
+                    <Users className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium text-primary">Today's Appointments</p>
-                    <p className="text-sm text-muted-foreground">View all scheduled consultations</p>
+                    <p className="font-medium text-primary">All Appointments</p>
+                    <p className="text-sm text-muted-foreground">View scheduled consultations</p>
                   </div>
                   <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
                 </div>

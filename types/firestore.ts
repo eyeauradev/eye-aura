@@ -15,6 +15,10 @@ export interface UserDocument {
 
 // Appointments Collection
 export type AppointmentStatus = 
+  | "requested"
+  | "accepted"
+  | "reschedule_requested"
+  | "rejected"
   | "pending"
   | "confirmed"
   | "in_progress"
@@ -215,4 +219,66 @@ export interface PaymentDocument {
   completedAt?: Date;
   refundedAt?: Date;
   refundReason?: string;
+}
+
+// Doctor Availability Collection (New Scheduling System)
+export type DayOfWeek = 
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
+
+export interface TimeRange {
+  startTime: string; // HH:mm format, e.g., "09:00"
+  endTime: string;   // HH:mm format, e.g., "17:00"
+}
+
+export interface DoctorAvailabilityDocument {
+  id: string;
+  doctorId: string;
+  dayOfWeek: DayOfWeek;
+  timeRanges: TimeRange[]; // Multiple time ranges per day
+  duration: number; // Consultation duration in minutes
+  isOff: boolean; // If true, entire day is marked as off
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Doctor Blocks Collection (New Scheduling System)
+export interface DoctorBlockDocument {
+  id: string;
+  doctorId: string;
+  start: Date; // Block start datetime
+  end: Date;   // Block end datetime
+  reason: string; // e.g., "lunch break", "emergency", "vacation"
+  repeatWeekly?: boolean; // If true, block repeats every week
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Booking Requests Collection (New Scheduling System)
+export type BookingRequestStatus = 
+  | "requested"
+  | "accepted"
+  | "reschedule_requested"
+  | "rejected"
+  | "cancelled";
+
+export interface BookingRequestDocument {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  serviceId: string;
+  requestedTime: Date; // Patient's preferred time
+  proposedTime?: Date; // Doctor's proposed time (for reschedule)
+  status: BookingRequestStatus;
+  notes?: string; // Patient's notes
+  rejectionReason?: string; // Reason for rejection
+  rescheduleReason?: string; // Reason for reschedule request
+  createdAt: Date;
+  updatedAt: Date;
+  appointmentId?: string; // Once converted to appointment
 }

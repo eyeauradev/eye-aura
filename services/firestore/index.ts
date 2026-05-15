@@ -5,6 +5,8 @@ import { prescriptionsService } from "./prescriptions.service";
 import { supportTicketsService } from "./support-tickets.service";
 import { servicesService } from "./services.service";
 import { doctorInvitesService } from "./doctor-invites.service";
+import { doctorAvailabilityService } from "./doctor-availability.service";
+import { doctorBlocksService } from "./doctor-blocks.service";
 
 export {
   usersService,
@@ -14,4 +16,6 @@ export {
   supportTicketsService,
   servicesService,
   doctorInvitesService,
+  doctorAvailabilityService,
+  doctorBlocksService,
 };
