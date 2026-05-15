@@ -25,8 +25,9 @@ export default function AdminServicesPage() {
         const allServices = await servicesService.getAll();
         const servicesWithDoctors = await Promise.all(
           allServices.map(async (service) => {
+            const doctorIds = service.doctorIds || [];
             const doctors = await Promise.all(
-              service.doctorIds.map((doctorId) => usersService.getById(doctorId))
+              doctorIds.map((doctorId) => usersService.getById(doctorId))
             );
             return { ...service, doctors: doctors.filter((d) => d !== null) as UserDocument[] };
           })

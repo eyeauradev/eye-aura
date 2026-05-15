@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
-import { Calendar, Clock, FileText, Plus, Video, ArrowRight, Droplets, Sun, Eye as EyeIcon, Heart } from "lucide-react";
+import { Calendar, Clock, FileText, Plus, Video, ArrowRight, Droplets, Sun, Eye as EyeIcon, Heart, User, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [recentPrescriptions, setRecentPrescriptions] = useState<any[]>([]);
+  const [servicesWithDoctors, setServicesWithDoctors] = useState<any[]>([]);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -41,6 +42,20 @@ export default function PatientDashboard() {
         );
 
         setUpcomingAppointments(enrichedAppointments);
+
+        // Load available services with doctors
+        const allServices = await servicesService.getAll();
+        const activeServices = allServices.filter((s) => s.isActive !== false);
+        const servicesWithDoctorsData = await Promise.all(
+          activeServices.map(async (service) => {
+            const doctorIds = service.doctorIds || [];
+            const doctors = await Promise.all(
+              doctorIds.map((doctorId) => usersService.getById(doctorId))
+            );
+            return { ...service, doctors: doctors.filter((d) => d !== null) };
+          })
+        );
+        setServicesWithDoctors(servicesWithDoctorsData);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
@@ -195,6 +210,69 @@ export default function PatientDashboard() {
                         <Link href="/booking">
                           <Button>Book Your First Appointment</Button>
                         </Link>
+                      </CardContent>
+                    </Card>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Available Services */}
+              <Card className="border-primary/10">
+                <CardHeader className="flex items-center justify-between">
+                  <CardTitle>Available Services</CardTitle>
+                  <Link href="/booking">
+                    <Button variant="ghost" className="flex items-center gap-2">
+                      Book Now
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  {servicesWithDoctors.length > 0 ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {servicesWithDoctors.slice(0, 4).map((service) => (
+                        <Link key={service.id} href="/booking">
+                          <Card className="border-primary/10 hover:border-secondary/30 transition hover:-translate-y-1 hover:shadow-lg cursor-pointer h-full">
+                            <CardContent className="p-5">
+                              <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-accent/35 text-primary">
+                                <FileText className="h-6 w-6" />
+                              </div>
+                              <h3 className="font-bold text-primary mb-2">{service.title}</h3>
+                              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{service.description}</p>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="font-display text-lg text-secondary">
+                                  {service.currency} {service.price}
+                                </span>
+                                <Badge className="bg-secondary/10 text-secondary">{service.duration} min</Badge>
+                              </div>
+                              {service.doctors && service.doctors.length > 0 && (
+                                <div className="pt-3 border-t border-primary/10">
+                                  <p className="text-xs font-bold text-muted-foreground mb-2">Available with:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {service.doctors.slice(0, 3).map((doctor: any) => (
+                                      <div key={doctor.id} className="flex items-center gap-1.5 text-xs text-primary bg-primary/5 px-2 py-1 rounded-full">
+                                        <User className="h-3 w-3" />
+                                        <span className="truncate max-w-[100px]">{doctor.displayName || "Doctor"}</span>
+                                      </div>
+                                    ))}
+                                    {service.doctors.length > 3 && (
+                                      <span className="text-xs text-muted-foreground">+{service.doctors.length - 3} more</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card className="border-primary/10 bg-primary/5">
+                      <CardContent className="p-8 text-center">
+                        <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-base text-muted-foreground mb-4">
+                          No services available at the moment
+                        </p>
                       </CardContent>
                     </Card>
                   )}

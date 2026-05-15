@@ -1,4 +1,4 @@
-import type { ServiceDocument, DoctorSlotDocument } from "./firestore";
+import type { ServiceDocument, DoctorSlotDocument, UserDocument } from "./firestore";
 
 export interface BookingFormData {
   serviceId: string;
@@ -16,6 +16,7 @@ export interface BookingStep {
 export interface BookingState {
   currentStep: number;
   service: ServiceDocument | null;
+  doctor: UserDocument | null;
   slot: DoctorSlotDocument | null;
   notes: string;
   loading: boolean;

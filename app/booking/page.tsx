@@ -10,10 +10,11 @@ import type { BookingState, BookingStep } from "@/types/booking";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Calendar, Clock, Check, FileText, User } from "lucide-react";
+import { ArrowRight, Calendar, Clock, Check, FileText, User, Star } from "lucide-react";
 
 const STEPS: BookingStep[] = [
   { id: "service", title: "Choose Service", description: "Select your consultation type", completed: false },
+  { id: "doctor", title: "Choose Doctor", description: "Select your preferred doctor", completed: false },
   { id: "slot", title: "Choose Slot", description: "Pick a convenient time", completed: false },
   { id: "notes", title: "Add Notes", description: "Share any concerns", completed: false },
   { id: "confirm", title: "Confirm", description: "Review and book", completed: false },
@@ -25,6 +26,7 @@ export default function BookingPage() {
   const [state, setState] = useState<BookingState>({
     currentStep: 0,
     service: null,
+    doctor: null,
     slot: null,
     notes: "",
     loading: false,
@@ -43,8 +45,9 @@ export default function BookingPage() {
       const allServices = await servicesService.getAll();
       const servicesWithDoctorsData = await Promise.all(
         allServices.map(async (service) => {
+          const doctorIds = service.doctorIds || [];
           const doctors = await Promise.all(
-            service.doctorIds.map((doctorId) => usersService.getById(doctorId))
+            doctorIds.map((doctorId) => usersService.getById(doctorId))
           );
           return { ...service, doctors: doctors.filter((d) => d !== null) as UserDocument[] };
         })
@@ -63,7 +66,12 @@ export default function BookingPage() {
   }
 
   const handleServiceSelect = (service: ServiceDocument) => {
-    setState({ ...state, service });
+    setState({ ...state, service, doctor: null });
+    setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
+  };
+
+  const handleDoctorSelect = (doctor: UserDocument) => {
+    setState({ ...state, doctor });
     setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
   };
 
@@ -77,7 +85,7 @@ export default function BookingPage() {
   };
 
   const handleConfirm = async () => {
-    if (!state.service || !state.slot || !user) return;
+    if (!state.service || !state.slot || !state.doctor || !user) return;
 
     setState({ ...state, loading: true, error: null });
 
@@ -89,10 +97,10 @@ export default function BookingPage() {
           notes: state.notes,
         },
         user.id,
-        "default-doctor-id" // Would be dynamic in production
+        state.doctor.id
       );
 
-      router.push(`/appointments/${appointment.id}`);
+      router.push(`/booking/confirmation/${appointment.id}`);
     } catch (error: any) {
       setState({ ...state, loading: false, error: error.message });
     }
@@ -163,6 +171,16 @@ export default function BookingPage() {
         )}
 
         {state.currentStep === 1 && (
+          <DoctorSelectionStep
+            service={state.service}
+            servicesWithDoctors={servicesWithDoctors}
+            onSelect={handleDoctorSelect}
+            selected={state.doctor}
+            onBack={handleBack}
+          />
+        )}
+
+        {state.currentStep === 2 && (
           <SlotSelectionStep
             availableSlots={availableSlots}
             onSelect={handleSlotSelect}
@@ -171,7 +189,7 @@ export default function BookingPage() {
           />
         )}
 
-        {state.currentStep === 2 && (
+        {state.currentStep === 3 && (
           <NotesStep
             notes={state.notes}
             onChange={handleNotesChange}
@@ -180,9 +198,10 @@ export default function BookingPage() {
           />
         )}
 
-        {state.currentStep === 3 && (
+        {state.currentStep === 4 && (
           <ConfirmationStep
             service={state.service}
+            doctor={state.doctor}
             slot={state.slot}
             notes={state.notes}
             onConfirm={handleConfirm}
@@ -254,6 +273,82 @@ function ServiceSelectionStep({
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DoctorSelectionStep({
+  service,
+  servicesWithDoctors,
+  onSelect,
+  selected,
+  onBack,
+}: {
+  service: ServiceDocument | null;
+  servicesWithDoctors: (ServiceDocument & { doctors: UserDocument[] })[];
+  onSelect: (doctor: UserDocument) => void;
+  selected: UserDocument | null;
+  onBack: () => void;
+}) {
+  const serviceWithDoctors = servicesWithDoctors.find(s => s.id === service?.id);
+  const doctors = serviceWithDoctors?.doctors || [];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-2xl text-primary">Choose Your Doctor</h2>
+          <p className="mt-2 text-base text-muted-foreground">
+            Select a doctor for your {service?.title}
+          </p>
+        </div>
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+      </div>
+
+      {doctors.length === 0 ? (
+        <Card className="border-primary/10 bg-primary/5">
+          <CardContent className="p-8 text-center">
+            <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-base text-muted-foreground mb-2">
+              No doctors available for this service yet
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Please contact support or try a different service
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {doctors.map((doctor) => (
+            <Card
+              key={doctor.id}
+              className={`cursor-pointer transition hover:-translate-y-1 hover:shadow-lg ${
+                selected?.id === doctor.id ? "border-secondary ring-2 ring-secondary/20" : ""
+              }`}
+              onClick={() => onSelect(doctor)}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-14 w-14 rounded-full bg-secondary/15 flex items-center justify-center text-secondary shrink-0">
+                    {doctor.displayName?.charAt(0).toUpperCase() || "D"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-primary text-lg">{doctor.displayName || "Doctor"}</h3>
+                    <p className="text-sm text-muted-foreground">{doctor.email}</p>
+                    <div className="mt-3 flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-secondary text-secondary" />
+                      <span className="text-sm font-bold text-primary">4.9</span>
+                      <span className="text-xs text-muted-foreground">(120 reviews)</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -367,6 +462,7 @@ function NotesStep({
 
 function ConfirmationStep({
   service,
+  doctor,
   slot,
   notes,
   onConfirm,
@@ -375,6 +471,7 @@ function ConfirmationStep({
   error,
 }: {
   service: ServiceDocument | null;
+  doctor: UserDocument | null;
   slot: DoctorSlotDocument | null;
   notes: string;
   onConfirm: () => void;
@@ -396,39 +493,56 @@ function ConfirmationStep({
         </Button>
       </div>
 
-      <Card>
+      <Card className="border-primary/10 bg-gradient-to-br from-white/50 to-white/30">
         <CardHeader>
-          <CardTitle>Booking Summary</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Check className="h-5 w-5 text-secondary" />
+            Booking Summary
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between border-b border-primary/10 pb-4">
-            <span className="text-sm font-bold text-muted-foreground">Service</span>
-            <span className="font-bold text-primary">{service?.title}</span>
+        <CardContent className="space-y-6">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+              <p className="text-xs font-bold text-muted-foreground mb-1">Service</p>
+              <p className="font-bold text-primary text-lg">{service?.title}</p>
+              <p className="text-sm text-muted-foreground mt-1">{service?.duration} minutes</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+              <p className="text-xs font-bold text-muted-foreground mb-1">Doctor</p>
+              <p className="font-bold text-primary text-lg">{doctor?.displayName || "Doctor"}</p>
+              <p className="text-sm text-muted-foreground mt-1">{doctor?.email}</p>
+            </div>
           </div>
-          <div className="flex justify-between border-b border-primary/10 pb-4">
-            <span className="text-sm font-bold text-muted-foreground">Date</span>
-            <span className="font-bold text-primary">{slot?.startTime.toLocaleDateString()}</span>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+              <p className="text-xs font-bold text-muted-foreground mb-1">Date</p>
+              <p className="font-bold text-primary text-lg">{slot?.startTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</p>
+            </div>
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+              <p className="text-xs font-bold text-muted-foreground mb-1">Time</p>
+              <p className="font-bold text-primary text-lg">
+                {slot?.startTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            </div>
           </div>
-          <div className="flex justify-between border-b border-primary/10 pb-4">
-            <span className="text-sm font-bold text-muted-foreground">Time</span>
-            <span className="font-bold text-primary">
-              {slot?.startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
+
+          <div className="p-4 rounded-2xl bg-secondary/10 border border-secondary/20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-muted-foreground mb-1">Total Amount</p>
+                <p className="font-display text-3xl text-secondary">
+                  {service?.currency} {service?.price}
+                </p>
+              </div>
+              <Badge className="bg-secondary text-white border-secondary">Payment on Consultation</Badge>
+            </div>
           </div>
-          <div className="flex justify-between border-b border-primary/10 pb-4">
-            <span className="text-sm font-bold text-muted-foreground">Duration</span>
-            <span className="font-bold text-primary">{service?.duration} minutes</span>
-          </div>
-          <div className="flex justify-between border-b border-primary/10 pb-4">
-            <span className="text-sm font-bold text-muted-foreground">Price</span>
-            <span className="font-display text-xl text-secondary">
-              {service?.currency} {service?.price}
-            </span>
-          </div>
+
           {notes && (
-            <div className="pt-4">
-              <span className="text-sm font-bold text-muted-foreground">Notes</span>
-              <p className="mt-2 text-base text-primary">{notes}</p>
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+              <p className="text-xs font-bold text-muted-foreground mb-2">Your Notes</p>
+              <p className="text-base text-primary">{notes}</p>
             </div>
           )}
         </CardContent>
@@ -441,10 +555,10 @@ function ConfirmationStep({
       )}
 
       <div className="flex justify-end gap-4">
-        <Button variant="outline" onClick={onBack} disabled={loading}>
+        <Button variant="outline" onClick={onBack} disabled={loading} size="lg">
           Back
         </Button>
-        <Button onClick={onConfirm} size="lg" disabled={loading}>
+        <Button onClick={onConfirm} size="lg" disabled={loading} className="min-w-[200px]">
           {loading ? "Confirming..." : "Confirm Booking"}
         </Button>
       </div>

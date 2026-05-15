@@ -106,6 +106,7 @@ export const serviceConverter = {
       duration: data.duration,
       suitableFor: data.suitableFor,
       isActive: data.isActive,
+      doctorIds: data.doctorIds || [],
       createdAt: fromTimestamp(data.createdAt),
       updatedAt: fromTimestamp(data.updatedAt),
     };
