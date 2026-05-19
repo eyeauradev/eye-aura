@@ -22,6 +22,10 @@ export default function AdminDashboardPage() {
     activePatients: 0,
     pendingTickets: 0,
     revenue: 0,
+    pendingAppointments: 0,
+    cancelledThisMonth: 0,
+    newThisWeek: 0,
+    completedAppointments: 0,
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
@@ -56,16 +60,29 @@ export default function AdminDashboardPage() {
           prescriptionsService.getAll(),
         ]);
 
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const doctors = allUsers.filter((u: UserDocument) => u.role === "doctor");
         const patients = allUsers.filter((u: UserDocument) => u.role === "patient");
         const pendingTickets = allTickets.filter((t: SupportTicketDocument) => t.status === "open" || t.status === "in_progress");
+        const pendingApts = allAppointments.filter((a: AppointmentDocument) => a.status === "pending");
+        const cancelledThisMonth = allAppointments.filter((a: AppointmentDocument) => {
+          const d = new Date(a.scheduledFor);
+          return a.status === "cancelled" && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        });
+        const newThisWeek = allAppointments.filter((a: AppointmentDocument) => new Date(a.createdAt) >= oneWeekAgo);
+        const completed = allAppointments.filter((a: AppointmentDocument) => a.status === "completed");
 
         setStats({
           totalAppointments: allAppointments.length,
           activeDoctors: doctors.length,
           activePatients: patients.length,
           pendingTickets: pendingTickets.length,
-          revenue: 0, // Will be calculated from payments in Phase 8
+          revenue: 0,
+          pendingAppointments: pendingApts.length,
+          cancelledThisMonth: cancelledThisMonth.length,
+          newThisWeek: newThisWeek.length,
+          completedAppointments: completed.length,
         });
 
         // Load recent activity
@@ -262,26 +279,47 @@ export default function AdminDashboardPage() {
             <CardTitle className="text-lg">Platform Health</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-primary" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-orange-50 border border-orange-100">
+                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                  <Clock className="h-6 w-6 text-orange-600" />
+                </div>
                 <div>
-                  <p className="text-sm font-medium text-primary">Pending Appointments</p>
-                  <p className="text-xs text-muted-foreground">Appointments awaiting confirmation</p>
+                  <p className="text-2xl font-bold text-primary">{stats.pendingAppointments}</p>
+                  <p className="text-sm font-medium text-primary">Pending</p>
+                  <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-red-50 border border-red-100">
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                  <AlertCircle className="h-6 w-6 text-red-500" />
+                </div>
                 <div>
+                  <p className="text-2xl font-bold text-primary">{stats.cancelledThisMonth}</p>
                   <p className="text-sm font-medium text-primary">Cancellations</p>
-                  <p className="text-xs text-muted-foreground">Cancelled appointments this month</p>
+                  <p className="text-xs text-muted-foreground">This month</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-green-50 border border-green-100">
+                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
                 <div>
-                  <p className="text-sm font-medium text-primary">Growth</p>
-                  <p className="text-xs text-muted-foreground">New registrations this week</p>
+                  <p className="text-2xl font-bold text-primary">{stats.newThisWeek}</p>
+                  <p className="text-sm font-medium text-primary">New Bookings</p>
+                  <p className="text-xs text-muted-foreground">This week</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-blue-50 border border-blue-100">
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <CheckCircle className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{stats.completedAppointments}</p>
+                  <p className="text-sm font-medium text-primary">Completed</p>
+                  <p className="text-xs text-muted-foreground">
+                    {stats.totalAppointments > 0 ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100) : 0}% rate
+                  </p>
                 </div>
               </div>
             </div>

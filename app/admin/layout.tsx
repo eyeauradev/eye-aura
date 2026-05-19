@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+    <div className="min-h-screen bg-[#F0EDE8]">
       {/* Header */}
       <header className="bg-white border-b border-primary/10 sticky top-0 z-50">
         <div className="flex items-center justify-between px-4 lg:px-8 py-4">
@@ -90,7 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex min-h-[calc(100vh-73px)]">
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:block w-64 bg-white border-r border-primary/10 min-h-[calc(100vh-73px)] sticky top-[73px]">
           <nav className="p-4 space-y-2">
@@ -148,7 +148,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 p-4 pb-24 lg:p-8 lg:pb-8">
           {children}
         </main>
       </div>

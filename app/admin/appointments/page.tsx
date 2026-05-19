@@ -84,22 +84,22 @@ export default function AdminAppointmentsPage() {
       <SectionContainer>
         <Card className="border-primary/10">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg">All Appointments</CardTitle>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by patient or doctor..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-10 w-full sm:w-56"
                   />
                 </div>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full sm:w-auto px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 >
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
@@ -150,35 +150,33 @@ function AppointmentCard({
   doctor: any; 
 }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Calendar className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <p className="font-medium text-primary">
-            {appointment.scheduledFor.toLocaleDateString("en-US", { 
-              weekday: "short",
-              month: "short", 
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-            })}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {patient?.displayName || "Unknown"} → {doctor?.displayName || "Unknown"}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge className={getStatusColor(appointment.status)}>
-              {appointment.status}
-            </Badge>
-            {appointment.followUpRequired && (
-              <Badge className="bg-secondary text-white">Follow-up</Badge>
-            )}
-          </div>
+    <div className="flex items-start gap-3 p-4 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
+      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+        <Calendar className="h-5 w-5 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-primary text-sm">
+          {appointment.scheduledFor.toLocaleDateString("en-US", { 
+            weekday: "short",
+            month: "short", 
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+          })}
+        </p>
+        <p className="text-sm text-muted-foreground truncate">
+          {patient?.displayName || "Unknown"} → {doctor?.displayName || "Unknown"}
+        </p>
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          <Badge className={getStatusColor(appointment.status)}>
+            {appointment.status.replace(/_/g, " ")}
+          </Badge>
+          {appointment.followUpRequired && (
+            <Badge className="bg-secondary text-white">Follow-up</Badge>
+          )}
         </div>
       </div>
-      <Link href={`/admin/appointments/${appointment.id}`}>
+      <Link href={`/admin/appointments/${appointment.id}`} className="shrink-0">
         <Button variant="ghost" size="icon">
           <Calendar className="h-4 w-4" />
         </Button>

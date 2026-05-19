@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { usersService, appointmentsService, prescriptionsService } from "@/services/firestore";
 import type { UserDocument, AppointmentDocument, PrescriptionDocument } from "@/types/firestore";
-import { BarChart3, Calendar, Users, DollarSign, TrendingUp, Activity } from "lucide-react";
+import { BarChart3, Calendar, Users, TrendingUp, Activity, Clock, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SectionContainer } from "@/components/section-container";
@@ -20,7 +20,11 @@ export default function AdminAnalyticsPage() {
     totalPrescriptions: 0,
     completedAppointments: 0,
     pendingAppointments: 0,
+    cancelledAppointments: 0,
     thisMonthAppointments: 0,
+    newThisWeek: 0,
+    cancellationRate: 0,
+    completionRate: 0,
   });
 
   useEffect(() => {
@@ -38,22 +42,30 @@ export default function AdminAnalyticsPage() {
         const patients = allUsers.filter((u: UserDocument) => u.role === "patient");
         const completed = allAppointments.filter((a: AppointmentDocument) => a.status === "completed");
         const pending = allAppointments.filter((a: AppointmentDocument) => a.status === "pending");
+        const cancelled = allAppointments.filter((a: AppointmentDocument) => a.status === "cancelled");
         
         const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const thisMonth = allAppointments.filter((a: AppointmentDocument) => {
           const aptDate = a.scheduledFor;
           return aptDate.getMonth() === now.getMonth() && aptDate.getFullYear() === now.getFullYear();
         });
+        const newThisWeek = allAppointments.filter((a: AppointmentDocument) => new Date(a.createdAt) >= oneWeekAgo);
+        const total = allAppointments.length;
 
         setStats({
           totalUsers: allUsers.length,
           totalDoctors: doctors.length,
           totalPatients: patients.length,
-          totalAppointments: allAppointments.length,
+          totalAppointments: total,
           totalPrescriptions: allPrescriptions.length,
           completedAppointments: completed.length,
           pendingAppointments: pending.length,
+          cancelledAppointments: cancelled.length,
           thisMonthAppointments: thisMonth.length,
+          newThisWeek: newThisWeek.length,
+          cancellationRate: total > 0 ? Math.round((cancelled.length / total) * 100) : 0,
+          completionRate: total > 0 ? Math.round((completed.length / total) * 100) : 0,
         });
       } catch (error) {
         console.error("Error loading analytics:", error);
@@ -195,44 +207,69 @@ export default function AdminAnalyticsPage() {
             <CardTitle className="text-lg">Platform Health</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/50 border border-primary/5">
-                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-green-50 border border-green-100">
+                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                   <Activity className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Completion Rate</p>
-                  <p className="text-xl font-bold text-primary">
-                    {stats.totalAppointments > 0 
-                      ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100) 
-                      : 0}%
-                  </p>
+                  <p className="text-2xl font-bold text-primary">{stats.completionRate}%</p>
+                  <p className="text-sm font-medium text-primary">Completion Rate</p>
+                  <p className="text-xs text-muted-foreground">{stats.completedAppointments} of {stats.totalAppointments} completed</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/50 border border-primary/5">
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-red-50 border border-red-100">
+                <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-6 w-6 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{stats.cancellationRate}%</p>
+                  <p className="text-sm font-medium text-primary">Cancellation Rate</p>
+                  <p className="text-xs text-muted-foreground">{stats.cancelledAppointments} cancelled total</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-blue-50 border border-blue-100">
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                   <Calendar className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Avg. Appointments/Day</p>
-                  <p className="text-xl font-bold text-primary">
-                    {stats.thisMonthAppointments > 0 
-                      ? (stats.thisMonthAppointments / 30).toFixed(1) 
-                      : "0.0"}
+                  <p className="text-2xl font-bold text-primary">
+                    {stats.thisMonthAppointments > 0 ? (stats.thisMonthAppointments / new Date().getDate()).toFixed(1) : "0.0"}
                   </p>
+                  <p className="text-sm font-medium text-primary">Avg / Day</p>
+                  <p className="text-xs text-muted-foreground">{stats.thisMonthAppointments} this month</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/50 border border-primary/5">
-                <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-orange-50 border border-orange-100">
+                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                  <Clock className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{stats.pendingAppointments}</p>
+                  <p className="text-sm font-medium text-primary">Pending</p>
+                  <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-purple-50 border border-purple-100">
+                <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
                   <Users className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Doctor/Patient Ratio</p>
-                  <p className="text-xl font-bold text-primary">
-                    {stats.totalPatients > 0 
-                      ? (stats.totalDoctors / stats.totalPatients).toFixed(2) 
-                      : "0.00"}
+                  <p className="text-2xl font-bold text-primary">
+                    {stats.totalPatients > 0 ? (stats.totalDoctors / stats.totalPatients).toFixed(2) : "0.00"}
                   </p>
+                  <p className="text-sm font-medium text-primary">Doctor/Patient Ratio</p>
+                  <p className="text-xs text-muted-foreground">{stats.totalDoctors} doctors, {stats.totalPatients} patients</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-teal-50 border border-teal-100">
+                <div className="h-12 w-12 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
+                  <BarChart3 className="h-6 w-6 text-teal-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-primary">{stats.newThisWeek}</p>
+                  <p className="text-sm font-medium text-primary">New Bookings</p>
+                  <p className="text-xs text-muted-foreground">Created this week</p>
                 </div>
               </div>
             </div>
@@ -243,20 +280,3 @@ export default function AdminAnalyticsPage() {
   );
 }
 
-function CheckCircle({ className }: { className: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
-  );
-}
-
-function Clock({ className }: { className: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
