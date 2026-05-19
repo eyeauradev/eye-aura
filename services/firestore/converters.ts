@@ -32,11 +32,27 @@ function fromTimestamp(timestamp: Timestamp | Date | undefined): Date {
 
 // User converter
 export const userConverter = {
-  toFirestore: (user: UserDocument): DocumentData => ({
-    ...user,
-    createdAt: toTimestamp(user.createdAt),
-    updatedAt: toTimestamp(user.updatedAt),
-  }),
+  toFirestore: (user: UserDocument): DocumentData => {
+    const firestoreData: DocumentData = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive,
+      isSuspended: user.isSuspended,
+      onboarding: user.onboarding,
+      createdAt: toTimestamp(user.createdAt),
+      updatedAt: toTimestamp(user.updatedAt),
+    };
+
+    // Only include optional fields if they have values
+    if (user.displayName) firestoreData.displayName = user.displayName;
+    if (user.phoneNumber) firestoreData.phoneNumber = user.phoneNumber;
+    if (user.photoURL) firestoreData.photoURL = user.photoURL;
+    if (user.emergencyContact) firestoreData.emergencyContact = user.emergencyContact;
+    if (user.emergencyPhone) firestoreData.emergencyPhone = user.emergencyPhone;
+
+    return firestoreData;
+  },
   fromFirestore: (snapshot: QueryDocumentSnapshot): UserDocument => {
     const data = snapshot.data();
     return {

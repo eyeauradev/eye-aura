@@ -180,28 +180,35 @@ class AuthService {
   }
 
   private async getUserProfile(user: User): Promise<UserProfile> {
-    const userDoc = await getDoc(doc(this.db, "users", user.uid));
-    
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      return {
-        id: user.uid,
-        email: user.email || "",
-        displayName: user.displayName || data.displayName,
-        photoURL: user.photoURL || data.photoURL,
-        role: data.role || "patient",
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-        phoneNumber: user.phoneNumber || data.phoneNumber,
-        emergencyContact: data.emergencyContact,
-        emergencyPhone: data.emergencyPhone,
-        isActive: data.isActive ?? true,
-        isSuspended: data.isSuspended ?? false,
-        onboardingCompleted: data.onboarding?.patientCompleted || data.onboarding?.doctorCompleted || false,
-      };
+    try {
+      const userDoc = await getDoc(doc(this.db, "users", user.uid));
+      
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        return {
+          id: user.uid,
+          email: user.email || "",
+          displayName: user.displayName || data.displayName,
+          photoURL: user.photoURL || data.photoURL,
+          role: data.role || "patient",
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+          phoneNumber: user.phoneNumber || data.phoneNumber,
+          emergencyContact: data.emergencyContact,
+          emergencyPhone: data.emergencyPhone,
+          isActive: data.isActive ?? true,
+          isSuspended: data.isSuspended ?? false,
+          onboardingCompleted: data.onboarding?.patientCompleted || data.onboarding?.doctorCompleted || false,
+        };
+      }
+    } catch (error) {
+      console.error("[AuthService] Error reading user document:", error);
+      // If we get a permission error or document doesn't exist, create the document
+      console.log("[AuthService] Document doesn't exist or permission error, creating it");
     }
 
-    return {
+    // Document doesn't exist or we couldn't read it, create a new one
+    const defaultProfile: UserProfile = {
       id: user.uid,
       email: user.email || "",
       displayName: user.displayName || undefined,
@@ -214,6 +221,15 @@ class AuthService {
       isSuspended: false,
       onboardingCompleted: false,
     };
+
+    try {
+      await this.createUserProfile(defaultProfile);
+      console.log("[AuthService] Created missing user document for:", user.uid);
+    } catch (createError) {
+      console.error("[AuthService] Failed to create user document:", createError);
+    }
+
+    return defaultProfile;
   }
 
   private async createUserProfile(profile: UserProfile): Promise<void> {
@@ -229,15 +245,12 @@ class AuthService {
       });
       
       const docRef = doc(this.db, "users", profile.id);
-      await setDoc(docRef, {
+      
+      // Build the document data, only including fields that have values
+      const docData: any = {
         id: profile.id,
         email: profile.email,
-        displayName: profile.displayName,
-        photoURL: profile.photoURL,
         role: profile.role,
-        phoneNumber: profile.phoneNumber,
-        emergencyContact: profile.emergencyContact,
-        emergencyPhone: profile.emergencyPhone,
         isActive: profile.isActive,
         isSuspended: profile.isSuspended,
         onboarding: {
@@ -246,7 +259,16 @@ class AuthService {
         },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      };
+
+      // Only include optional fields if they have values
+      if (profile.displayName) docData.displayName = profile.displayName;
+      if (profile.photoURL) docData.photoURL = profile.photoURL;
+      if (profile.phoneNumber) docData.phoneNumber = profile.phoneNumber;
+      if (profile.emergencyContact) docData.emergencyContact = profile.emergencyContact;
+      if (profile.emergencyPhone) docData.emergencyPhone = profile.emergencyPhone;
+
+      await setDoc(docRef, docData);
       
       console.log("[AuthService] Firestore write completed successfully");
     } catch (error) {

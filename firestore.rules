@@ -44,7 +44,8 @@ service cloud.firestore {
 
     // Users Collection
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      // Any signed-in user can read any user profile (needed to display doctor names etc.)
+      allow read: if signedIn();
       
       // Create: Only allow creating patient users through client-side signup
       // Doctor users can only be created through server-side onboarding API
@@ -60,11 +61,16 @@ service cloud.firestore {
       // Update: 
       // - Owners can update their own profile fields (not role, isActive, isSuspended)
       // - Admins can update all fields including role, isActive, isSuspended
-      allow update: if isOwner(userId) 
+      allow update: if signedIn() && request.auth.uid == userId
         && !request.resource.diff(resource.data).affectedKeys().hasAny(['role', 'isActive', 'isSuspended', 'onboarding'])
         || isAdmin();
       
       allow delete: if isAdmin();
+    }
+
+    // Users Collection - Allow list for authenticated users
+    match /users {
+      allow list: if signedIn();
     }
 
     // Services Collection (Public read, Admin write)
@@ -75,8 +81,8 @@ service cloud.firestore {
 
     // Appointments Collection
     match /appointments/{appointmentId} {
-      allow read: if isOwner(resource.data.patientId) 
-        || isOwner(resource.data.doctorId)
+      allow read: if signedIn() && request.auth.uid == resource.data.patientId 
+        || signedIn() && request.auth.uid == resource.data.doctorId
         || isAdmin();
       
       allow create: if signedIn()
@@ -84,13 +90,18 @@ service cloud.firestore {
         && isFutureDate(request.resource.data.scheduledFor)
         && request.resource.data.status in ['pending', 'confirmed'];
       
-      allow update: if isOwner(resource.data.patientId)
+      allow update: if signedIn() && request.auth.uid == resource.data.patientId
         && request.resource.data.status in ['cancelled', 'cancellation_requested']
-        || isOwner(resource.data.doctorId)
+        || signedIn() && request.auth.uid == resource.data.doctorId
         && request.resource.data.status in ['pending', 'confirmed', 'in_progress', 'completed']
         || isAdmin();
       
       allow delete: if isAdmin();
+    }
+
+    // Appointments Collection - Allow list for authenticated users
+    match /appointments {
+      allow list: if signedIn();
     }
 
     // Doctor Slots Collection (Legacy - using new availability system)
@@ -107,33 +118,43 @@ service cloud.firestore {
 
     // Prescriptions Collection
     match /prescriptions/{prescriptionId} {
-      allow read: if isOwner(resource.data.patientId)
-        || isOwner(resource.data.doctorId)
+      allow read: if signedIn() && request.auth.uid == resource.data.patientId
+        || signedIn() && request.auth.uid == resource.data.doctorId
         || isAdmin();
       
-      allow create: if isDoctorOrAdmin()
-        && request.resource.data.doctorId == request.auth.uid;
+      allow create: if signedIn() && request.auth.uid == resource.data.doctorId
+        || isAdmin();
       
-      allow update: if isOwner(resource.data.doctorId) || isAdmin();
+      allow update: if signedIn() && request.auth.uid == resource.data.doctorId || isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // Prescriptions Collection - Allow list for authenticated users
+    match /prescriptions {
+      allow list: if signedIn();
     }
 
     // Support Tickets Collection
     match /support_tickets/{ticketId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow read: if signedIn() && request.auth.uid == resource.data.userId || isAdmin();
       
       allow create: if signedIn() 
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.message != null;
       
-      allow update: if isOwner(resource.data.userId) || isAdmin();
+      allow update: if signedIn() && request.auth.uid == resource.data.userId || isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // Support Tickets Collection - Allow list for authenticated users
+    match /support_tickets {
+      allow list: if signedIn();
     }
 
     // Payments Collection
     match /payments/{paymentId} {
-      allow read: if isOwner(resource.data.patientId)
-        || isOwner(resource.data.doctorId)
+      allow read: if signedIn() && request.auth.uid == resource.data.patientId
+        || signedIn() && request.auth.uid == resource.data.doctorId
         || isAdmin();
       
       allow create: if signedIn() 
@@ -142,6 +163,11 @@ service cloud.firestore {
       
       allow update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // Payments Collection - Allow list for authenticated users
+    match /payments {
+      allow list: if signedIn();
     }
 
     // Doctor Invites Collection - Admin create/read/update, public read for invite acceptance
@@ -160,49 +186,60 @@ service cloud.firestore {
     match /doctor_availability/{availabilityId} {
       allow read: if true;
       
-      allow create: if isDoctorOrAdmin()
-        && request.resource.data.doctorId == request.auth.uid
-        && request.resource.data.duration > 0;
+      allow create: if signedIn() && request.auth.uid == request.resource.data.doctorId
+        || isAdmin();
       
-      allow update: if isOwner(resource.data.doctorId) || isAdmin();
-      allow delete: if isOwner(resource.data.doctorId) || isAdmin();
+      allow update: if signedIn() && request.auth.uid == resource.data.doctorId || isAdmin();
+      allow delete: if signedIn() && request.auth.uid == resource.data.doctorId || isAdmin();
+    }
+
+    // Doctor Availability Collection - Allow list for authenticated users
+    match /doctor_availability {
+      allow list: if signedIn();
     }
 
     // Doctor Blocks Collection
     match /doctor_blocks/{blockId} {
       allow read: if true;
       
-      allow create: if isDoctorOrAdmin()
-        && request.resource.data.doctorId == request.auth.uid
-        && request.resource.data.start < request.resource.data.end
-        && request.resource.data.reason != null;
+      allow create: if signedIn() && request.auth.uid == request.resource.data.doctorId
+        || isAdmin();
       
-      allow update: if isOwner(resource.data.doctorId) || isAdmin();
-      allow delete: if isOwner(resource.data.doctorId) || isAdmin();
+      allow update: if signedIn() && request.auth.uid == resource.data.doctorId || isAdmin();
+      allow delete: if signedIn() && request.auth.uid == resource.data.doctorId || isAdmin();
+    }
+
+    // Doctor Blocks Collection - Allow list for authenticated users
+    match /doctor_blocks {
+      allow list: if signedIn();
     }
 
     // Booking Requests Collection
     match /booking_requests/{requestId} {
-      allow read: if isOwner(resource.data.patientId)
-        || isOwner(resource.data.doctorId)
+      allow read: if signedIn() && request.auth.uid == resource.data.patientId 
+        || signedIn() && request.auth.uid == resource.data.doctorId 
         || isAdmin();
       
       // Patients can create requests
-      allow create: if signedIn()
+      allow create: if signedIn() 
         && request.resource.data.patientId == request.auth.uid
-        && isFutureDate(request.resource.data.requestedTime)
         && request.resource.data.status == 'pending';
       
       // Only doctors can accept/reject/update status, patients can cancel
-      allow update: if isOwner(resource.data.doctorId)
+      allow update: if signedIn() && request.auth.uid == resource.data.doctorId
         && request.resource.data.status in ['accepted', 'rejected', 'reschedule_requested']
-        || isOwner(resource.data.patientId)
+        || signedIn() && request.auth.uid == resource.data.patientId
         && request.resource.data.status == 'cancelled'
         && resource.data.status == 'pending'
         || isAdmin();
       
-      allow delete: if isOwner(resource.data.patientId) 
+      allow delete: if signedIn() && request.auth.uid == resource.data.patientId 
         || isAdmin();
+    }
+
+    // Booking Requests Collection - Allow list for authenticated users
+    match /booking_requests {
+      allow list: if signedIn();
     }
 
     // Default deny all other paths
