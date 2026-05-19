@@ -13,7 +13,6 @@ import type { DoctorAvailabilityDocument, DoctorBlockDocument } from "@/types/fi
 import { Calendar, Clock, Plus, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionContainer } from "@/components/section-container";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -22,6 +21,16 @@ import { Label } from "@/components/ui/label";
 export default function DoctorSlotsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [calendarView, setCalendarView] = useState("timeGridWeek");
+
+  useEffect(() => {
+    const updateView = () => {
+      setCalendarView(window.innerWidth < 640 ? "timeGridDay" : "timeGridWeek");
+    };
+    updateView();
+    window.addEventListener("resize", updateView);
+    return () => window.removeEventListener("resize", updateView);
+  }, []);
   const [availability, setAvailability] = useState<DoctorAvailabilityDocument[]>([]);
   const [blocks, setBlocks] = useState<DoctorBlockDocument[]>([]);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
@@ -187,12 +196,12 @@ export default function DoctorSlotsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-4xl text-primary mb-2">Calendar</h1>
-          <p className="text-xl text-muted-foreground">View and manage your schedule</p>
+          <h1 className="font-display text-3xl sm:text-4xl text-primary mb-1">Calendar</h1>
+          <p className="text-base sm:text-xl text-muted-foreground">View and manage your schedule</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <Button variant="outline" asChild>
             <a href="/doctor/schedule">
               <Calendar className="h-4 w-4 mr-2" />
@@ -242,13 +251,18 @@ export default function DoctorSlotsPage() {
       </div>
 
       {/* Calendar */}
-      <SectionContainer>
-        <Card className="border-primary/10">
-          <CardContent className="p-6">
+      <Card className="border-primary/10">
+        <CardContent className="p-3 sm:p-6">
+          <div className="overflow-x-auto">
             <FullCalendar
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="timeGridWeek"
-              headerToolbar={{
+              key={calendarView}
+              initialView={calendarView}
+              headerToolbar={calendarView === "timeGridDay" ? {
+                left: "prev,next",
+                center: "title",
+                right: "timeGridDay,timeGridWeek",
+              } : {
                 left: "prev,next today",
                 center: "title",
                 right: "dayGridMonth,timeGridWeek,timeGridDay",
@@ -268,6 +282,9 @@ export default function DoctorSlotsPage() {
               slotMinTime="06:00:00"
               slotMaxTime="22:00:00"
               allDaySlot={false}
+              expandRows={true}
+              stickyHeaderDates={true}
+              dayMinWidth={calendarView === "timeGridWeek" ? 60 : undefined}
               businessHours={{
                 daysOfWeek: availability
                   .filter(a => !a.isOff)
@@ -290,9 +307,9 @@ export default function DoctorSlotsPage() {
                 }
               }}
             />
-          </CardContent>
-        </Card>
-      </SectionContainer>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Block Time Dialog */}
       <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>

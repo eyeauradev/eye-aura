@@ -9,7 +9,7 @@ import { Calendar, Clock, FileText, CheckCircle, ArrowRight, Download, CalendarP
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function BookingConfirmationPage() {
   const params = useParams();
@@ -103,7 +103,7 @@ export default function BookingConfirmationPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
-      <SectionContainer className="py-16">
+      <div className="py-8 px-5 sm:px-8">
         <div className="mx-auto max-w-3xl">
           {/* Success Header */}
           <div className="text-center mb-12">
@@ -279,7 +279,7 @@ export default function BookingConfirmationPage() {
             </Link>
           </div>
         </div>
-      </SectionContainer>
+      </div>
     </div>
   );
 }

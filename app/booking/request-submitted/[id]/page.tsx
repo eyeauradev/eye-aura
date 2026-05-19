@@ -7,7 +7,7 @@ import type { BookingRequestDocument } from "@/types/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Clock, ArrowRight, Home } from "lucide-react";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function RequestSubmittedPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -51,7 +51,7 @@ export default function RequestSubmittedPage({ params }: { params: Promise<{ id:
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
       <div className="mx-auto max-w-2xl px-5 py-16 sm:px-8">
-        <SectionContainer>
+        
           <Card className="border-primary/10 bg-white/80">
             <CardHeader className="text-center pb-8">
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-secondary/15">
@@ -116,7 +116,7 @@ export default function RequestSubmittedPage({ params }: { params: Promise<{ id:
               </div>
             </CardContent>
           </Card>
-        </SectionContainer>
+        
       </div>
     </div>
   );

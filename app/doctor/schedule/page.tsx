@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SectionContainer } from "@/components/section-container";
+
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -243,7 +243,7 @@ export default function DoctorSchedulePage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -467,7 +467,7 @@ export default function DoctorSchedulePage() {
             })}
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

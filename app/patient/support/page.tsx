@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SectionContainer } from "@/components/section-container";
+
 
 const categories = [
   { id: "billing", label: "Billing", icon: CreditCard, description: "Payment and refund issues" },
@@ -151,7 +151,7 @@ export default function PatientSupportPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-6xl">
           {success && (
             <div className="mb-6 p-4 rounded-2xl bg-green-50 text-green-700 border border-green-200 flex items-center gap-3">
@@ -313,7 +313,7 @@ export default function PatientSupportPage() {
             </>
           )}
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

@@ -71,14 +71,12 @@ export default function AdminServicesPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-4xl text-primary mb-2">Services</h1>
-          <p className="text-xl text-muted-foreground">
-            Manage consultation services
-          </p>
+          <h1 className="font-display text-3xl sm:text-4xl text-primary mb-1">Services</h1>
+          <p className="text-base sm:text-xl text-muted-foreground">Manage consultation services</p>
         </div>
-        <Link href="/admin/services/create">
+        <Link href="/admin/services/create" className="self-start sm:self-auto">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             Create Service
@@ -89,15 +87,15 @@ export default function AdminServicesPage() {
       
         <Card className="border-primary/10">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg">All Services</CardTitle>
-              <div className="relative">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search services..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
+                  className="pl-10 w-full"
                 />
               </div>
             </div>

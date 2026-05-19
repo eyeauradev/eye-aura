@@ -8,7 +8,7 @@ import { Calendar, Clock, Users, Filter, Search, Video, FileText, CheckCircle2, 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function DoctorAppointmentsPage() {
@@ -133,8 +133,8 @@ export default function DoctorAppointmentsPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex items-center gap-3 flex-1">
-          <Filter className="h-5 w-5 text-muted-foreground" />
+        <div className="flex items-center gap-2 flex-wrap flex-1">
+          <Filter className="h-5 w-5 text-muted-foreground shrink-0" />
           <Button
             variant={filter === "all" ? "default" : "outline"}
             onClick={() => setFilter("all")}
@@ -183,7 +183,7 @@ export default function DoctorAppointmentsPage() {
 
       {/* Upcoming Appointments */}
       {filter === "all" && upcomingAppointments.length > 0 && (
-        <SectionContainer>
+        <div>
           <h2 className="font-display text-2xl text-primary mb-6">Upcoming Appointments</h2>
           <div className="grid gap-4">
             {upcomingAppointments.map((appointment) => (
@@ -195,12 +195,12 @@ export default function DoctorAppointmentsPage() {
               />
             ))}
           </div>
-        </SectionContainer>
+        </div>
       )}
 
       {/* Completed Appointments */}
       {filter === "all" && completedAppointments.length > 0 && (
-        <SectionContainer>
+        <div>
           <h2 className="font-display text-2xl text-primary mb-6">Completed Consultations</h2>
           <div className="grid gap-4">
             {completedAppointments.map((appointment) => (
@@ -212,12 +212,12 @@ export default function DoctorAppointmentsPage() {
               />
             ))}
           </div>
-        </SectionContainer>
+        </div>
       )}
 
       {/* Cancelled Appointments */}
       {filter === "all" && cancelledAppointments.length > 0 && (
-        <SectionContainer>
+        <div>
           <h2 className="font-display text-2xl text-primary mb-6">Cancelled Appointments</h2>
           <div className="grid gap-4">
             {cancelledAppointments.map((appointment) => (
@@ -229,12 +229,12 @@ export default function DoctorAppointmentsPage() {
               />
             ))}
           </div>
-        </SectionContainer>
+        </div>
       )}
 
       {/* Filtered Results */}
       {filter !== "all" && sortedAppointments.length > 0 && (
-        <SectionContainer>
+        <div>
           <h2 className="font-display text-2xl text-primary mb-6 capitalize">
             {filter} Appointments
           </h2>
@@ -248,7 +248,7 @@ export default function DoctorAppointmentsPage() {
               />
             ))}
           </div>
-        </SectionContainer>
+        </div>
       )}
 
       {/* Empty State */}

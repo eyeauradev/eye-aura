@@ -7,7 +7,7 @@ import { Bell, Calendar, FileText, MessageSquare, Check, X, Clock, Trash2 } from
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 const notificationIcons: Record<string, any> = {
@@ -120,7 +120,7 @@ export default function PatientNotificationsPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-4xl">
           {notifications.length === 0 ? (
             <Card className="border-primary/10 bg-primary/5">
@@ -204,7 +204,7 @@ export default function PatientNotificationsPage() {
             </div>
           )}
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

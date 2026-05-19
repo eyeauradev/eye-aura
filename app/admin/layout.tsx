@@ -160,14 +160,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-primary/10 px-4 py-2">
-        <div className="flex justify-around">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-primary/10 py-1">
+        <div className="flex">
           {navItems.slice(0, 4).map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 transition",
+                "flex-1 flex flex-col items-center gap-0.5 px-1 py-1.5 transition",
                 isActive(item.href)
                   ? "text-primary"
                   : "text-muted-foreground hover:text-primary"
@@ -179,15 +179,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               )}>
                 <item.icon className="h-5 w-5" />
               </div>
-              <span className={cn("text-xs", isActive(item.href) && "font-semibold")}>{item.label}</span>
+              <span className={cn("text-[10px] leading-tight text-center", isActive(item.href) && "font-semibold")}>{item.label}</span>
             </Link>
           ))}
           <Link
             href="/"
-            className="flex flex-col items-center gap-1 px-3 py-2 text-muted-foreground hover:text-primary transition"
+            className="flex-1 flex flex-col items-center gap-0.5 px-1 py-1.5 text-muted-foreground hover:text-primary transition"
           >
             <div className="p-1 rounded-lg"><Home className="h-5 w-5" /></div>
-            <span className="text-xs">Home</span>
+            <span className="text-[10px] leading-tight">Home</span>
           </Link>
         </div>
       </nav>

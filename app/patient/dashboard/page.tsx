@@ -11,7 +11,7 @@ import { Calendar, Clock, FileText, Plus, Video, ArrowRight, Droplets, Sun, Eye 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function PatientDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -198,7 +198,7 @@ export default function PatientDashboard() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Content */}
@@ -555,7 +555,7 @@ export default function PatientDashboard() {
             </div>
           </div>
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

@@ -7,7 +7,7 @@ import type { UserDocument } from "@/types/firestore";
 import { User, Mail, Phone, Calendar, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function DoctorProfilePage() {
   const { user } = useAuth();
@@ -79,7 +79,7 @@ export default function DoctorProfilePage() {
       </div>
 
       {/* Profile Form */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Personal Information</CardTitle>
@@ -122,10 +122,10 @@ export default function DoctorProfilePage() {
             </Button>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
       {/* Account Info */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Account Information</CardTitle>
@@ -160,7 +160,7 @@ export default function DoctorProfilePage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

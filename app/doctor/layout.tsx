@@ -24,7 +24,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+    <div className="min-h-screen bg-[#F0EDE8]">
       {/* Header */}
       <header className="border-b border-primary/10 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="mx-auto max-w-7xl px-5 py-4 sm:px-8">
@@ -89,7 +89,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
           {/* Mobile Navigation */}
           <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-primary/10 z-50">
-            <div className="flex justify-around py-3">
+            <div className="flex items-end py-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -99,16 +99,16 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition ${
+                    className={`flex-1 flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl transition ${
                       isCenter
-                        ? "bg-[#0F4F4B] text-white -mt-6 shadow-lg"
+                        ? "bg-[#0F4F4B] text-white -mt-5 mx-1 shadow-lg pb-2"
                         : isActive
                           ? "text-[#0F4F4B]"
                           : "text-muted-foreground"
                     }`}
                   >
-                    <Icon className={`h-5 w-5 ${isCenter ? "h-6 w-6" : ""}`} />
-                    <span className="text-xs font-medium">{item.label}</span>
+                    <Icon className={`${isCenter ? "h-6 w-6" : "h-5 w-5"}`} />
+                    <span className="text-[10px] font-medium leading-tight text-center">{item.label}</span>
                   </Link>
                 );
               })}

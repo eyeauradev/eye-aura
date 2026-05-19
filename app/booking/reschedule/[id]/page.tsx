@@ -11,7 +11,7 @@ import { Calendar, Clock, ArrowLeft, ArrowRight, CheckCircle } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function ReschedulePage() {
   const params = useParams();
@@ -146,7 +146,7 @@ export default function ReschedulePage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-4xl">
           {/* Current Appointment Info */}
           <Card className="border-primary/10 mb-8 bg-primary/5">
@@ -329,7 +329,7 @@ export default function ReschedulePage() {
             </>
           )}
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

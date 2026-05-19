@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SectionContainer } from "@/components/section-container";
+
 
 const statusConfig = {
   open: { label: "Open", color: "bg-blue-100 text-blue-800 border-blue-200" },
@@ -145,7 +145,7 @@ export default function SupportTicketDetailPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-4xl">
           <div className="space-y-6">
             {/* Ticket Details */}
@@ -298,7 +298,7 @@ export default function SupportTicketDetailPage() {
             )}
           </div>
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

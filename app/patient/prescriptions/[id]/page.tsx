@@ -9,7 +9,7 @@ import { FileText, User, Calendar, ArrowLeft, Download, Printer, CheckCircle } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function PrescriptionDetailPage() {
   const params = useParams();
@@ -132,7 +132,7 @@ export default function PrescriptionDetailPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-4xl">
           <div className="space-y-6">
             {/* Prescription Card */}
@@ -425,7 +425,7 @@ export default function PrescriptionDetailPage() {
             </Card>
           </div>
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { Calendar, Clock, FileText, Video, ArrowLeft, ArrowRight, Calendar as Ca
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function AppointmentDetailPage() {
   const params = useParams();
@@ -129,7 +129,7 @@ export default function AppointmentDetailPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-4xl">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Content */}
@@ -397,7 +397,7 @@ export default function AppointmentDetailPage() {
             </div>
           </div>
         </div>
-      </SectionContainer>
+      
 
       {/* Cancellation Modal */}
       {showCancelModal && (

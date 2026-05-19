@@ -8,7 +8,7 @@ import { Users, Search, Calendar, Clock, FileText, ArrowRight } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function DoctorPatientsPage() {
@@ -145,7 +145,7 @@ export default function DoctorPatientsPage() {
       </div>
 
       {/* Patients List */}
-      <SectionContainer>
+      
         {filteredPatients.length > 0 ? (
           <div className="grid gap-4">
             {filteredPatients.map((patient) => (
@@ -163,7 +163,7 @@ export default function DoctorPatientsPage() {
             </CardContent>
           </Card>
         )}
-      </SectionContainer>
+      
     </div>
   );
 }

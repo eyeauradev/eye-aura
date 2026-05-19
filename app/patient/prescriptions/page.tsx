@@ -7,7 +7,7 @@ import { prescriptionsService, usersService, appointmentsService } from "@/servi
 import { FileText, Calendar, User, ArrowRight, Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function PatientPrescriptionsPage() {
   const { user } = useAuth();
@@ -66,7 +66,7 @@ export default function PatientPrescriptionsPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-6xl">
           {prescriptions.length === 0 ? (
             <Card className="border-primary/10 bg-primary/5">
@@ -142,7 +142,7 @@ export default function PatientPrescriptionsPage() {
             </div>
           )}
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

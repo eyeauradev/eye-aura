@@ -11,7 +11,7 @@ import { Calendar, Clock, Users, FileText, Settings, ArrowRight, Video, CheckCir
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function DoctorDashboard() {
@@ -289,7 +289,7 @@ export default function DoctorDashboard() {
 
       {/* Pending Booking Requests */}
       {pendingRequests.length > 0 && (
-        <SectionContainer>
+        <div>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <h2 className="font-display text-2xl text-primary">Pending Booking Requests</h2>
@@ -352,11 +352,11 @@ export default function DoctorDashboard() {
               </Card>
             ))}
           </div>
-        </SectionContainer>
+        </div>
       )}
 
       {/* Today's Consultations */}
-      <SectionContainer>
+      <div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-display text-2xl text-primary">Today's Consultations</h2>
           <Link href="/doctor/appointments">
@@ -426,18 +426,20 @@ export default function DoctorDashboard() {
             })}
           </div>
         ) : (
-          <Card className="border-primary/10 bg-primary/5">
-            <CardContent className="p-8 text-center">
-              <Calendar className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
-              <p className="text-base text-muted-foreground">No consultations scheduled for today</p>
-            </CardContent>
-          </Card>
+          <div>
+            <Card className="border-primary/10 bg-primary/5">
+              <CardContent className="p-8 text-center">
+                <Calendar className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
+                <p className="text-base text-muted-foreground">No consultations scheduled for today</p>
+              </CardContent>
+            </Card>
+          </div>
         )}
-      </SectionContainer>
+      </div>
 
       {/* Follow-Up Appointments */}
       {followUpAppointments.length > 0 && (
-        <SectionContainer>
+        <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-2xl text-primary">Follow-Up Required</h2>
             <Badge className="bg-secondary text-white">{followUpAppointments.length}</Badge>
@@ -475,11 +477,11 @@ export default function DoctorDashboard() {
               </Card>
             ))}
           </div>
-        </SectionContainer>
+        </div>
       )}
 
       {/* Quick Actions */}
-      <SectionContainer>
+      <div>
         <h2 className="font-display text-2xl text-primary mb-6">Quick Actions</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Link href="/doctor/slots">
@@ -586,7 +588,7 @@ export default function DoctorDashboard() {
             </Card>
           </Link>
         </div>
-      </SectionContainer>
+      </div>
     </div>
   );
 }

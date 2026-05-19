@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SectionContainer } from "@/components/section-container";
+
 import { Badge } from "@/components/ui/badge";
 
 export default function PatientProfilePage() {
@@ -79,7 +79,7 @@ export default function PatientProfilePage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-4xl">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Profile Card */}
@@ -284,7 +284,7 @@ export default function PatientProfilePage() {
             </div>
           </div>
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { ArrowLeft, Calendar, Clock, FileText, Users, CalendarPlus, MessageSquar
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function DoctorPatientDetailPage() {
@@ -128,7 +128,7 @@ export default function DoctorPatientDetailPage() {
       </div>
 
       {/* Patient Info */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Patient Information</CardTitle>
@@ -172,11 +172,11 @@ export default function DoctorPatientDetailPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
       {/* Follow-Up Status */}
       {followUpAppointments.length > 0 && (
-        <SectionContainer>
+        
           <Card className="border-secondary/20 bg-secondary/5">
             <CardHeader>
               <CardTitle className="text-lg text-secondary">Follow-Up Required</CardTitle>
@@ -216,11 +216,11 @@ export default function DoctorPatientDetailPage() {
               </div>
             </CardContent>
           </Card>
-        </SectionContainer>
+        
       )}
 
       {/* Consultation History */}
-      <SectionContainer>
+      
         <h2 className="font-display text-2xl text-primary mb-6">Consultation History</h2>
         {appointments.length > 0 ? (
           <div className="space-y-4">
@@ -284,10 +284,10 @@ export default function DoctorPatientDetailPage() {
             </CardContent>
           </Card>
         )}
-      </SectionContainer>
+      
 
       {/* Prescriptions */}
-      <SectionContainer>
+      
         <h2 className="font-display text-2xl text-primary mb-6">Prescriptions</h2>
         {prescriptions.length > 0 ? (
           <div className="space-y-4">
@@ -338,7 +338,7 @@ export default function DoctorPatientDetailPage() {
             </CardContent>
           </Card>
         )}
-      </SectionContainer>
+      
     </div>
   );
 }

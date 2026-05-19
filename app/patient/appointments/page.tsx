@@ -11,7 +11,7 @@ import { Calendar, Clock, Video, Filter, Plus, CheckCircle2, XCircle, AlertCircl
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function PatientAppointmentsPage() {
   const { user } = useAuth();
@@ -267,31 +267,24 @@ export default function PatientAppointmentsPage() {
   const showRequests = filter === "all" || filter === "requests";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-3xl text-primary sm:text-4xl">My Appointments</h1>
-              <p className="mt-2 text-base text-muted-foreground">
-                Manage your consultations and view history
-              </p>
-            </div>
-            <Link href="/booking">
-              <Button size="lg" className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Book Appointment
-              </Button>
-            </Link>
-          </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-display text-3xl text-primary sm:text-4xl">My Appointments</h1>
+          <p className="mt-1 text-base text-muted-foreground">Manage your consultations and view history</p>
         </div>
+        <Link href="/booking" className="self-start sm:self-auto">
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Book Appointment
+          </Button>
+        </Link>
       </div>
 
-      <SectionContainer>
-        <div className="mx-auto max-w-6xl">
+      <div>
           {/* Filters */}
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-2 flex-wrap mb-6">
             <Filter className="h-5 w-5 text-muted-foreground" />
             <Button
               variant={filter === "all" ? "default" : "outline"}
@@ -372,7 +365,6 @@ export default function PatientAppointmentsPage() {
             </div>
           )}
         </div>
-      </SectionContainer>
     </div>
   );
 }

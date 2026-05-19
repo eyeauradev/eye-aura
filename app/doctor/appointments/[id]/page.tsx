@@ -9,7 +9,7 @@ import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, Ca
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function DoctorAppointmentDetailPage() {
@@ -160,7 +160,7 @@ export default function DoctorAppointmentDetailPage() {
       </div>
 
       {/* Appointment Info */}
-      <SectionContainer>
+      
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="border-primary/10">
             <CardHeader>
@@ -285,10 +285,10 @@ export default function DoctorAppointmentDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </SectionContainer>
+      
 
       {/* Consultation Notes */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Consultation Notes</CardTitle>
@@ -305,11 +305,11 @@ export default function DoctorAppointmentDetailPage() {
             </Button>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
       {/* Prescriptions */}
       {prescriptions.length > 0 && (
-        <SectionContainer>
+        <div>
           <h2 className="font-display text-2xl text-primary mb-6">Prescriptions</h2>
           <div className="grid gap-4">
             {prescriptions.map((prescription) => (
@@ -336,12 +336,11 @@ export default function DoctorAppointmentDetailPage() {
               </Card>
             ))}
           </div>
-        </SectionContainer>
+        </div>
       )}
 
       {/* Appointment Timeline */}
-      <SectionContainer>
-        <Card className="border-primary/10">
+      <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Appointment Timeline</CardTitle>
           </CardHeader>
@@ -400,7 +399,7 @@ export default function DoctorAppointmentDetailPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

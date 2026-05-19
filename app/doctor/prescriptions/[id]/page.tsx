@@ -9,7 +9,7 @@ import { ArrowLeft, Eye, Download, Share2, Calendar, User, FileText, Edit2 } fro
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function DoctorPrescriptionDetailPage() {
@@ -135,16 +135,16 @@ export default function DoctorPrescriptionDetailPage() {
       </div>
 
       {/* Prescription Display */}
-      <SectionContainer>
+      
         <Card className="border-primary/10 bg-white">
           <CardContent className="p-8">
             <PrescriptionDisplay prescription={prescription} patient={patient} doctor={user} appointment={appointment} />
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
       {/* Actions */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Actions</CardTitle>
@@ -174,7 +174,7 @@ export default function DoctorPrescriptionDetailPage() {
             </Link>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

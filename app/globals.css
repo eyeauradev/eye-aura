@@ -55,10 +55,12 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(183, 200, 190, 0.46), transparent 34rem),
     radial-gradient(circle at 82% 12%, rgba(181, 150, 77, 0.16), transparent 28rem),
