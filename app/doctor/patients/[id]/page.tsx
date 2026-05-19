@@ -116,7 +116,8 @@ export default function DoctorPatientDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-4xl text-primary mb-2">{patient.displayName || "Patient"}</h1>
-            <p className="text-xl text-muted-foreground">Patient ID: {patient.id}</p>
+            <p className="text-base text-muted-foreground">{patient.email}</p>
+            {patient.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
           </div>
           <div className="flex items-center gap-3">
             <Badge className="bg-primary/10 text-primary border-primary/20">

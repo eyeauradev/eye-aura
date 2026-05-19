@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { appointmentsService } from "@/services/firestore";
-import type { AppointmentDocument } from "@/types/firestore";
+import { appointmentsService, usersService } from "@/services/firestore";
+import type { AppointmentDocument, UserDocument } from "@/types/firestore";
 import { Users, Search, Calendar, Clock, FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,7 @@ export default function DoctorPatientsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<AppointmentDocument[]>([]);
+  const [patientCache, setPatientCache] = useState<Record<string, UserDocument>>({});
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -25,6 +26,17 @@ export default function DoctorPatientsPage() {
         setLoading(true);
         const doctorAppointments = await appointmentsService.getByDoctorId(user.id);
         setAppointments(doctorAppointments);
+
+        const uniqueIds = [...new Set(doctorAppointments.map(a => a.patientId))];
+        const entries = await Promise.all(
+          uniqueIds.map(async (id) => {
+            const p = await usersService.getById(id);
+            return [id, p] as [string, UserDocument | null];
+          })
+        );
+        const cache: Record<string, UserDocument> = {};
+        entries.forEach(([id, p]) => { if (p) cache[id] = p; });
+        setPatientCache(cache);
       } catch (error) {
         console.error("Error loading patients:", error);
       } finally {
@@ -57,10 +69,16 @@ export default function DoctorPatientsPage() {
     };
   });
 
-  // Filter by search query
+  // Filter by search query using patient name/email
   const filteredPatients = patients.filter((patient) => {
     if (!searchQuery) return true;
-    return patient.patientId.toLowerCase().includes(searchQuery.toLowerCase());
+    const info = patientCache[patient.patientId];
+    const q = searchQuery.toLowerCase();
+    return (
+      (info?.displayName?.toLowerCase().includes(q) ?? false) ||
+      (info?.email?.toLowerCase().includes(q) ?? false) ||
+      (info?.phoneNumber?.toLowerCase().includes(q) ?? false)
+    );
   });
 
   if (loading) {
@@ -87,7 +105,7 @@ export default function DoctorPatientsPage() {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Search patient ID..."
+          placeholder="Search by patient name or email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-12 pr-4 py-3 border border-primary/10 rounded-full bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -131,7 +149,7 @@ export default function DoctorPatientsPage() {
         {filteredPatients.length > 0 ? (
           <div className="grid gap-4">
             {filteredPatients.map((patient) => (
-              <PatientCard key={patient.patientId} patient={patient} />
+              <PatientCard key={patient.patientId} patient={patient} info={patientCache[patient.patientId]} />
             ))}
           </div>
         ) : (
@@ -150,7 +168,7 @@ export default function DoctorPatientsPage() {
   );
 }
 
-function PatientCard({ patient }: { patient: { patientId: string; appointments: AppointmentDocument[]; lastAppointment: AppointmentDocument; followUpRequired: boolean } }) {
+function PatientCard({ patient, info }: { patient: { patientId: string; appointments: AppointmentDocument[]; lastAppointment: AppointmentDocument; followUpRequired: boolean }; info?: UserDocument }) {
   const lastAppointment = patient.lastAppointment;
   const lastDate = new Date(lastAppointment.scheduledFor);
   const totalConsultations = patient.appointments.length;
@@ -165,8 +183,10 @@ function PatientCard({ patient }: { patient: { patientId: string; appointments: 
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="font-medium text-primary">Patient ID: {patient.patientId}</p>
-                <p className="text-sm text-muted-foreground">{totalConsultations} consultation{totalConsultations !== 1 ? 's' : ''}</p>
+                <p className="font-medium text-primary">{info?.displayName || "Patient"}</p>
+                <p className="text-xs text-muted-foreground">{info?.email}</p>
+                {info?.phoneNumber && <p className="text-xs text-muted-foreground">{info.phoneNumber}</p>}
+                <p className="text-xs text-muted-foreground mt-0.5">{totalConsultations} consultation{totalConsultations !== 1 ? 's' : ''}</p>
               </div>
             </div>
 

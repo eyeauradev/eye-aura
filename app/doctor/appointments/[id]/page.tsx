@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { appointmentsService, prescriptionsService } from "@/services/firestore";
-import type { AppointmentDocument, PrescriptionDocument } from "@/types/firestore";
+import { appointmentsService, prescriptionsService, usersService } from "@/services/firestore";
+import type { AppointmentDocument, PrescriptionDocument, UserDocument } from "@/types/firestore";
 import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ export default function DoctorAppointmentDetailPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<AppointmentDocument | null>(null);
+  const [patient, setPatient] = useState<UserDocument | null>(null);
   const [prescriptions, setPrescriptions] = useState<PrescriptionDocument[]>([]);
   const [updating, setUpdating] = useState(false);
   const [notes, setNotes] = useState("");
@@ -33,6 +34,9 @@ export default function DoctorAppointmentDetailPage() {
         
         if (apt) {
           setNotes(apt.notes || "");
+          // Load patient info
+          const patientData = await usersService.getById(apt.patientId);
+          setPatient(patientData);
           // Load prescription for this appointment
           if (apt.prescriptionId) {
             const prescription = await prescriptionsService.getById(apt.prescriptionId);
@@ -147,7 +151,9 @@ export default function DoctorAppointmentDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="font-display text-4xl text-primary mb-2">Appointment Details</h1>
-            <p className="text-xl text-muted-foreground">Patient ID: {appointment.patientId}</p>
+            <p className="text-xl font-medium text-primary">{patient?.displayName || "Patient"}</p>
+            <p className="text-sm text-muted-foreground">{patient?.email}</p>
+            {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
           </div>
           <Badge className={getStatusColor(appointment.status)}>{appointment.status}</Badge>
         </div>

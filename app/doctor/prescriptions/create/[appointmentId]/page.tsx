@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { appointmentsService, prescriptionsService } from "@/services/firestore";
-import type { AppointmentDocument, PrescriptionDocument } from "@/types/firestore";
+import { appointmentsService, prescriptionsService, usersService } from "@/services/firestore";
+import type { AppointmentDocument, PrescriptionDocument, UserDocument } from "@/types/firestore";
 import { ArrowLeft, Eye, FileText, Save, Eye as EyeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,6 +63,7 @@ export default function DoctorPrescriptionCreatePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [appointment, setAppointment] = useState<AppointmentDocument | null>(null);
+  const [patient, setPatient] = useState<UserDocument | null>(null);
   const [formData, setFormData] = useState<PrescriptionFormData>(initialFormData);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -74,6 +75,10 @@ export default function DoctorPrescriptionCreatePage() {
         setLoading(true);
         const apt = await appointmentsService.getById(params.appointmentId as string);
         setAppointment(apt);
+        if (apt) {
+          const patientData = await usersService.getById(apt.patientId);
+          setPatient(patientData);
+        }
       } catch (error) {
         console.error("Error loading appointment:", error);
       } finally {
@@ -180,7 +185,9 @@ export default function DoctorPrescriptionCreatePage() {
             </Button>
           </Link>
           <h1 className="font-display text-4xl text-primary mb-2">Create Prescription</h1>
-          <p className="text-xl text-muted-foreground">Patient ID: {appointment.patientId}</p>
+          <p className="text-xl font-medium text-primary">{patient?.displayName || "Patient"}</p>
+          <p className="text-sm text-muted-foreground">{patient?.email}</p>
+          {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
         </div>
         <Button onClick={() => setShowPreview(!showPreview)} variant="outline">
           <EyeIcon className="h-4 w-4 mr-2" />
@@ -476,7 +483,7 @@ export default function DoctorPrescriptionCreatePage() {
                 <CardTitle className="text-lg">Prescription Preview</CardTitle>
               </CardHeader>
               <CardContent>
-                <PrescriptionPreview formData={formData} appointment={appointment} doctor={user} />
+                <PrescriptionPreview formData={formData} appointment={appointment} doctor={user} patient={patient} />
               </CardContent>
             </Card>
           </div>
@@ -486,7 +493,7 @@ export default function DoctorPrescriptionCreatePage() {
   );
 }
 
-function PrescriptionPreview({ formData, appointment, doctor }: { formData: PrescriptionFormData; appointment: AppointmentDocument; doctor: any }) {
+function PrescriptionPreview({ formData, appointment, doctor, patient }: { formData: PrescriptionFormData; appointment: AppointmentDocument; doctor: any; patient: any }) {
   return (
     <div className="border border-primary/10 rounded-xl p-8 bg-gradient-to-br from-[#F7F4EF] to-[#DDE5DF]">
       {/* Header */}
@@ -508,7 +515,9 @@ function PrescriptionPreview({ formData, appointment, doctor }: { formData: Pres
 
       {/* Patient Info */}
       <div className="mb-6 pb-6 border-b border-primary/10">
-        <p className="text-sm text-muted-foreground">Patient ID: {appointment.patientId}</p>
+        <p className="text-sm font-medium text-primary">{patient?.displayName || "Patient"}</p>
+        {patient?.email && <p className="text-sm text-muted-foreground">{patient.email}</p>}
+        {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
       </div>
 
       {/* Eye Examination Results */}

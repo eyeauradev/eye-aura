@@ -212,7 +212,8 @@ function PrescriptionDisplay({
       {/* Patient Info */}
       <div className="mb-6 pb-6 border-b border-primary/10">
         <p className="text-sm text-muted-foreground">Patient: {patient?.displayName || "N/A"}</p>
-        <p className="text-sm text-muted-foreground">Patient ID: {prescription.patientId}</p>
+        {patient?.email && <p className="text-sm text-muted-foreground">{patient.email}</p>}
+        {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
         {appointment && (
           <p className="text-sm text-muted-foreground">Consultation: {new Date(appointment.scheduledFor).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
         )}

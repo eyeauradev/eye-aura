@@ -85,9 +85,10 @@ service cloud.firestore {
         || signedIn() && request.auth.uid == resource.data.doctorId
         || isAdmin();
       
+      // Patients can create their own appointments; doctors can create when accepting requests
       allow create: if signedIn()
-        && request.resource.data.patientId == request.auth.uid
-        && isFutureDate(request.resource.data.scheduledFor)
+        && (request.resource.data.patientId == request.auth.uid
+            || isDoctorOrAdmin())
         && request.resource.data.status in ['pending', 'confirmed'];
       
       allow update: if signedIn() && request.auth.uid == resource.data.patientId
@@ -202,8 +203,8 @@ service cloud.firestore {
     match /doctor_blocks/{blockId} {
       allow read: if true;
       
-      allow create: if signedIn() && request.auth.uid == request.resource.data.doctorId
-        || isAdmin();
+      allow create: if signedIn() && (request.auth.uid == request.resource.data.doctorId
+        || isAdmin());
       
       allow update: if signedIn() && request.auth.uid == resource.data.doctorId || isAdmin();
       allow delete: if signedIn() && request.auth.uid == resource.data.doctorId || isAdmin();

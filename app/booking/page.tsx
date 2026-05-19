@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
@@ -10,7 +10,8 @@ import type { BookingState, BookingStep } from "@/types/booking";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Calendar, Clock, Check, FileText, User, Star } from "lucide-react";
+import { ArrowRight, Calendar, Clock, Check, FileText, User, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const STEPS: BookingStep[] = [
   { id: "service", title: "Choose Service", description: "Select your consultation type", completed: false },
@@ -374,61 +375,91 @@ function TimeSelectionStep({
   selected: Date | null;
   onBack: () => void;
 }) {
-  // Generate available time slots for the next 2 weeks
-  const generateTimeSlots = () => {
-    const slots: Date[] = [];
-    const today = new Date();
-    const twoWeeksLater = new Date();
-    twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(selected ? new Date(selected.toDateString()) : null);
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d;
+  });
 
-    const dayMap: Record<string, number> = {
-      sunday: 0,
-      monday: 1,
-      tuesday: 2,
-      wednesday: 3,
-      thursday: 4,
-      friday: 5,
-      saturday: 6,
-    };
-
-    let currentDate = new Date(today);
-    while (currentDate <= twoWeeksLater) {
-      const dayOfWeek = currentDate.getDay();
-      
-      // Find availability for this day
-      const dayName = Object.keys(dayMap).find(key => dayMap[key] === dayOfWeek);
-      const availability = doctorAvailability.find(a => a.dayOfWeek === dayName && !a.isOff);
-
-      if (availability && dayName) {
-        availability.timeRanges.forEach((range) => {
-          const [startHours, startMinutes] = range.startTime.split(":").map(Number);
-          const [endHours, endMinutes] = range.endTime.split(":").map(Number);
-
-          const startTime = new Date(currentDate);
-          startTime.setHours(startHours, startMinutes, 0, 0);
-
-          const endTime = new Date(currentDate);
-          endTime.setHours(endHours, endMinutes, 0, 0);
-
-          // Generate slots at the configured duration
-          let slotStart = new Date(startTime);
-          while (slotStart.getTime() + availability.duration * 60000 <= endTime.getTime()) {
-            // Only add slots that are in the future
-            if (slotStart > new Date()) {
-              slots.push(new Date(slotStart));
-            }
-            slotStart = new Date(slotStart.getTime() + availability.duration * 60000);
-          }
-        });
-      }
-
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return slots.slice(0, 50); // Limit to first 50 slots
+  const dayMap: Record<string, number> = {
+    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+    thursday: 4, friday: 5, saturday: 6,
   };
 
-  const timeSlots = generateTimeSlots();
+  const slotsByDate = useMemo(() => {
+    const result: Record<string, Date[]> = {};
+    const today = new Date();
+    const twoMonthsLater = new Date();
+    twoMonthsLater.setDate(twoMonthsLater.getDate() + 60);
+
+    let current = new Date(today);
+    current.setHours(0, 0, 0, 0);
+
+    while (current <= twoMonthsLater) {
+      const dayOfWeek = current.getDay();
+      const dayName = Object.keys(dayMap).find((k) => dayMap[k] === dayOfWeek);
+      const avail = doctorAvailability.find((a) => a.dayOfWeek === dayName && !a.isOff);
+
+      if (avail) {
+        const dateKey = current.toISOString().split("T")[0];
+        const daySlots: Date[] = [];
+
+        avail.timeRanges.forEach((range) => {
+          const [sh, sm] = range.startTime.split(":").map(Number);
+          const [eh, em] = range.endTime.split(":").map(Number);
+
+          const endTime = new Date(current);
+          endTime.setHours(eh, em, 0, 0);
+
+          let slotStart = new Date(current);
+          slotStart.setHours(sh, sm, 0, 0);
+
+          while (slotStart.getTime() + avail.duration * 60000 <= endTime.getTime()) {
+            if (slotStart > new Date()) {
+              daySlots.push(new Date(slotStart));
+            }
+            slotStart = new Date(slotStart.getTime() + avail.duration * 60000);
+          }
+        });
+
+        if (daySlots.length > 0) result[dateKey] = daySlots;
+      }
+
+      current = new Date(current);
+      current.setDate(current.getDate() + 1);
+    }
+
+    return result;
+  }, [doctorAvailability]);
+
+  const calendarDays = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < firstDay; i++) days.push(null);
+    for (let d = 1; d <= daysInMonth; d++) days.push(new Date(year, month, d));
+    return days;
+  }, [currentMonth]);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const isAvailable = (date: Date) => !!slotsByDate[date.toISOString().split("T")[0]];
+  const isPast = (date: Date) => { const d = new Date(date); d.setHours(0,0,0,0); return d < today; };
+  const isToday = (date: Date) => date.toDateString() === new Date().toDateString();
+  const isSelected = (date: Date) => selectedDate?.toDateString() === date.toDateString();
+
+  const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+
+  const canGoPrev = currentMonth.getFullYear() > today.getFullYear() ||
+    currentMonth.getMonth() > today.getMonth();
+
+  const selectedDateKey = selectedDate?.toISOString().split("T")[0] ?? null;
+  const selectedSlots = selectedDateKey ? slotsByDate[selectedDateKey] ?? [] : [];
 
   return (
     <div className="space-y-6">
@@ -436,53 +467,123 @@ function TimeSelectionStep({
         <div>
           <h2 className="font-display text-2xl text-primary">Choose Your Time</h2>
           <p className="mt-2 text-base text-muted-foreground">
-            Select a convenient time for your consultation
+            Select a date, then pick a time slot
           </p>
         </div>
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
+        <Button variant="outline" onClick={onBack}>Back</Button>
       </div>
 
-      {timeSlots.length === 0 ? (
-        <Card className="border-primary/10 bg-primary/5">
-          <CardContent className="p-8 text-center">
-            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-base text-muted-foreground mb-2">
-              No available time slots in the next 2 weeks
-            </p>
-            <p className="text-sm text-muted-foreground">
-              The doctor may have limited availability or be fully booked
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
-          {timeSlots.map((time, index) => (
-            <Card
-              key={index}
-              className={`cursor-pointer transition hover:-translate-y-1 hover:shadow-lg ${
-                selected?.getTime() === time.getTime() ? "border-secondary ring-2 ring-secondary/20" : ""
-              }`}
-              onClick={() => onSelect(time)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <Calendar className="h-5 w-5 text-secondary" />
-                  <span className="text-sm font-bold text-primary">
-                    {time.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-secondary" />
-                  <span className="font-display text-xl text-primary">
-                    {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
+      {/* Calendar */}
+      <Card className="border-primary/10">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" onClick={prevMonth} disabled={!canGoPrev} className="h-8 w-8 p-0">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="font-bold text-primary">
+              {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            </span>
+            <Button variant="ghost" onClick={nextMonth} className="h-8 w-8 p-0">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Day headers */}
+          <div className="grid grid-cols-7 mb-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+              <div key={d} className="text-center text-xs font-bold text-muted-foreground py-1">{d}</div>
+            ))}
+          </div>
+          {/* Day cells */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((date, i) => {
+              if (!date) return <div key={i} />;
+              const past = isPast(date);
+              const avail = isAvailable(date);
+              const sel = isSelected(date);
+              const tod = isToday(date);
+              const disabled = past || !avail;
+
+              return (
+                <button
+                  key={i}
+                  disabled={disabled}
+                  onClick={() => setSelectedDate(date)}
+                  className={cn(
+                    "rounded-lg py-2 text-sm font-medium transition focus:outline-none",
+                    sel && "bg-secondary text-white",
+                    !sel && avail && !past && "bg-secondary/10 text-secondary hover:bg-secondary/25 cursor-pointer",
+                    disabled && "text-gray-300 cursor-not-allowed",
+                    tod && !sel && "ring-2 ring-secondary ring-offset-1",
+                  )}
+                >
+                  {date.getDate()}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-primary/10">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="h-3 w-3 rounded bg-secondary/20" />
+              <span>Available</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="h-3 w-3 rounded bg-gray-200" />
+              <span>Unavailable</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Time Slots */}
+      {selectedDate && (
+        <div className="space-y-4">
+          <h3 className="font-bold text-primary">
+            Available times for{" "}
+            {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          </h3>
+          {selectedSlots.length === 0 ? (
+            <Card className="border-primary/10 bg-primary/5">
+              <CardContent className="p-6 text-center text-muted-foreground text-sm">
+                No slots available for this day
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-4">
+              {selectedSlots.map((time, index) => (
+                <Card
+                  key={index}
+                  className={cn(
+                    "cursor-pointer transition hover:-translate-y-1 hover:shadow-md",
+                    selected?.getTime() === time.getTime()
+                      ? "border-secondary ring-2 ring-secondary/20 bg-secondary/5"
+                      : "border-primary/10"
+                  )}
+                  onClick={() => onSelect(time)}
+                >
+                  <CardContent className="p-4 flex items-center justify-center gap-2">
+                    <Clock className="h-4 w-4 text-secondary shrink-0" />
+                    <span className="font-bold text-primary text-sm">
+                      {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
+      )}
+
+      {!selectedDate && (
+        <Card className="border-primary/10 bg-primary/5">
+          <CardContent className="p-6 text-center">
+            <Calendar className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">Select a highlighted date to see available time slots</p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

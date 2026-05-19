@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
-import type { BookingRequestDocument } from "@/types/firestore";
+import type { BookingRequestDocument, ServiceDocument, UserDocument } from "@/types/firestore";
 import { Calendar, Clock, FileText, Plus, Video, ArrowRight, Droplets, Sun, Eye as EyeIcon, Heart, User, Star, Bell, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ export default function PatientDashboard() {
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [recentPrescriptions, setRecentPrescriptions] = useState<any[]>([]);
   const [servicesWithDoctors, setServicesWithDoctors] = useState<any[]>([]);
-  const [bookingRequests, setBookingRequests] = useState<BookingRequestDocument[]>([]);
+  const [bookingRequests, setBookingRequests] = useState<(BookingRequestDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
 
   // Role-based redirect
   useEffect(() => {
@@ -66,9 +66,17 @@ export default function PatientDashboard() {
 
         setUpcomingAppointments(enrichedAppointments);
 
-        // Load booking requests
+        // Load booking requests — only non-accepted ones (accepted become confirmed appointments)
         const requests = await bookingRequestsService.getByPatientId(user.id);
-        setBookingRequests(requests.slice(0, 5));
+        const activeRequests = requests.filter(r => r.status !== "accepted");
+        const enrichedRequests = await Promise.all(
+          activeRequests.slice(0, 5).map(async (req) => {
+            const service = await servicesService.getById(req.serviceId);
+            const doctor = await usersService.getById(req.doctorId);
+            return { ...req, service: service ?? undefined, doctor: doctor ?? undefined };
+          })
+        );
+        setBookingRequests(enrichedRequests);
 
         // Load available services with doctors
         const allServices = await servicesService.getAll();
@@ -228,15 +236,18 @@ export default function PatientDashboard() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-4 mb-2">
                               <div>
-                                <p className="font-bold text-primary">Request #{request.id.slice(-6)}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Requested: {new Date(request.requestedTime).toLocaleString("en-US", {
+                                <p className="font-bold text-primary">{request.service?.title || "Consultation"}</p>
+                                <p className="text-sm text-muted-foreground">with {request.doctor?.displayName || "Doctor"}</p>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  <span>{new Date(request.requestedTime).toLocaleString("en-US", {
                                     month: "short",
                                     day: "numeric",
                                     hour: "2-digit",
                                     minute: "2-digit",
-                                  })}
-                                </p>
+                                  })}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground/70 mt-1">Req #{request.id.slice(-6)}</p>
                               </div>
                               <Badge className={statusConfig[request.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
                                 {statusConfig[request.status as keyof typeof statusConfig]?.label || request.status}

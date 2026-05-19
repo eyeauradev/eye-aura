@@ -21,6 +21,24 @@ import { servicesService } from "./index";
 const COLLECTION_NAME = "booking_requests";
 const APPOINTMENTS_COLLECTION = "appointments";
 
+function toDate(value: any): Date {
+  if (!value) return new Date();
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === "function") return value.toDate();
+  return new Date(value);
+}
+
+function mapDocToBookingRequest(id: string, data: any): BookingRequestDocument {
+  return {
+    ...data,
+    id,
+    requestedTime: toDate(data.requestedTime),
+    proposedTime: data.proposedTime ? toDate(data.proposedTime) : undefined,
+    createdAt: toDate(data.createdAt),
+    updatedAt: toDate(data.updatedAt),
+  } as BookingRequestDocument;
+}
+
 export class BookingRequestsService {
   private db = getFirebaseDb();
   private collection = collection(this.db, COLLECTION_NAME);
@@ -28,7 +46,7 @@ export class BookingRequestsService {
   async getById(id: string): Promise<BookingRequestDocument | null> {
     const docRef = doc(this.db, COLLECTION_NAME, id);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as BookingRequestDocument : null;
+    return docSnap.exists() ? mapDocToBookingRequest(docSnap.id, docSnap.data()) : null;
   }
 
   async create(request: Omit<BookingRequestDocument, "id" | "createdAt" | "updatedAt">): Promise<BookingRequestDocument> {
@@ -64,7 +82,7 @@ export class BookingRequestsService {
   async query(constraints: QueryConstraint[]): Promise<BookingRequestDocument[]> {
     const q = query(this.collection, ...constraints);
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as BookingRequestDocument);
+    return querySnapshot.docs.map((doc) => mapDocToBookingRequest(doc.id, doc.data()));
   }
 
   async getByPatientId(patientId: string): Promise<BookingRequestDocument[]> {

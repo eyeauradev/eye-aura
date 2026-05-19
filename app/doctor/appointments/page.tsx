@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { appointmentsService } from "@/services/firestore";
-import type { AppointmentDocument } from "@/types/firestore";
+import { appointmentsService, usersService } from "@/services/firestore";
+import type { AppointmentDocument, UserDocument } from "@/types/firestore";
 import { Calendar, Clock, Users, Filter, Search, Video, FileText, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,7 @@ export default function DoctorAppointmentsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<AppointmentDocument[]>([]);
+  const [patientCache, setPatientCache] = useState<Record<string, UserDocument>>({});
   const [filter, setFilter] = useState<"all" | "upcoming" | "completed" | "cancelled">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -26,6 +27,18 @@ export default function DoctorAppointmentsPage() {
         setLoading(true);
         const doctorAppointments = await appointmentsService.getByDoctorId(user.id);
         setAppointments(doctorAppointments);
+
+        // Fetch patient profiles for all unique patients
+        const uniquePatientIds = [...new Set(doctorAppointments.map(a => a.patientId))];
+        const patientEntries = await Promise.all(
+          uniquePatientIds.map(async (id) => {
+            const p = await usersService.getById(id);
+            return [id, p] as [string, UserDocument | null];
+          })
+        );
+        const cache: Record<string, UserDocument> = {};
+        patientEntries.forEach(([id, p]) => { if (p) cache[id] = p; });
+        setPatientCache(cache);
       } catch (error) {
         console.error("Error loading appointments:", error);
       } finally {
@@ -48,9 +61,15 @@ export default function DoctorAppointmentsPage() {
       return appointment.status === "cancelled" || appointment.status === "cancellation_requested";
     }
 
-    // Filter by search query (patient ID)
+    // Filter by search query (patient name/email)
     if (searchQuery) {
-      return appointment.patientId.toLowerCase().includes(searchQuery.toLowerCase());
+      const patient = patientCache[appointment.patientId];
+      const q = searchQuery.toLowerCase();
+      return (
+        (patient?.displayName?.toLowerCase().includes(q) ?? false) ||
+        (patient?.email?.toLowerCase().includes(q) ?? false) ||
+        (patient?.phoneNumber?.toLowerCase().includes(q) ?? false)
+      );
     }
 
     return true;
@@ -146,7 +165,7 @@ export default function DoctorAppointmentsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search patient ID..."
+            placeholder="Search by patient name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-primary/10 rounded-full bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -171,6 +190,7 @@ export default function DoctorAppointmentsPage() {
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
+                patient={patientCache[appointment.patientId]}
                 canJoin={canJoinConsultation(appointment)}
               />
             ))}
@@ -187,6 +207,7 @@ export default function DoctorAppointmentsPage() {
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
+                patient={patientCache[appointment.patientId]}
                 canJoin={false}
               />
             ))}
@@ -203,6 +224,7 @@ export default function DoctorAppointmentsPage() {
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
+                patient={patientCache[appointment.patientId]}
                 canJoin={false}
               />
             ))}
@@ -221,6 +243,7 @@ export default function DoctorAppointmentsPage() {
               <AppointmentCard
                 key={appointment.id}
                 appointment={appointment}
+                patient={patientCache[appointment.patientId]}
                 canJoin={canJoinConsultation(appointment)}
               />
             ))}
@@ -244,7 +267,7 @@ export default function DoctorAppointmentsPage() {
   );
 }
 
-function AppointmentCard({ appointment, canJoin }: { appointment: AppointmentDocument; canJoin: boolean }) {
+function AppointmentCard({ appointment, patient, canJoin }: { appointment: AppointmentDocument; patient?: UserDocument; canJoin: boolean }) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "confirmed":
@@ -275,8 +298,10 @@ function AppointmentCard({ appointment, canJoin }: { appointment: AppointmentDoc
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="font-medium text-primary">Patient ID: {appointment.patientId}</p>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <p className="font-medium text-primary">{patient?.displayName || "Patient"}</p>
+                <p className="text-xs text-muted-foreground">{patient?.email}</p>
+                {patient?.phoneNumber && <p className="text-xs text-muted-foreground">{patient.phoneNumber}</p>}
+                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     <span>{appointmentDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
