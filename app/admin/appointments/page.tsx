@@ -75,15 +75,15 @@ export default function AdminAppointmentsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Appointments</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Appointments</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           Monitor all platform appointments
         </p>
       </div>
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg">All Appointments</CardTitle>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
@@ -112,7 +112,7 @@ export default function AdminAppointmentsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             {filteredAppointments.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">

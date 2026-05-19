@@ -78,7 +78,7 @@ export default function PrescriptionDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF] px-5">
         <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 sm:p-8 text-center">
             <p className="text-base text-muted-foreground">Prescription not found</p>
             <Link href="/patient/prescriptions" className="inline-block mt-4">
               <Button>View Prescriptions</Button>
@@ -137,7 +137,7 @@ export default function PrescriptionDetailPage() {
           <div className="space-y-6">
             {/* Prescription Card */}
             <Card className="border-primary/10" id="prescription-content">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <div className="flex items-start justify-between">
                   <div>
                     <CardTitle className="text-2xl">Prescription</CardTitle>
@@ -409,7 +409,7 @@ export default function PrescriptionDetailPage() {
 
             {/* Actions */}
             <Card className="border-primary/10 bg-primary/5">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
                   <div>
                     <p className="text-sm font-bold text-muted-foreground mb-1">Need clarification?</p>

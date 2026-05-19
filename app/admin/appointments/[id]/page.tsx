@@ -96,8 +96,8 @@ export default function AdminAppointmentDetailPage() {
             Back to Appointments
           </Button>
         </Link>
-        <h1 className="font-display text-4xl text-primary mb-2">Appointment Details</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Appointment Details</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           {appointment.scheduledFor.toLocaleDateString("en-US", {
             weekday: "long",
             month: "long",
@@ -113,7 +113,7 @@ export default function AdminAppointmentDetailPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Participants */}
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg">Participants</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -140,7 +140,7 @@ export default function AdminAppointmentDetailPage() {
 
           {/* Status */}
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg">Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -180,10 +180,10 @@ export default function AdminAppointmentDetailPage() {
       {/* Service */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Service</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             {service ? (
               <div className="flex items-center justify-between">
                 <div>
@@ -206,10 +206,10 @@ export default function AdminAppointmentDetailPage() {
       {prescription && (
         
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg">Prescription</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
@@ -242,10 +242,10 @@ export default function AdminAppointmentDetailPage() {
       {appointment.notes && (
         
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg">Consultation Notes</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <p className="text-muted-foreground whitespace-pre-wrap">{appointment.notes}</p>
             </CardContent>
           </Card>

@@ -96,8 +96,8 @@ export default function DoctorPatientsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Patients</h1>
-        <p className="text-xl text-muted-foreground">View patient consultation history</p>
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Patients</h1>
+        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">View patient consultation history</p>
       </div>
 
       {/* Search */}
@@ -115,7 +115,7 @@ export default function DoctorPatientsPage() {
       {/* Stats */}
       <div className="grid gap-6 sm:grid-cols-2">
         <Card className="border-primary/10 bg-white/50">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <Users className="h-6 w-6 text-primary" />
@@ -128,7 +128,7 @@ export default function DoctorPatientsPage() {
           </CardContent>
         </Card>
         <Card className="border-primary/10 bg-white/50">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-full bg-secondary/10 flex items-center justify-center">
                 <Calendar className="h-6 w-6 text-secondary" />
@@ -175,7 +175,7 @@ function PatientCard({ patient, info }: { patient: { patientId: string; appointm
 
   return (
     <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-      <CardContent className="p-6">
+      <CardContent className="p-3 sm:p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-3">

@@ -144,17 +144,17 @@ export default function AdminServiceEditPage() {
               Back to Service
             </Button>
           </Link>
-          <h1 className="font-display text-4xl text-primary mb-2">Edit Service</h1>
-          <p className="text-xl text-muted-foreground">Update service details and assign doctors</p>
+          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Edit Service</h1>
+          <p className="text-sm sm:text-xl text-muted-foreground">Update service details and assign doctors</p>
         </div>
       </div>
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle>Service Information</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>

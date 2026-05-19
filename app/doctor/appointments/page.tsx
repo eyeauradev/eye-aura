@@ -127,8 +127,8 @@ export default function DoctorAppointmentsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Appointments</h1>
-        <p className="text-xl text-muted-foreground">Manage your consultations</p>
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Appointments</h1>
+        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">Manage your consultations</p>
       </div>
 
       {/* Filters */}
@@ -290,24 +290,23 @@ function AppointmentCard({ appointment, patient, canJoin }: { appointment: Appoi
 
   return (
     <Card className={`border-primary/10 ${isPast && appointment.status !== "completed" ? "opacity-60" : ""}`}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="h-6 w-6 text-primary" />
+      <CardContent className="p-3 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Users className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <p className="font-medium text-primary">{patient?.displayName || "Patient"}</p>
-                <p className="text-xs text-muted-foreground">{patient?.email}</p>
-                {patient?.phoneNumber && <p className="text-xs text-muted-foreground">{patient.phoneNumber}</p>}
-                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+              <div className="min-w-0">
+                <p className="font-medium text-primary truncate">{patient?.displayName || "Patient"}</p>
+                <p className="text-xs text-muted-foreground truncate">{patient?.email}</p>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
                   <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
+                    <Calendar className="h-3 w-3" />
                     <span>{appointmentDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
+                    <Clock className="h-3 w-3" />
                     <span>{appointmentDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
                   </div>
                 </div>
@@ -331,7 +330,7 @@ function AppointmentCard({ appointment, patient, canJoin }: { appointment: Appoi
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             {canJoin && appointment.consultationLink && (
               <Button asChild>
                 <a

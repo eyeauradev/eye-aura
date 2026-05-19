@@ -253,13 +253,13 @@ function ServiceSelectionStep({
             }`}
             onClick={() => onSelect(service)}
           >
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-accent/35 text-primary">
                 <FileText className="h-6 w-6" />
               </div>
               <CardTitle className="text-xl">{service.title}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <p className="text-base leading-7 text-muted-foreground">{service.description}</p>
               <div className="mt-4 flex items-center justify-between">
                 <span className="font-display text-xl text-secondary">
@@ -320,7 +320,7 @@ function DoctorSelectionStep({
 
       {doctors.length === 0 ? (
         <Card className="border-primary/10 bg-primary/5">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 sm:p-8 text-center">
             <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-base text-muted-foreground mb-2">
               No doctors available for this service yet
@@ -340,7 +340,7 @@ function DoctorSelectionStep({
               }`}
               onClick={() => onSelect(doctor)}
             >
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <div className="flex items-start gap-4">
                   <div className="h-14 w-14 rounded-full bg-secondary/15 flex items-center justify-center text-secondary shrink-0">
                     {doctor.displayName?.charAt(0).toUpperCase() || "D"}
@@ -488,7 +488,7 @@ function TimeSelectionStep({
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6">
           {/* Day headers */}
           <div className="grid grid-cols-7 mb-2">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
@@ -615,7 +615,7 @@ function NotesStep({
       </div>
 
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-3 sm:p-6">
           <textarea
             value={notes}
             onChange={(e) => onChange(e.target.value)}
@@ -675,7 +675,7 @@ function ConfirmationStep({
       </div>
 
       <Card className="border-primary/10 bg-gradient-to-br from-white/50 to-white/30">
-        <CardHeader>
+        <CardHeader className="p-3 sm:p-6">
           <CardTitle className="flex items-center gap-2">
             <Check className="h-5 w-5 text-secondary" />
             Request Summary

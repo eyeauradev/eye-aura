@@ -147,7 +147,7 @@ export default function PatientNotificationsPage() {
                       !notification.read ? "bg-white/80" : "bg-white/50"
                     }`}
                   >
-                    <CardContent className="p-6">
+                    <CardContent className="p-3 sm:p-6">
                       <div className="flex items-start gap-4">
                         <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${color}`}>
                           <Icon className="h-6 w-6" />

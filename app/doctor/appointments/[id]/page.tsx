@@ -150,7 +150,7 @@ export default function DoctorAppointmentDetailPage() {
         </Link>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="font-display text-4xl text-primary mb-2">Appointment Details</h1>
+            <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Appointment Details</h1>
             <p className="text-xl font-medium text-primary">{patient?.displayName || "Patient"}</p>
             <p className="text-sm text-muted-foreground">{patient?.email}</p>
             {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
@@ -163,7 +163,7 @@ export default function DoctorAppointmentDetailPage() {
       
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg">Consultation Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -221,7 +221,7 @@ export default function DoctorAppointmentDetailPage() {
           </Card>
 
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -290,7 +290,7 @@ export default function DoctorAppointmentDetailPage() {
       {/* Consultation Notes */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Consultation Notes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -314,7 +314,7 @@ export default function DoctorAppointmentDetailPage() {
           <div className="grid gap-4">
             {prescriptions.map((prescription) => (
               <Card key={prescription.id} className="border-primary/10">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-primary">
@@ -341,10 +341,10 @@ export default function DoctorAppointmentDetailPage() {
 
       {/* Appointment Timeline */}
       <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Appointment Timeline</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="h-3 w-3 rounded-full bg-primary"></div>

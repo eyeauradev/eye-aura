@@ -55,22 +55,18 @@ export default function PatientPrescriptionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
-      {/* Header */}
-      <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <h1 className="font-display text-3xl text-primary sm:text-4xl">My Prescriptions</h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            View and download your consultation prescriptions
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">My Prescriptions</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
+          View and download your consultation prescriptions
+        </p>
       </div>
 
-      
-        <div className="mx-auto max-w-6xl">
+        <div>
           {prescriptions.length === 0 ? (
             <Card className="border-primary/10 bg-primary/5">
-              <CardContent className="p-12 text-center">
+              <CardContent className="p-4 sm:p-12 text-center">
                 <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
                   <FileText className="h-8 w-8 text-primary" />
                 </div>
@@ -90,7 +86,7 @@ export default function PatientPrescriptionsPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {prescriptions.map((prescription) => (
                 <Card key={prescription.id} className="border-primary/10 transition hover:-translate-y-1 hover:shadow-lg">
-                  <CardHeader>
+                  <CardHeader className="p-3 sm:p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <CardTitle className="text-lg mb-1">Prescription</CardTitle>

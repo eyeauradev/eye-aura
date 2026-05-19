@@ -184,7 +184,7 @@ export default function DoctorPrescriptionCreatePage() {
               Back to Appointments
             </Button>
           </Link>
-          <h1 className="font-display text-4xl text-primary mb-2">Create Prescription</h1>
+          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Create Prescription</h1>
           <p className="text-xl font-medium text-primary">{patient?.displayName || "Patient"}</p>
           <p className="text-sm text-muted-foreground">{patient?.email}</p>
           {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
@@ -201,7 +201,7 @@ export default function DoctorPrescriptionCreatePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Right Eye */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Right Eye</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -252,7 +252,7 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Left Eye */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Left Eye</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -303,10 +303,10 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* PD */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Pupillary Distance</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <input
                   type="text"
                   value={formData.pd}
@@ -319,10 +319,10 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Diagnosis */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Diagnosis</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <textarea
                   value={formData.diagnosis}
                   onChange={(e) => handleInputChange("diagnosis", e.target.value)}
@@ -335,10 +335,10 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Findings */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Findings</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <textarea
                   value={formData.findings}
                   onChange={(e) => handleInputChange("findings", e.target.value)}
@@ -351,10 +351,10 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Medications */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Medications</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <textarea
                   value={formData.medications}
                   onChange={(e) => handleInputChange("medications", e.target.value)}
@@ -367,10 +367,10 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Eye Drops */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Eye Drops</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <textarea
                   value={formData.eyeDrops}
                   onChange={(e) => handleInputChange("eyeDrops", e.target.value)}
@@ -383,10 +383,10 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Exercises */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Exercises</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <textarea
                   value={formData.exercises}
                   onChange={(e) => handleInputChange("exercises", e.target.value)}
@@ -399,10 +399,10 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Recommendations */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Recommendations</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <textarea
                   value={formData.recommendations}
                   onChange={(e) => handleInputChange("recommendations", e.target.value)}
@@ -415,10 +415,10 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Consultation Notes */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Consultation Notes</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <textarea
                   value={formData.consultationNotes}
                   onChange={(e) => handleInputChange("consultationNotes", e.target.value)}
@@ -431,7 +431,7 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Follow-Up */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Follow-Up</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -479,10 +479,10 @@ export default function DoctorPrescriptionCreatePage() {
         {showPreview && (
           <div className="space-y-6">
             <Card className="border-primary/10 bg-white">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Prescription Preview</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <PrescriptionPreview formData={formData} appointment={appointment} doctor={user} patient={patient} />
               </CardContent>
             </Card>

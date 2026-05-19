@@ -102,7 +102,7 @@ export default function AppointmentDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF] px-5">
         <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 sm:p-8 text-center">
             <p className="text-base text-muted-foreground">Appointment not found</p>
             <Link href="/patient/appointments" className="inline-block mt-4">
               <Button>View Appointments</Button>
@@ -136,7 +136,7 @@ export default function AppointmentDetailPage() {
             <div className="lg:col-span-2 space-y-6">
               {/* Status Card */}
               <Card className="border-primary/10">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-2xl">{service.title}</CardTitle>
@@ -217,10 +217,10 @@ export default function AppointmentDetailPage() {
               {/* Doctor Card */}
               {doctor && (
                 <Card className="border-primary/10">
-                  <CardHeader>
+                  <CardHeader className="p-3 sm:p-6">
                     <CardTitle>Consultation With</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-3 sm:p-6">
                     <div className="flex items-center gap-4">
                       {doctor.photoURL ? (
                         <img
@@ -246,10 +246,10 @@ export default function AppointmentDetailPage() {
 
               {/* Timeline */}
               <Card className="border-primary/10">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <CardTitle>Appointment Timeline</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   <div className="space-y-4">
                     <div className="flex items-start gap-4">
                       <div className="h-2 w-2 rounded-full bg-secondary mt-2 shrink-0" />
@@ -326,7 +326,7 @@ export default function AppointmentDetailPage() {
             <div className="space-y-6">
               {/* Actions Card */}
               <Card className="border-primary/10">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <CardTitle>Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -369,10 +369,10 @@ export default function AppointmentDetailPage() {
               {/* Prescription Card */}
               {appointment.prescriptionId && (
                 <Card className="border-primary/10">
-                  <CardHeader>
+                  <CardHeader className="p-3 sm:p-6">
                     <CardTitle>Prescription</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-3 sm:p-6">
                     <Link href={`/patient/prescriptions/${appointment.prescriptionId}`}>
                       <Button variant="outline" size="lg" className="w-full">
                         <FileText className="h-5 w-5 mr-2" />
@@ -385,7 +385,7 @@ export default function AppointmentDetailPage() {
 
               {/* Support Card */}
               <Card className="border-primary/10 bg-primary/5">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <p className="text-sm font-bold text-muted-foreground mb-2">Need Help?</p>
                   <Link href="/patient/support">
                     <Button variant="outline" size="lg" className="w-full">
@@ -403,7 +403,7 @@ export default function AppointmentDetailPage() {
       {showCancelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-5 bg-black/50 backdrop-blur-sm">
           <Card className="max-w-md w-full">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle>Cancel Appointment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

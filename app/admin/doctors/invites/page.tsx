@@ -263,8 +263,8 @@ export default function DoctorInvitesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Doctor Invites</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Doctor Invites</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           Manage doctor invitation lifecycle
         </p>
       </div>
@@ -279,7 +279,7 @@ export default function DoctorInvitesPage() {
             </h2>
             {pendingInvites.length === 0 ? (
               <Card className="border-primary/10">
-                <CardContent className="p-8 text-center text-muted-foreground">
+                <CardContent className="p-4 sm:p-8 text-center text-muted-foreground">
                   No pending invites
                 </CardContent>
               </Card>

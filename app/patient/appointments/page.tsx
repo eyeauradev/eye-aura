@@ -117,7 +117,7 @@ export default function PatientAppointmentsPage() {
   const BookingRequestCard = ({ request }: { request: BookingRequestDocument & { service?: ServiceDocument; doctor?: UserDocument } }) => {
     return (
       <Card className="border-amber-200 bg-amber-50 transition hover:-translate-y-1 hover:shadow-lg">
-        <CardContent className="p-6">
+        <CardContent className="p-3 sm:p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <h3 className="font-display text-xl text-primary mb-1">{request.service?.title || "Service"}</h3>
@@ -185,7 +185,7 @@ export default function PatientAppointmentsPage() {
 
     return (
       <Card className="border-primary/10 transition hover:-translate-y-1 hover:shadow-lg">
-        <CardContent className="p-6">
+        <CardContent className="p-3 sm:p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <h3 className="font-display text-xl text-primary mb-1">{appointment.service?.title}</h3>
@@ -324,7 +324,7 @@ export default function PatientAppointmentsPage() {
                 </div>
               ) : (
                 <Card className="border-primary/10 bg-primary/5">
-                  <CardContent className="p-8 text-center">
+                  <CardContent className="p-4 sm:p-8 text-center">
                     <Clock className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
                     <p className="text-base text-muted-foreground">No booking requests</p>
                   </CardContent>

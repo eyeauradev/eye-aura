@@ -242,10 +242,10 @@ export default function DoctorDashboard() {
 
       {/* Welcome Header */}
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">
           {getGreeting()}, {user?.displayName || "Doctor"}
         </h1>
-        <p className="text-xl text-muted-foreground">{formatDate()}</p>
+        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">{formatDate()}</p>
         <p className="text-base text-muted-foreground mt-2">
           Ready to provide exceptional eye care today.
         </p>
@@ -257,7 +257,7 @@ export default function DoctorDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Upcoming</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="text-3xl font-bold text-primary">{stats.totalUpcoming}</div>
           </CardContent>
         </Card>
@@ -265,7 +265,7 @@ export default function DoctorDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Completed Today</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="text-3xl font-bold text-primary">{stats.completedToday}</div>
           </CardContent>
         </Card>
@@ -273,7 +273,7 @@ export default function DoctorDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Pending Requests</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="text-3xl font-bold text-primary">{stats.pendingRequests}</div>
           </CardContent>
         </Card>
@@ -281,7 +281,7 @@ export default function DoctorDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Pending Prescriptions</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="text-3xl font-bold text-primary">{stats.pendingPrescriptions}</div>
           </CardContent>
         </Card>
@@ -305,7 +305,7 @@ export default function DoctorDashboard() {
           <div className="grid gap-4">
             {pendingRequests.slice(0, 3).map((request) => (
               <Card key={request.id} className="border-amber-200 bg-amber-50">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
@@ -370,7 +370,7 @@ export default function DoctorDashboard() {
               const canJoin = canJoinConsultation(appointment);
               return (
                 <Card key={appointment.id} className="border-primary/10">
-                  <CardContent className="p-6">
+                  <CardContent className="p-3 sm:p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
@@ -428,7 +428,7 @@ export default function DoctorDashboard() {
         ) : (
           <div>
             <Card className="border-primary/10 bg-primary/5">
-              <CardContent className="p-8 text-center">
+              <CardContent className="p-4 sm:p-8 text-center">
                 <Calendar className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
                 <p className="text-base text-muted-foreground">No consultations scheduled for today</p>
               </CardContent>
@@ -448,7 +448,7 @@ export default function DoctorDashboard() {
           <div className="grid gap-4">
             {followUpAppointments.slice(0, 3).map((appointment) => (
               <Card key={appointment.id} className="border-secondary/20 bg-secondary/5">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
@@ -486,7 +486,7 @@ export default function DoctorDashboard() {
         <div className="grid gap-4 sm:grid-cols-2">
           <Link href="/doctor/slots">
             <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <Calendar className="h-6 w-6 text-primary" />
@@ -503,7 +503,7 @@ export default function DoctorDashboard() {
 
           <Link href="/doctor/schedule">
             <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <Clock className="h-6 w-6 text-primary" />
@@ -521,7 +521,7 @@ export default function DoctorDashboard() {
           {pendingRequests.length > 0 && (
             <Link href="/doctor/requests">
               <Card className="border-amber-200 bg-amber-50 hover:border-amber-300 transition cursor-pointer">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
                       <Bell className="h-6 w-6 text-amber-600" />
@@ -539,7 +539,7 @@ export default function DoctorDashboard() {
 
           <Link href="/doctor/appointments">
             <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <Users className="h-6 w-6 text-primary" />
@@ -556,7 +556,7 @@ export default function DoctorDashboard() {
 
           <Link href="/doctor/patients">
             <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <Users className="h-6 w-6 text-primary" />
@@ -573,7 +573,7 @@ export default function DoctorDashboard() {
 
           <Link href="/doctor/profile">
             <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-6">
                 <div className="flex items-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <Settings className="h-6 w-6 text-primary" />

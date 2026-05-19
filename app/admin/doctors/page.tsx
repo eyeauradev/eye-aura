@@ -78,7 +78,7 @@ export default function AdminDoctorsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-primary mb-1">Doctors</h1>
-          <p className="text-base sm:text-xl text-muted-foreground">Manage platform doctors</p>
+          <p className="text-base sm:text-sm sm:text-xl text-muted-foreground">Manage platform doctors</p>
         </div>
         <Link href="/admin/doctors/invite" className="self-start sm:self-auto">
           <Button>
@@ -90,7 +90,7 @@ export default function AdminDoctorsPage() {
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg">All Doctors</CardTitle>
               <div className="relative w-full sm:w-64">
@@ -104,7 +104,7 @@ export default function AdminDoctorsPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             {filteredDoctors.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4">
@@ -137,45 +137,43 @@ export default function AdminDoctorsPage() {
 
 function DoctorCard({ doctor, onDisable, onActivate }: { doctor: UserDocument; onDisable: (id: string) => void; onActivate: (id: string) => void }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-primary font-bold text-lg">
-            {doctor.displayName?.charAt(0) || doctor.email?.charAt(0)}
+    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
+      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <span className="text-primary font-bold">
+          {doctor.displayName?.charAt(0) || doctor.email?.charAt(0)}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-primary truncate">{doctor.displayName || "Unknown"}</p>
+        <p className="text-sm text-muted-foreground truncate">{doctor.email}</p>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          {doctor.isActive ? (
+            !doctor.isSuspended ? (
+              <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+            ) : (
+              <Badge className="bg-orange-100 text-orange-800 border-orange-200">Suspended</Badge>
+            )
+          ) : (
+            <Badge className="bg-gray-100 text-gray-800 border-gray-200">Disabled</Badge>
+          )}
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {doctor.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </span>
         </div>
-        <div>
-          <p className="font-medium text-primary">{doctor.displayName || "Unknown"}</p>
-          <p className="text-sm text-muted-foreground">{doctor.email}</p>
-          <div className="flex items-center gap-2 mt-1">
-            {doctor.isActive ? (
-              !doctor.isSuspended ? (
-                <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
-              ) : (
-                <Badge className="bg-orange-100 text-orange-800 border-orange-200">Suspended</Badge>
-              )
-            ) : (
-              <Badge className="bg-gray-100 text-gray-800 border-gray-200">Disabled</Badge>
-            )}
-            <span className="text-xs text-muted-foreground">
-              Joined {doctor.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-            </span>
-          </div>
-        </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-0.5 shrink-0">
         <Link href={`/admin/doctors/${doctor.id}`}>
-          <Button variant="ghost" size="icon">
-            <Edit2 className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Edit2 className="h-3.5 w-3.5" />
           </Button>
         </Link>
         {doctor.isActive ? (
-          <Button variant="ghost" size="icon" onClick={() => onDisable(doctor.id)}>
-            <Ban className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDisable(doctor.id)}>
+            <Ban className="h-3.5 w-3.5" />
           </Button>
         ) : (
-          <Button variant="ghost" size="icon" onClick={() => onActivate(doctor.id)}>
-            <CheckCircle className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onActivate(doctor.id)}>
+            <CheckCircle className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>

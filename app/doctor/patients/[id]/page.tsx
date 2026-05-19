@@ -115,7 +115,7 @@ export default function DoctorPatientDetailPage() {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-4xl text-primary mb-2">{patient.displayName || "Patient"}</h1>
+            <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">{patient.displayName || "Patient"}</h1>
             <p className="text-base text-muted-foreground">{patient.email}</p>
             {patient.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
           </div>
@@ -130,7 +130,7 @@ export default function DoctorPatientDetailPage() {
       {/* Patient Info */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Patient Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -178,10 +178,10 @@ export default function DoctorPatientDetailPage() {
       {followUpAppointments.length > 0 && (
         
           <Card className="border-secondary/20 bg-secondary/5">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg text-secondary">Follow-Up Required</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="space-y-3">
                 {followUpAppointments.map((apt) => (
                   <div key={apt.id} className="flex items-center justify-between p-3 bg-white/50 rounded-xl">
@@ -226,7 +226,7 @@ export default function DoctorPatientDetailPage() {
           <div className="space-y-4">
             {appointments.map((appointment) => (
               <Card key={appointment.id} className="border-primary/10">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-4 mb-3">
@@ -278,7 +278,7 @@ export default function DoctorPatientDetailPage() {
           </div>
         ) : (
           <Card className="border-primary/10 bg-primary/5">
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-4 sm:p-8 text-center">
               <Calendar className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
               <p className="text-base text-muted-foreground">No consultation history yet</p>
             </CardContent>
@@ -293,7 +293,7 @@ export default function DoctorPatientDetailPage() {
           <div className="space-y-4">
             {prescriptions.map((prescription) => (
               <Card key={prescription.id} className="border-primary/10">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-4 mb-3">
@@ -332,7 +332,7 @@ export default function DoctorPatientDetailPage() {
           </div>
         ) : (
           <Card className="border-primary/10 bg-primary/5">
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-4 sm:p-8 text-center">
               <FileText className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
               <p className="text-base text-muted-foreground">No prescriptions yet</p>
             </CardContent>

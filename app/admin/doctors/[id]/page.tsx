@@ -108,8 +108,8 @@ export default function AdminDoctorDetailPage() {
               Back to Doctors
             </Button>
           </Link>
-          <h1 className="font-display text-4xl text-primary mb-2">{doctor.displayName || "Unknown"}</h1>
-          <p className="text-xl text-muted-foreground">{doctor.email}</p>
+          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">{doctor.displayName || "Unknown"}</h1>
+          <p className="text-sm sm:text-xl text-muted-foreground">{doctor.email}</p>
         </div>
         <div className="flex gap-3">
           {doctor.isActive ? (
@@ -135,10 +135,10 @@ export default function AdminDoctorDetailPage() {
       {/* Doctor Profile */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Profile Information</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Status</p>
@@ -175,7 +175,7 @@ export default function AdminDoctorDetailPage() {
               <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{appointments.length}</div>
               <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
@@ -186,7 +186,7 @@ export default function AdminDoctorDetailPage() {
               <CardTitle className="text-sm font-medium">Prescriptions</CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{prescriptions.length}</div>
               <p className="text-xs text-muted-foreground mt-1">Issued</p>
             </CardContent>
@@ -197,7 +197,7 @@ export default function AdminDoctorDetailPage() {
               <CardTitle className="text-sm font-medium">Available Slots</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{slots.filter((s) => s.isAvailable && !s.isBlocked).length}</div>
               <p className="text-xs text-muted-foreground mt-1">Active</p>
             </CardContent>
@@ -208,10 +208,10 @@ export default function AdminDoctorDetailPage() {
       {/* Recent Appointments */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Recent Appointments</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             {appointments.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No appointments yet</p>
             ) : (

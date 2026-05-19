@@ -122,8 +122,8 @@ export default function AdminDoctorInvitePage() {
               Back to Doctors
             </Button>
           </Link>
-          <h1 className="font-display text-4xl text-primary mb-2">Invite Sent</h1>
-          <p className="text-xl text-muted-foreground">
+          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Invite Sent</h1>
+          <p className="text-sm sm:text-xl text-muted-foreground">
             Doctor invite has been created successfully
           </p>
         </div>
@@ -188,21 +188,21 @@ export default function AdminDoctorInvitePage() {
             Back to Doctors
           </Button>
         </Link>
-        <h1 className="font-display text-4xl text-primary mb-2">Invite Doctor</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Invite Doctor</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           Send an invite to a new doctor to join the platform
         </p>
       </div>
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Doctor Information</CardTitle>
             <CardDescription>
               Enter the doctor's details to send an invite
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <Label htmlFor="doctorName">Doctor Name *</Label>

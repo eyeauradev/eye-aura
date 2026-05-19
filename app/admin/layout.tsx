@@ -54,30 +54,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-[#F0EDE8]">
       {/* Header */}
       <header className="bg-white border-b border-primary/10 sticky top-0 z-50">
-        <div className="flex items-center justify-between px-4 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between px-3 sm:px-4 lg:px-8 py-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="lg:hidden h-8 w-8"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
-            <Link href="/admin/dashboard" className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <Link href="/admin/dashboard" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
               </div>
               <div>
-                <h1 className="font-display text-xl text-primary">Eye Aura</h1>
-                <p className="text-xs text-muted-foreground">Admin Portal</p>
+                <h1 className="font-display text-base sm:text-xl text-primary leading-tight">Eye Aura</h1>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Admin Portal</p>
               </div>
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden md:block text-right">
               <p className="text-sm font-medium text-primary">{user.displayName}</p>
               <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
@@ -154,7 +154,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-4 pb-24 lg:p-8 lg:pb-8">
+        <main className="flex-1 min-w-0 p-3 sm:p-4 pb-24 lg:p-8 lg:pb-8">
           {children}
         </main>
       </div>

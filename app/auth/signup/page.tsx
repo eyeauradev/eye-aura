@@ -79,13 +79,13 @@ export default function SignupPage() {
         </div>
 
         <Card className="border-primary/10 shadow-lg">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-center text-2xl">Sign Up</CardTitle>
             <CardDescription className="text-center">
               Enter your details to create your account
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="displayName">Full Name</Label>

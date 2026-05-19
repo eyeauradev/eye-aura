@@ -128,21 +128,21 @@ export default function AdminServiceCreatePage() {
             Back to Services
           </Button>
         </Link>
-        <h1 className="font-display text-4xl text-primary mb-2">Create Service</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Create Service</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           Add a new consultation service to the platform
         </p>
       </div>
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Service Details</CardTitle>
             <CardDescription>
               Enter the service information below
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <Label htmlFor="title">Service Title *</Label>

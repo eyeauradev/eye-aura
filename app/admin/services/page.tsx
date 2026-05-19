@@ -74,7 +74,7 @@ export default function AdminServicesPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-primary mb-1">Services</h1>
-          <p className="text-base sm:text-xl text-muted-foreground">Manage consultation services</p>
+          <p className="text-base sm:text-sm sm:text-xl text-muted-foreground">Manage consultation services</p>
         </div>
         <Link href="/admin/services/create" className="self-start sm:self-auto">
           <Button>
@@ -86,7 +86,7 @@ export default function AdminServicesPage() {
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg">All Services</CardTitle>
               <div className="relative w-full sm:w-64">
@@ -100,7 +100,7 @@ export default function AdminServicesPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             {filteredServices.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4">
@@ -132,43 +132,39 @@ export default function AdminServicesPage() {
 
 function ServiceCard({ service, onToggle }: { service: ServiceDocument & { doctors: UserDocument[] }; onToggle: (id: string, current: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-primary font-bold text-lg">{service.title.charAt(0)}</span>
-        </div>
-        <div>
-          <p className="font-medium text-primary">{service.title}</p>
-          <p className="text-sm text-muted-foreground">{service.type}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-muted-foreground">
-              {service.duration} min • {service.currency} {service.price}
-            </span>
-            {service.isActive ? (
-              <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
-            ) : (
-              <Badge className="bg-gray-100 text-gray-800 border-gray-200">Inactive</Badge>
-            )}
-          </div>
-          {service.doctors.length > 0 && (
-            <div className="flex items-center gap-2 mt-2">
-              <User className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                {service.doctors.map((d) => d.displayName || "Doctor").join(", ")}
-              </span>
-            </div>
+    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
+      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <span className="text-primary font-bold">{service.title.charAt(0)}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-primary truncate">{service.title}</p>
+        <p className="text-sm text-muted-foreground truncate">{service.type}</p>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {service.duration}min • {service.currency}{service.price}
+          </span>
+          {service.isActive ? (
+            <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+          ) : (
+            <Badge className="bg-gray-100 text-gray-800 border-gray-200">Inactive</Badge>
           )}
         </div>
+        {service.doctors.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-1 truncate">
+            {service.doctors.map((d) => d.displayName || "Doctor").join(", ")}
+          </p>
+        )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-0.5 shrink-0">
         <Link href={`/admin/services/${service.id}`}>
-          <Button variant="ghost" size="icon">
-            <Edit2 className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Edit2 className="h-3.5 w-3.5" />
           </Button>
         </Link>
         <Button
           variant="ghost"
           size="icon"
+          className="h-8 w-8"
           onClick={() => onToggle(service.id, service.isActive)}
           title={service.isActive ? "Disable service" : "Enable service"}
         >

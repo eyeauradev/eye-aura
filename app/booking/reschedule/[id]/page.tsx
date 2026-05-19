@@ -119,7 +119,7 @@ export default function ReschedulePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF] px-5">
         <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 sm:p-8 text-center">
             <p className="text-base text-muted-foreground">Appointment not found</p>
             <Link href="/patient/appointments" className="inline-block mt-4">
               <Button>View Appointments</Button>
@@ -150,7 +150,7 @@ export default function ReschedulePage() {
         <div className="mx-auto max-w-4xl">
           {/* Current Appointment Info */}
           <Card className="border-primary/10 mb-8 bg-primary/5">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <h2 className="font-display text-xl text-primary mb-4">Current Appointment</h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -216,7 +216,7 @@ export default function ReschedulePage() {
                       className="border-primary/10 cursor-pointer transition hover:-translate-y-1 hover:shadow-lg"
                       onClick={() => handleSlotSelect(slot)}
                     >
-                      <CardContent className="p-6">
+                      <CardContent className="p-3 sm:p-6">
                         <div className="flex items-center gap-3 mb-3">
                           <Calendar className="h-5 w-5 text-secondary" />
                           <span className="text-sm font-bold text-primary">

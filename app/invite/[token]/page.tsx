@@ -194,13 +194,13 @@ export default function InviteAcceptancePage() {
         </div>
 
         <Card className="border-primary/10 shadow-lg">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-center text-2xl">Doctor Profile</CardTitle>
             <CardDescription className="text-center">
               Complete your profile to get started
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <Label htmlFor="displayName">Full Name *</Label>

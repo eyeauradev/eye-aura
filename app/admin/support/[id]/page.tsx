@@ -129,8 +129,8 @@ export default function AdminSupportDetailPage() {
               Back to Support
             </Button>
           </Link>
-          <h1 className="font-display text-4xl text-primary mb-2">{ticket.subject}</h1>
-          <p className="text-xl text-muted-foreground">
+          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">{ticket.subject}</h1>
+          <p className="text-sm sm:text-xl text-muted-foreground">
             {ticketUser?.displayName || "Unknown"} • {ticket.priority}
           </p>
         </div>
@@ -160,7 +160,7 @@ export default function AdminSupportDetailPage() {
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Ticket Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -192,7 +192,7 @@ export default function AdminSupportDetailPage() {
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Conversation</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

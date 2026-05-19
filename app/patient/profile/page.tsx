@@ -68,53 +68,49 @@ export default function PatientProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
-      {/* Header */}
-      <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <h1 className="font-display text-3xl text-primary sm:text-4xl">My Profile</h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            Manage your personal information and preferences
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">My Profile</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
+          Manage your personal information and preferences
+        </p>
       </div>
 
-      
-        <div className="mx-auto max-w-4xl">
+        <div>
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Profile Card */}
             <div className="lg:col-span-2 space-y-6">
               <Card className="border-primary/10">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <CardTitle>Personal Information</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Profile Image */}
-                    <div className="flex items-center gap-6 pb-6 border-b border-primary/10">
-                      <div className="relative">
+                    <div className="flex items-center gap-3 sm:gap-6 pb-6 border-b border-primary/10">
+                      <div className="relative shrink-0">
                         {user.photoURL ? (
                           <img
                             src={user.photoURL}
                             alt="Profile"
-                            className="h-24 w-24 rounded-full object-cover"
+                            className="h-16 w-16 sm:h-24 sm:w-24 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-12 w-12 text-primary" />
+                          <div className="h-16 w-16 sm:h-24 sm:w-24 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-8 w-8 sm:h-12 sm:w-12 text-primary" />
                           </div>
                         )}
                         <button
                           type="button"
-                          className="absolute bottom-0 right-0 grid h-8 w-8 place-items-center rounded-full bg-secondary text-white shadow-lg hover:bg-secondary/90 transition"
+                          className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-secondary text-white shadow-lg hover:bg-secondary/90 transition"
                         >
-                          <Camera className="h-4 w-4" />
+                          <Camera className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <div>
-                        <p className="font-display text-xl text-primary">{user.displayName || "Your Name"}</p>
-                        <p className="text-base text-muted-foreground">{user.email}</p>
-                        <Badge className="mt-2 capitalize">{user.role}</Badge>
+                      <div className="min-w-0">
+                        <p className="font-display text-lg sm:text-xl text-primary truncate">{user.displayName || "Your Name"}</p>
+                        <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                        <Badge className="mt-1 capitalize">{user.role}</Badge>
                       </div>
                     </div>
 
@@ -192,7 +188,7 @@ export default function PatientProfilePage() {
             <div className="space-y-6">
               {/* Account Info */}
               <Card className="border-primary/10">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <CardTitle>Account Info</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -219,14 +215,14 @@ export default function PatientProfilePage() {
 
               {/* Notification Preferences */}
               <Card className="border-primary/10">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <CardTitle>Notifications</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Bell className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-base text-primary">Email Notifications</span>
+                      <span className="text-sm text-primary">Email Notifications</span>
                     </div>
                     <div className="h-6 w-11 rounded-full bg-secondary relative cursor-pointer">
                       <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-white" />
@@ -235,7 +231,7 @@ export default function PatientProfilePage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Bell className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-base text-primary">Appointment Reminders</span>
+                      <span className="text-sm text-primary">Appointment Reminders</span>
                     </div>
                     <div className="h-6 w-11 rounded-full bg-secondary relative cursor-pointer">
                       <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-white" />
@@ -244,7 +240,7 @@ export default function PatientProfilePage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Bell className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-base text-primary">Prescription Alerts</span>
+                      <span className="text-sm text-primary">Prescription Alerts</span>
                     </div>
                     <div className="h-6 w-11 rounded-full bg-secondary relative cursor-pointer">
                       <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-white" />
@@ -255,10 +251,10 @@ export default function PatientProfilePage() {
 
               {/* Preferred Consultation */}
               <Card className="border-primary/10 bg-primary/5">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <CardTitle>Preferred Consultation</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   <div className="space-y-3">
                     <div className="p-3 rounded-2xl bg-white/50 border border-primary/10 cursor-pointer hover:bg-white transition">
                       <p className="text-sm font-bold text-primary">Video Consultation</p>
@@ -274,7 +270,7 @@ export default function PatientProfilePage() {
 
               {/* Support */}
               <Card className="border-primary/10">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <p className="text-sm font-bold text-muted-foreground mb-3">Need Help?</p>
                   <Button variant="outline" size="lg" className="w-full">
                     Contact Support
@@ -284,7 +280,6 @@ export default function PatientProfilePage() {
             </div>
           </div>
         </div>
-      
     </div>
   );
 }

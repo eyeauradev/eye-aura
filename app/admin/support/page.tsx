@@ -69,31 +69,31 @@ export default function AdminSupportPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Support Tickets</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Support Tickets</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           Manage platform support tickets
         </p>
       </div>
 
       
         <Card className="border-primary/10">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg">All Tickets</CardTitle>
-              <div className="flex items-center gap-4">
-                <div className="relative">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by user or subject..."
+                    placeholder="Search tickets..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-10 w-full sm:w-52"
                   />
                 </div>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full sm:w-auto px-3 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 >
                   <option value="all">All Status</option>
                   <option value="open">Open</option>
@@ -104,7 +104,7 @@ export default function AdminSupportPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             {filteredTickets.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">
@@ -139,29 +139,23 @@ function TicketCard({
   user: any; 
 }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <MessageSquare className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <p className="font-medium text-primary">{ticket.subject}</p>
-          <p className="text-sm text-muted-foreground">
-            {user?.displayName || "Unknown"} • {ticket.priority}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge className={getStatusColor(ticket.status)}>
-              {ticket.status}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              {ticket.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-            </span>
-          </div>
+    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
+      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <MessageSquare className="h-5 w-5 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-primary truncate">{ticket.subject}</p>
+        <p className="text-sm text-muted-foreground truncate">{user?.displayName || "Unknown"} • {ticket.priority}</p>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {ticket.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </span>
         </div>
       </div>
-      <Link href={`/admin/support/${ticket.id}`}>
-        <Button variant="ghost" size="icon">
-          <MessageSquare className="h-4 w-4" />
+      <Link href={`/admin/support/${ticket.id}`} className="shrink-0">
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MessageSquare className="h-3.5 w-3.5" />
         </Button>
       </Link>
     </div>

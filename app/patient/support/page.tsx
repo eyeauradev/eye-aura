@@ -162,10 +162,10 @@ export default function PatientSupportPage() {
 
           {showNewTicket ? (
             <Card className="border-primary/10 mb-6">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle>Create New Support Ticket</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-6">
                 <form onSubmit={handleSubmitNewTicket} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="category">Category</Label>
@@ -277,7 +277,7 @@ export default function PatientSupportPage() {
                 <div className="space-y-4">
                   {tickets.map((ticket) => (
                     <Card key={ticket.id} className="border-primary/10 transition hover:-translate-y-1 hover:shadow-lg">
-                      <CardContent className="p-6">
+                      <CardContent className="p-3 sm:p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <h3 className="font-display text-lg text-primary mb-1">{ticket.subject}</h3>

@@ -174,26 +174,26 @@ export default function PatientDashboard() {
     <div className="space-y-8">
       {/* Optional onboarding banner */}
       {user && !user.onboardingCompleted && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
-          <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <div className="flex-1">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-blue-600 shrink-0" />
+          <div className="flex-1 min-w-0">
             <p className="text-sm text-blue-800">
-              Complete your profile for a better consultation experience.
+              Complete your profile for a better experience.
             </p>
           </div>
-          <Link href="/patient/profile">
-            <Button variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
-              Complete Profile
+          <Link href="/patient/profile" className="shrink-0">
+            <Button variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100 text-xs h-8 px-2">
+              Complete
             </Button>
           </Link>
         </div>
       )}
 
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">
           {getGreeting()}, {user?.displayName?.split(" ")[0] || "there"}
         </h1>
-        <p className="text-xl text-muted-foreground">
+        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">
           Welcome to your dashboard
         </p>
       </div>
@@ -206,7 +206,7 @@ export default function PatientDashboard() {
               {/* Booking Requests */}
               {bookingRequests.length > 0 && (
                 <Card className="border-amber-200 bg-amber-50">
-                  <CardHeader className="flex items-center justify-between">
+                  <CardHeader className="flex items-center justify-between p-3 sm:p-6">
                     <div className="flex items-center gap-3">
                       <CardTitle className="flex items-center gap-2">
                         <Bell className="h-5 w-5 text-amber-600" />
@@ -223,7 +223,7 @@ export default function PatientDashboard() {
                       </Button>
                     </Link>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-3 sm:p-6">
                     <div className="space-y-3">
                       {bookingRequests.slice(0, 3).map((request) => (
                         <div
@@ -234,9 +234,9 @@ export default function PatientDashboard() {
                             {getRequestStatusIcon(request.status)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4 mb-2">
-                              <div>
-                                <p className="font-bold text-primary">{request.service?.title || "Consultation"}</p>
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0">
+                                <p className="font-bold text-primary truncate">{request.service?.title || "Consultation"}</p>
                                 <p className="text-sm text-muted-foreground">with {request.doctor?.displayName || "Doctor"}</p>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                                   <Clock className="h-3.5 w-3.5" />
@@ -286,16 +286,16 @@ export default function PatientDashboard() {
 
               {/* Upcoming Appointments */}
               <Card className="border-primary/10">
-                <CardHeader className="flex items-center justify-between">
-                  <CardTitle>Upcoming Appointments</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-base">Upcoming Appointments</CardTitle>
                   <Link href="/patient/appointments">
-                    <Button variant="ghost" className="flex items-center gap-2">
+                    <Button variant="ghost" className="flex items-center gap-1 text-xs h-8 px-2">
                       View All
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-3 w-3" />
                     </Button>
                   </Link>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   {upcomingAppointments.length > 0 ? (
                     <div className="space-y-4">
                       {upcomingAppointments.map((appointment) => (
@@ -307,9 +307,9 @@ export default function PatientDashboard() {
                             <Calendar className="h-6 w-6" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4 mb-2">
-                              <div>
-                                <h3 className="font-bold text-primary">{appointment.service?.title}</h3>
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0">
+                                <h3 className="font-bold text-primary truncate">{appointment.service?.title}</h3>
                                 <p className="text-sm text-muted-foreground">
                                   with {appointment.doctor?.displayName || "Doctor"}
                                 </p>
@@ -340,7 +340,7 @@ export default function PatientDashboard() {
                     </div>
                   ) : bookingRequests.length > 0 ? (
                     <Card className="border-amber-200 bg-amber-50">
-                      <CardContent className="p-8 text-center">
+                      <CardContent className="p-4 sm:p-8 text-center">
                         <Bell className="h-12 w-12 text-amber-600 mx-auto mb-4" />
                         <p className="text-base text-muted-foreground mb-4">
                           You have {bookingRequests.length} booking request{bookingRequests.length > 1 ? 's' : ''} pending approval
@@ -352,7 +352,7 @@ export default function PatientDashboard() {
                     </Card>
                   ) : (
                     <Card className="border-primary/10 bg-primary/5">
-                      <CardContent className="p-8 text-center">
+                      <CardContent className="p-4 sm:p-8 text-center">
                         <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
                           <Calendar className="h-6 w-6 text-primary" />
                         </div>
@@ -370,16 +370,16 @@ export default function PatientDashboard() {
 
               {/* Available Services */}
               <Card className="border-primary/10">
-                <CardHeader className="flex items-center justify-between">
-                  <CardTitle>Available Services</CardTitle>
+                <CardHeader className="flex items-center justify-between p-3 sm:p-6">
+                  <CardTitle className="text-base">Available Services</CardTitle>
                   <Link href="/booking">
-                    <Button variant="ghost" className="flex items-center gap-2">
+                    <Button variant="ghost" className="flex items-center gap-1 text-xs h-8 px-2">
                       Book Now
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-3 w-3" />
                     </Button>
                   </Link>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   {servicesWithDoctors.length > 0 ? (
                     <div className="grid gap-4 sm:grid-cols-2">
                       {servicesWithDoctors.slice(0, 4).map((service) => (
@@ -420,7 +420,7 @@ export default function PatientDashboard() {
                     </div>
                   ) : (
                     <Card className="border-primary/10 bg-primary/5">
-                      <CardContent className="p-8 text-center">
+                      <CardContent className="p-4 sm:p-8 text-center">
                         <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                         <p className="text-base text-muted-foreground mb-4">
                           No services available at the moment
@@ -433,10 +433,10 @@ export default function PatientDashboard() {
 
               {/* Wellness Tips */}
               <Card className="border-primary/10 bg-primary/5">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <CardTitle>Eye Wellness Tips</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   <div className="grid gap-4 sm:grid-cols-2">
                     {wellnessTips.map((tip, index) => {
                       const Icon = tip.icon;
@@ -461,7 +461,7 @@ export default function PatientDashboard() {
             <div className="space-y-6">
               {/* Quick Actions */}
               <Card className="border-primary/10">
-                <CardHeader>
+                <CardHeader className="p-3 sm:p-6">
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -508,7 +508,7 @@ export default function PatientDashboard() {
                     <Button variant="ghost">View All</Button>
                   </Link>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6">
                   {recentPrescriptions.length > 0 ? (
                     <div className="space-y-3">
                       {recentPrescriptions.map((prescription) => (
@@ -543,7 +543,7 @@ export default function PatientDashboard() {
 
               {/* Support */}
               <Card className="border-primary/10 bg-primary/5">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <p className="text-sm font-bold text-muted-foreground mb-3">Need Help?</p>
                   <Link href="/patient/support">
                     <Button variant="outline" size="lg" className="w-full">

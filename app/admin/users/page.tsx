@@ -94,25 +94,23 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Users</h1>
-        <p className="text-xl text-muted-foreground">
-          Manage platform users and roles
-        </p>
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Users</h1>
+        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">Manage platform users and roles</p>
       </div>
 
       
         <Card className="border-primary/10">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg">All Users</CardTitle>
-              <div className="flex items-center gap-4">
-                <div className="relative">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search users..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-10 w-full sm:w-56"
                   />
                 </div>
                 <select
@@ -128,7 +126,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             {filteredUsers.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">
@@ -169,54 +167,52 @@ function UserCard({
   onUpdateRole: (id: string, role: string) => void; 
 }) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-primary font-bold text-lg">
-            {userItem.displayName?.charAt(0) || userItem.email?.charAt(0)}
-          </span>
-        </div>
-        <div>
-          <p className="font-medium text-primary">{userItem.displayName || "Unknown"}</p>
-          <p className="text-sm text-muted-foreground">{userItem.email}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge className={getRoleColor(userItem.role)}>
-              {userItem.role}
-            </Badge>
-            {userItem.isActive ? (
-              !userItem.isSuspended ? (
-                <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
-              ) : (
-                <Badge className="bg-orange-100 text-orange-800 border-orange-200">Suspended</Badge>
-              )
+    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
+      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <span className="text-primary font-bold">
+          {userItem.displayName?.charAt(0) || userItem.email?.charAt(0)}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-primary truncate">{userItem.displayName || "Unknown"}</p>
+        <p className="text-sm text-muted-foreground truncate">{userItem.email}</p>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          <Badge className={getRoleColor(userItem.role)}>{userItem.role}</Badge>
+          {userItem.isActive ? (
+            !userItem.isSuspended ? (
+              <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
             ) : (
-              <Badge className="bg-gray-100 text-gray-800 border-gray-200">Disabled</Badge>
-            )}
-            {isCurrentUser && (
-              <Badge className="bg-secondary text-white">You</Badge>
-            )}
-          </div>
+              <Badge className="bg-orange-100 text-orange-800 border-orange-200">Suspended</Badge>
+            )
+          ) : (
+            <Badge className="bg-gray-100 text-gray-800 border-gray-200">Disabled</Badge>
+          )}
+          {isCurrentUser && (
+            <Badge className="bg-secondary text-white">You</Badge>
+          )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-0.5 shrink-0">
         {!isCurrentUser && (
           <>
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8"
               onClick={() => onToggleStatus(userItem.id, userItem.isActive)}
               title={userItem.isActive ? "Disable account" : "Enable account"}
             >
-              {userItem.isActive ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+              {userItem.isActive ? <Ban className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />}
             </Button>
             {userItem.role !== "patient" && (
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-8 w-8"
                 onClick={() => onUpdateRole(userItem.id, userItem.role)}
                 title="Change role"
               >
-                <Shield className="h-4 w-4" />
+                <Shield className="h-3.5 w-3.5" />
               </Button>
             )}
           </>

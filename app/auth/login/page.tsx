@@ -63,13 +63,13 @@ export default function LoginPage() {
         </div>
 
         <Card className="border-primary/10 shadow-lg">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-center text-2xl">Sign In</CardTitle>
             <CardDescription className="text-center">
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

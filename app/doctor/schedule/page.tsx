@@ -237,15 +237,15 @@ export default function DoctorSchedulePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Weekly Schedule</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Weekly Schedule</h1>
+        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">
           Configure your weekly working hours and availability
         </p>
       </div>
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg">Availability Settings</CardTitle>

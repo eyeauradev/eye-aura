@@ -44,8 +44,8 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Settings</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Settings</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           Platform configuration and preferences
         </p>
       </div>
@@ -54,7 +54,7 @@ export default function AdminSettingsPage() {
         <form onSubmit={handleSave} className="space-y-6">
           {/* Platform Settings */}
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Palette className="h-5 w-5" />
                 Platform Settings
@@ -113,7 +113,7 @@ export default function AdminSettingsPage() {
 
           {/* Consultation Platform */}
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Video className="h-5 w-5" />
                 Consultation Platform
@@ -176,7 +176,7 @@ export default function AdminSettingsPage() {
 
           {/* Notification Settings */}
           <Card className="border-primary/10">
-            <CardHeader>
+            <CardHeader className="p-3 sm:p-6">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Mail className="h-5 w-5" />
                 Email Settings

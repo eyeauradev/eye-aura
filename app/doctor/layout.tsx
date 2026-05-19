@@ -27,7 +27,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
     <div className="min-h-screen bg-[#F0EDE8]">
       {/* Header */}
       <header className="border-b border-primary/10 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="mx-auto max-w-7xl px-5 py-4 sm:px-8">
+        <div className="mx-auto max-w-7xl px-3 py-3 sm:px-5 sm:py-4">
           <div className="flex items-center justify-between">
             <Link href="/doctor/dashboard" className="flex items-center gap-2">
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#0F4F4B] to-[#1A6B66] flex items-center justify-center">
@@ -53,7 +53,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
+      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-5 sm:py-8">
         <div className="flex gap-8">
           {/* Sidebar Navigation */}
           <aside className="w-64 flex-shrink-0 hidden lg:block">

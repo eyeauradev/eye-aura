@@ -91,8 +91,8 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Analytics</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Analytics</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           Platform performance and usage metrics
         </p>
       </div>
@@ -104,7 +104,7 @@ export default function AdminAnalyticsPage() {
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.totalUsers}</div>
               <p className="text-xs text-muted-foreground mt-1">Registered users</p>
             </CardContent>
@@ -115,7 +115,7 @@ export default function AdminAnalyticsPage() {
               <CardTitle className="text-sm font-medium">Active Doctors</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.totalDoctors}</div>
               <p className="text-xs text-muted-foreground mt-1">On platform</p>
             </CardContent>
@@ -126,7 +126,7 @@ export default function AdminAnalyticsPage() {
               <CardTitle className="text-sm font-medium">Active Patients</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.totalPatients}</div>
               <p className="text-xs text-muted-foreground mt-1">Registered patients</p>
             </CardContent>
@@ -137,7 +137,7 @@ export default function AdminAnalyticsPage() {
               <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.totalAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
@@ -152,7 +152,7 @@ export default function AdminAnalyticsPage() {
               <CardTitle className="text-sm font-medium">Completed</CardTitle>
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.completedAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">Appointments completed</p>
             </CardContent>
@@ -163,7 +163,7 @@ export default function AdminAnalyticsPage() {
               <CardTitle className="text-sm font-medium">Pending</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.pendingAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">Awaiting confirmation</p>
             </CardContent>
@@ -174,7 +174,7 @@ export default function AdminAnalyticsPage() {
               <CardTitle className="text-sm font-medium">This Month</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.thisMonthAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">Appointments scheduled</p>
             </CardContent>
@@ -184,10 +184,10 @@ export default function AdminAnalyticsPage() {
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Prescription Analytics</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Prescriptions Generated</p>
@@ -203,10 +203,10 @@ export default function AdminAnalyticsPage() {
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Platform Health</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="flex items-center gap-4 p-4 rounded-xl bg-green-50 border border-green-100">
                 <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">

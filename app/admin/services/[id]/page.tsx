@@ -101,8 +101,8 @@ export default function AdminServiceDetailPage() {
               Back to Services
             </Button>
           </Link>
-          <h1 className="font-display text-4xl text-primary mb-2">{service.title}</h1>
-          <p className="text-xl text-muted-foreground">{service.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</p>
+          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">{service.title}</h1>
+          <p className="text-sm sm:text-xl text-muted-foreground">{service.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</p>
         </div>
         <div className="flex gap-3">
           <Button onClick={handleToggleService} variant="outline">
@@ -124,7 +124,7 @@ export default function AdminServiceDetailPage() {
 
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Service Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

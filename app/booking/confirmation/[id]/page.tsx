@@ -83,7 +83,7 @@ export default function BookingConfirmationPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF] px-5">
         <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 sm:p-8 text-center">
             <p className="text-base text-muted-foreground">Appointment not found</p>
             <Link href="/patient/appointments" className="inline-block mt-4">
               <Button>View Appointments</Button>
@@ -120,7 +120,7 @@ export default function BookingConfirmationPage() {
 
           {/* Appointment Card */}
           <Card className="border-primary/10 shadow-lg mb-8">
-            <CardContent className="p-8">
+            <CardContent className="p-4 sm:p-8">
               {/* Status Badge */}
               <div className="mb-6">
                 <Badge className={statusColors[appointment.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800 border-gray-200"}>
@@ -229,7 +229,7 @@ export default function BookingConfirmationPage() {
 
           {/* Next Steps */}
           <Card className="border-primary/10 mb-8 bg-primary/5">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               <h3 className="font-display text-xl text-primary mb-4">What's Next?</h3>
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">

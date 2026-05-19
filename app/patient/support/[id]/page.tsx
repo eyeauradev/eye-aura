@@ -106,7 +106,7 @@ export default function SupportTicketDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF] px-5">
         <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 sm:p-8 text-center">
             <p className="text-base text-muted-foreground">Ticket not found</p>
             <Link href="/patient/support" className="inline-block mt-4">
               <Button>View Support Tickets</Button>
@@ -150,7 +150,7 @@ export default function SupportTicketDetailPage() {
           <div className="space-y-6">
             {/* Ticket Details */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-2xl mb-2">{ticket.subject}</CardTitle>
@@ -223,7 +223,7 @@ export default function SupportTicketDetailPage() {
 
             {/* Responses */}
             <Card className="border-primary/10">
-              <CardHeader>
+              <CardHeader className="p-3 sm:p-6">
                 <CardTitle>Conversation</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -262,7 +262,7 @@ export default function SupportTicketDetailPage() {
             {/* Reply Form */}
             {canReply && (
               <Card className="border-primary/10">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-6">
                   <form onSubmit={handleSendMessage} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="message">Your Response</Label>

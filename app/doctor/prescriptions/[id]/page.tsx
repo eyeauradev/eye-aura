@@ -109,8 +109,8 @@ export default function DoctorPrescriptionDetailPage() {
               Back to Appointments
             </Button>
           </Link>
-          <h1 className="font-display text-4xl text-primary mb-2">Prescription Details</h1>
-          <p className="text-xl text-muted-foreground">
+          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Prescription Details</h1>
+          <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">
             {patient?.displayName || "Patient"} • {new Date(prescription.createdAt).toLocaleDateString("en-US", {
               month: "long",
               day: "numeric",
@@ -137,7 +137,7 @@ export default function DoctorPrescriptionDetailPage() {
       {/* Prescription Display */}
       
         <Card className="border-primary/10 bg-white">
-          <CardContent className="p-8">
+          <CardContent className="p-4 sm:p-8">
             <PrescriptionDisplay prescription={prescription} patient={patient} doctor={user} appointment={appointment} />
           </CardContent>
         </Card>
@@ -146,7 +146,7 @@ export default function DoctorPrescriptionDetailPage() {
       {/* Actions */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

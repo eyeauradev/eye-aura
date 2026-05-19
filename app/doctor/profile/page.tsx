@@ -74,14 +74,14 @@ export default function DoctorProfilePage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Profile Settings</h1>
-        <p className="text-xl text-muted-foreground">Manage your account information</p>
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Profile Settings</h1>
+        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">Manage your account information</p>
       </div>
 
       {/* Profile Form */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Personal Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -127,15 +127,15 @@ export default function DoctorProfilePage() {
       {/* Account Info */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Account Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <User className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">User ID</p>
-                <p className="font-medium text-primary">{user?.id}</p>
+            <div className="flex items-center gap-3 min-w-0">
+              <User className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium text-primary truncate">{user?.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

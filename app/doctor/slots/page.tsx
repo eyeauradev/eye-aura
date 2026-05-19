@@ -199,7 +199,7 @@ export default function DoctorSlotsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl text-primary mb-1">Calendar</h1>
-          <p className="text-base sm:text-xl text-muted-foreground">View and manage your schedule</p>
+          <p className="text-base sm:text-sm sm:text-sm sm:text-xl text-muted-foreground">View and manage your schedule</p>
         </div>
         <div className="flex gap-2 sm:gap-3">
           <Button variant="outline" asChild>
@@ -221,7 +221,7 @@ export default function DoctorSlotsPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Active Schedule Days</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="text-3xl font-bold text-primary">
               {availability.filter(a => !a.isOff).length}
             </div>
@@ -231,7 +231,7 @@ export default function DoctorSlotsPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Blocked Periods</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="text-3xl font-bold text-primary">{blocks.length}</div>
           </CardContent>
         </Card>
@@ -239,7 +239,7 @@ export default function DoctorSlotsPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Duration</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="text-3xl font-bold text-primary">
               {availability.length > 0 
                 ? Math.round(availability.reduce((sum, a) => sum + a.duration, 0) / availability.length)

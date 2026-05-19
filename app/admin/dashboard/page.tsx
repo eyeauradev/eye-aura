@@ -137,8 +137,8 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-4xl text-primary mb-2">Admin Dashboard</h1>
-        <p className="text-xl text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Admin Dashboard</h1>
+        <p className="text-sm sm:text-xl text-muted-foreground">
           Platform overview and operations
         </p>
       </div>
@@ -151,7 +151,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.totalAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
@@ -162,7 +162,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-sm font-medium">Active Doctors</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.activeDoctors}</div>
               <p className="text-xs text-muted-foreground mt-1">Registered doctors</p>
             </CardContent>
@@ -173,7 +173,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-sm font-medium">Active Patients</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.activePatients}</div>
               <p className="text-xs text-muted-foreground mt-1">Registered patients</p>
             </CardContent>
@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-sm font-medium">Pending Tickets</CardTitle>
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6">
               <div className="text-2xl font-bold">{stats.pendingTickets}</div>
               <p className="text-xs text-muted-foreground mt-1">Need attention</p>
             </CardContent>
@@ -195,10 +195,10 @@ export default function AdminDashboardPage() {
       {/* Quick Actions */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Link href="/admin/doctors/invite">
                 <Button variant="outline" className="w-full">
@@ -232,20 +232,20 @@ export default function AdminDashboardPage() {
       {/* Recent Activity */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Recent Activity</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="space-y-4">
               {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center gap-4 p-4 rounded-xl bg-white/50 border border-primary/5">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    {activity.type === "appointment" && <Calendar className="h-5 w-5 text-primary" />}
-                    {activity.type === "prescription" && <CheckCircle className="h-5 w-5 text-primary" />}
-                    {activity.type === "ticket" && <MessageSquare className="h-5 w-5 text-primary" />}
+                <div key={index} className="flex items-center gap-2 p-2 sm:p-3 rounded-xl bg-white/50 border border-primary/5">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    {activity.type === "appointment" && <Calendar className="h-4 w-4 text-primary" />}
+                    {activity.type === "prescription" && <CheckCircle className="h-4 w-4 text-primary" />}
+                    {activity.type === "ticket" && <MessageSquare className="h-4 w-4 text-primary" />}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-primary capitalize">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-primary capitalize truncate">
                       {activity.type === "appointment" && "New Appointment"}
                       {activity.type === "prescription" && "Prescription Created"}
                       {activity.type === "ticket" && "Support Ticket"}
@@ -259,7 +259,7 @@ export default function AdminDashboardPage() {
                       })}
                     </p>
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                  <Badge className="bg-primary/10 text-primary border-primary/20 shrink-0 text-xs">
                     {activity.type}
                   </Badge>
                 </div>
@@ -275,10 +275,10 @@ export default function AdminDashboardPage() {
       {/* Platform Health */}
       
         <Card className="border-primary/10">
-          <CardHeader>
+          <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Platform Health</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center gap-4 p-4 rounded-xl bg-orange-50 border border-orange-100">
                 <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
