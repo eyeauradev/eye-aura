@@ -147,25 +147,23 @@ export default function AdminDoctorInvitePage() {
               
               <p className="text-muted-foreground mb-6">
                 {!emailWarning 
-                  ? "The doctor will receive an email with a secure invite link to complete their onboarding."
+                  ? "An invite email has been sent to the doctor. You can also share the link below directly."
                   : "Please share the invite link below with the doctor to complete their onboarding."
                 }
-                The invite link expires in 7 days.
+                {" "}The invite link expires in 7 days.
               </p>
               
-              {emailWarning && (
-                <div className="mb-6 p-4 bg-white border border-primary/10 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-2">Invite Link:</p>
-                  <code className="text-sm text-primary break-all">{inviteLink}</code>
-                  <Button
-                    variant="outline"
-                    className="mt-3"
-                    onClick={() => navigator.clipboard.writeText(inviteLink)}
-                  >
-                    Copy Link
-                  </Button>
-                </div>
-              )}
+              <div className="mb-6 p-4 bg-white border border-primary/10 rounded-lg text-left">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Invite Link:</p>
+                <code className="text-sm text-primary break-all block mb-3">{inviteLink}</code>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigator.clipboard.writeText(inviteLink)}
+                >
+                  Copy Link
+                </Button>
+              </div>
               
               <Link href="/admin/doctors">
                 <Button className="w-full">
