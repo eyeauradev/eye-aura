@@ -1,46 +1,52 @@
 import { cookies } from "next/headers";
-import { adminAuth, adminDb } from "@/services/firebase/admin";
+import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
 import type { UserProfile, UserRole } from "@/types/auth";
 
 export async function getServerSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth-token")?.value;
+
+  if (!token) {
+    return null;
+  }
+
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("__session");
+    const adminAuth = getAdminAuth();
+    const decodedToken = await adminAuth.verifyIdToken(token);
     
-    if (!sessionCookie) {
+    if (!decodedToken.uid) {
       return null;
     }
 
-    const decodedClaims = await adminAuth.verifySessionCookie(
-      sessionCookie.value,
-      true
-    );
-
-    if (!decodedClaims.uid) {
-      return null;
-    }
-
-    const userDoc = await adminDb.collection("users").doc(decodedClaims.uid).get();
+    // Get user from Firestore
+    const adminDb = getAdminDb();
+    const userDoc = await adminDb.collection("users").doc(decodedToken.uid).get();
     
     if (!userDoc.exists) {
       return null;
     }
 
-    const data = userDoc.data();
+    const userData = userDoc.data();
     
-    return {
-      id: decodedClaims.uid,
-      uid: decodedClaims.uid,
-      email: decodedClaims.email || "",
-      emailVerified: decodedClaims.email_verified || false,
-      role: data?.role || "patient",
-      displayName: data?.displayName || "",
-      photoURL: data?.photoURL || "",
-      onboardingCompleted: data?.onboardingCompleted || false,
-      createdAt: data?.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date(),
-      updatedAt: data?.updatedAt ? new Date(data.updatedAt.seconds * 1000) : new Date(),
-    } as UserProfile;
+    if (!userData) {
+      return null;
+    }
+    
+    const profile: UserProfile = {
+      id: decodedToken.uid,
+      email: decodedToken.email || "",
+      displayName: userData.displayName || decodedToken.name || "",
+      role: userData.role as UserRole,
+      isActive: userData.isActive ?? true,
+      isSuspended: userData.isSuspended ?? false,
+      onboardingCompleted: (userData.onboarding?.patientCompleted ?? false) || (userData.onboarding?.doctorCompleted ?? false),
+      createdAt: userData.createdAt?.toDate() || new Date(),
+      updatedAt: userData.updatedAt?.toDate() || new Date(),
+    };
+
+    return profile;
   } catch (error) {
+    console.error("Error verifying token:", error);
     return null;
   }
 }

@@ -51,6 +51,8 @@ class AuthService {
           createdAt: new Date(),
           updatedAt: new Date(),
           onboardingCompleted: false,
+          isActive: true,
+          isSuspended: false,
         };
         
         await this.createUserProfile(newUserProfile);
@@ -89,6 +91,8 @@ class AuthService {
           createdAt: new Date(),
           updatedAt: new Date(),
           onboardingCompleted: false,
+          isActive: true,
+          isSuspended: false,
         };
         
         await this.createUserProfile(newUserProfile);
@@ -138,6 +142,8 @@ class AuthService {
         createdAt: new Date(),
         updatedAt: new Date(),
         onboardingCompleted: false,
+        isActive: true,
+        isSuspended: false,
       };
 
       console.log("[AuthService] Attempting to create Firestore document for user:", userProfile.id);
@@ -187,7 +193,11 @@ class AuthService {
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
         phoneNumber: user.phoneNumber || data.phoneNumber,
-        onboardingCompleted: data.onboardingCompleted || false,
+        emergencyContact: data.emergencyContact,
+        emergencyPhone: data.emergencyPhone,
+        isActive: data.isActive ?? true,
+        isSuspended: data.isSuspended ?? false,
+        onboardingCompleted: data.onboarding?.patientCompleted || data.onboarding?.doctorCompleted || false,
       };
     }
 
@@ -199,6 +209,9 @@ class AuthService {
       role: "patient",
       createdAt: new Date(),
       updatedAt: new Date(),
+      phoneNumber: user.phoneNumber || undefined,
+      isActive: true,
+      isSuspended: false,
       onboardingCompleted: false,
     };
   }
@@ -211,12 +224,26 @@ class AuthService {
         email: profile.email,
         displayName: profile.displayName,
         role: profile.role,
-        onboardingCompleted: profile.onboardingCompleted,
+        isActive: profile.isActive,
+        isSuspended: profile.isSuspended,
       });
       
       const docRef = doc(this.db, "users", profile.id);
       await setDoc(docRef, {
-        ...profile,
+        id: profile.id,
+        email: profile.email,
+        displayName: profile.displayName,
+        photoURL: profile.photoURL,
+        role: profile.role,
+        phoneNumber: profile.phoneNumber,
+        emergencyContact: profile.emergencyContact,
+        emergencyPhone: profile.emergencyPhone,
+        isActive: profile.isActive,
+        isSuspended: profile.isSuspended,
+        onboarding: {
+          patientCompleted: false,
+          doctorCompleted: false,
+        },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -234,10 +261,22 @@ class AuthService {
 
     try {
       const userRef = doc(this.db, "users", user.uid);
-      await updateDoc(userRef, {
+      
+      // If updating profile fields, also mark patient onboarding as completed for patients
+      const updateData: any = {
         ...updates,
         updatedAt: serverTimestamp(),
-      });
+      };
+      
+      // If this is a patient updating their profile, mark patient onboarding as completed
+      if (updates.displayName || updates.phoneNumber || updates.emergencyContact || updates.emergencyPhone) {
+        updateData.onboarding = {
+          patientCompleted: true,
+          doctorCompleted: false,
+        };
+      }
+      
+      await updateDoc(userRef, updateData);
 
       const profile = await this.getCurrentUserProfile();
       if (!profile) throw new Error("Failed to retrieve user profile after update");

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
@@ -13,12 +14,31 @@ import { Badge } from "@/components/ui/badge";
 import { SectionContainer } from "@/components/section-container";
 
 export default function PatientDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [recentPrescriptions, setRecentPrescriptions] = useState<any[]>([]);
   const [servicesWithDoctors, setServicesWithDoctors] = useState<any[]>([]);
   const [bookingRequests, setBookingRequests] = useState<BookingRequestDocument[]>([]);
+
+  // Role-based redirect
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === "admin") {
+        router.replace("/admin/dashboard");
+        return;
+      }
+      if (user.role === "doctor") {
+        router.replace("/doctor/dashboard");
+        return;
+      }
+      if (!user.isActive || user.isSuspended) {
+        router.replace("/auth/login");
+        return;
+      }
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -143,27 +163,31 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
-      {/* Header */}
-      <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-3xl text-primary sm:text-4xl">
-                {getGreeting()}, {user?.displayName?.split(" ")[0] || "there"}
-              </h1>
-              <p className="mt-2 text-base text-muted-foreground">
-                Here's what's happening with your eye wellness journey
-              </p>
-            </div>
-            <Link href="/booking">
-              <Button size="lg" className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Request Consultation
-              </Button>
-            </Link>
+    <div className="space-y-8">
+      {/* Optional onboarding banner */}
+      {user && !user.onboardingCompleted && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
+          <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-blue-800">
+              Complete your profile for a better consultation experience.
+            </p>
           </div>
+          <Link href="/patient/profile">
+            <Button variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
+              Complete Profile
+            </Button>
+          </Link>
         </div>
+      )}
+
+      <div>
+        <h1 className="font-display text-4xl text-primary mb-2">
+          {getGreeting()}, {user?.displayName?.split(" ")[0] || "there"}
+        </h1>
+        <p className="text-xl text-muted-foreground">
+          Welcome to your dashboard
+        </p>
       </div>
 
       <SectionContainer>
@@ -303,6 +327,18 @@ export default function PatientDashboard() {
                         </div>
                       ))}
                     </div>
+                  ) : bookingRequests.length > 0 ? (
+                    <Card className="border-amber-200 bg-amber-50">
+                      <CardContent className="p-8 text-center">
+                        <Bell className="h-12 w-12 text-amber-600 mx-auto mb-4" />
+                        <p className="text-base text-muted-foreground mb-4">
+                          You have {bookingRequests.length} booking request{bookingRequests.length > 1 ? 's' : ''} pending approval
+                        </p>
+                        <Link href="/patient/appointments?filter=requests">
+                          <Button>View Requests</Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
                   ) : (
                     <Card className="border-primary/10 bg-primary/5">
                       <CardContent className="p-8 text-center">

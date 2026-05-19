@@ -9,7 +9,11 @@ export interface UserProfile {
   createdAt: Date;
   updatedAt: Date;
   phoneNumber?: string;
-  onboardingCompleted: boolean;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  isActive: boolean;
+  isSuspended: boolean;
+  onboardingCompleted: boolean; // Computed from role-specific onboarding
 }
 
 export interface AuthState {

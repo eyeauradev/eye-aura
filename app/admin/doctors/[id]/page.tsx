@@ -61,8 +61,8 @@ export default function AdminDoctorDetailPage() {
     if (!doctor) return;
 
     try {
-      await usersService.update(doctor.id, { onboardingCompleted: !doctor.onboardingCompleted });
-      setDoctor({ ...doctor, onboardingCompleted: !doctor.onboardingCompleted });
+      await usersService.update(doctor.id, { isActive: !doctor.isActive });
+      setDoctor({ ...doctor, isActive: !doctor.isActive });
     } catch (error) {
       console.error("Error toggling doctor status:", error);
       alert("Failed to update doctor status");
@@ -112,7 +112,7 @@ export default function AdminDoctorDetailPage() {
           <p className="text-xl text-muted-foreground">{doctor.email}</p>
         </div>
         <div className="flex gap-3">
-          {doctor.onboardingCompleted ? (
+          {doctor.isActive ? (
             <Button onClick={handleToggleStatus} variant="outline">
               <Ban className="h-4 w-4 mr-2" />
               Disable Account
@@ -142,8 +142,12 @@ export default function AdminDoctorDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Status</p>
-                {doctor.onboardingCompleted ? (
-                  <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+                {doctor.isActive ? (
+                  !doctor.isSuspended ? (
+                    <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+                  ) : (
+                    <Badge className="bg-orange-100 text-orange-800 border-orange-200">Suspended</Badge>
+                  )
                 ) : (
                   <Badge className="bg-gray-100 text-gray-800 border-gray-200">Disabled</Badge>
                 )}

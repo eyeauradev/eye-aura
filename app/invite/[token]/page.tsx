@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doctorInvitesService, usersService } from "@/services/firestore";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { getFirebaseAuth } from "@/services/firebase/client";
+import { doctorInvitesService } from "@/services/firestore";
 import { Eye, EyeOff, Lock, User, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 export default function InviteAcceptancePage() {
   const params = useParams();
   const router = useRouter();
-  const auth = getFirebaseAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<any>(null);
@@ -44,13 +41,20 @@ export default function InviteAcceptancePage() {
           return;
         }
 
-        if (inviteData.used) {
+        if (inviteData.status === "completed") {
           setError("This invite has already been used");
           setLoading(false);
           return;
         }
 
+        if (inviteData.status === "cancelled") {
+          setError("This invite has been cancelled");
+          setLoading(false);
+          return;
+        }
+
         if (new Date() > inviteData.expiresAt) {
+          await doctorInvitesService.updateStatus(inviteData.id, "expired");
           setError("This invite has expired");
           setLoading(false);
           return;
@@ -84,33 +88,35 @@ export default function InviteAcceptancePage() {
     try {
       setSubmitting(true);
 
-      // Create Firebase Auth user
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        invite.email,
-        formData.password
-      );
+      // Mark invite as opened
+      await doctorInvitesService.markAsOpened(invite.id);
 
-      await updateProfile(userCredential.user, {
-        displayName: formData.displayName,
+      // Call server-side API for onboarding completion
+      const response = await fetch("/api/doctor-onboarding/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: invite.token,
+          displayName: formData.displayName,
+          password: formData.password,
+          phoneNumber: formData.phoneNumber,
+        }),
       });
 
-      // Create Firestore user with doctor role
-      await usersService.create({
-        id: userCredential.user.uid,
-        email: invite.email,
-        displayName: formData.displayName,
-        phoneNumber: formData.phoneNumber,
-        role: "doctor",
-        onboardingCompleted: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      const data = await response.json();
 
-      // Mark invite as used
-      await doctorInvitesService.markAsUsed(invite.id);
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to complete onboarding");
+      }
 
-      setSuccess(true);
+      // Redirect to login (user will be signed in by the API or needs to sign in)
+      if (data.redirect) {
+        router.push(data.redirect);
+      } else {
+        setSuccess(true);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to complete onboarding");
     } finally {

@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
+import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import type { AppointmentDocument, ServiceDocument, UserDocument } from "@/types/firestore";
-import { Calendar, Clock, Video, Filter, Plus } from "lucide-react";
+import type { BookingRequestDocument } from "@/types/firestore";
+import { Calendar, Clock, Video, Filter, Plus, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +16,10 @@ import { SectionContainer } from "@/components/section-container";
 export default function PatientAppointmentsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<AppointmentDocument[]>([]);
-  const [pastAppointments, setPastAppointments] = useState<AppointmentDocument[]>([]);
-  const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
+  const [upcomingAppointments, setUpcomingAppointments] = useState<(AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
+  const [pastAppointments, setPastAppointments] = useState<(AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
+  const [bookingRequests, setBookingRequests] = useState<(BookingRequestDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
+  const [filter, setFilter] = useState<"all" | "upcoming" | "past" | "requests">("all");
 
   useEffect(() => {
     async function loadAppointments() {
@@ -56,6 +59,21 @@ export default function PatientAppointmentsPage() {
 
         setUpcomingAppointments(upcoming);
         setPastAppointments(past);
+
+        // Load booking requests
+        const requests = await bookingRequestsService.getByPatientId(user.id);
+        const requestsWithDetails = await Promise.all(
+          requests.map(async (request) => {
+            const service = await servicesService.getById(request.serviceId);
+            const doctor = await usersService.getById(request.doctorId);
+            return { 
+              ...request, 
+              service: service || undefined, 
+              doctor: doctor || undefined 
+            };
+          })
+        );
+        setBookingRequests(requestsWithDetails);
       } catch (error) {
         console.error("Error loading appointments:", error);
       } finally {
@@ -69,10 +87,96 @@ export default function PatientAppointmentsPage() {
   const statusConfig = {
     pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
     confirmed: { label: "Confirmed", color: "bg-green-100 text-green-800 border-green-200" },
+    accepted: { label: "Accepted", color: "bg-green-100 text-green-800 border-green-200" },
     in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800 border-blue-200" },
     completed: { label: "Completed", color: "bg-gray-100 text-gray-800 border-gray-200" },
     cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800 border-red-200" },
     cancellation_requested: { label: "Cancellation Requested", color: "bg-orange-100 text-orange-800 border-orange-200" },
+    requested: { label: "Requested", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+    reschedule_requested: { label: "Reschedule Requested", color: "bg-orange-100 text-orange-800 border-orange-200" },
+    rejected: { label: "Rejected", color: "bg-red-100 text-red-800 border-red-200" },
+  };
+
+  const getRequestStatusIcon = (status: string) => {
+    switch (status) {
+      case "pending":
+      case "requested":
+        return <Clock className="h-5 w-5" />;
+      case "accepted":
+      case "confirmed":
+        return <CheckCircle2 className="h-5 w-5" />;
+      case "rejected":
+        return <XCircle className="h-5 w-5" />;
+      case "reschedule_requested":
+        return <AlertCircle className="h-5 w-5" />;
+      default:
+        return <Clock className="h-5 w-5" />;
+    }
+  };
+
+  const BookingRequestCard = ({ request }: { request: BookingRequestDocument & { service?: ServiceDocument; doctor?: UserDocument } }) => {
+    return (
+      <Card className="border-amber-200 bg-amber-50 transition hover:-translate-y-1 hover:shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <h3 className="font-display text-xl text-primary mb-1">{request.service?.title || "Service"}</h3>
+              <p className="text-sm text-muted-foreground">with {request.doctor?.displayName || "Doctor"}</p>
+            </div>
+            <Badge className={statusConfig[request.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
+              {statusConfig[request.status as keyof typeof statusConfig]?.label || request.status}
+            </Badge>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 mb-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4 text-secondary" />
+              <span>{new Date(request.requestedTime).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4 text-secondary" />
+              <span>{new Date(request.requestedTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+          </div>
+
+          {request.status === "reschedule_requested" && request.proposedTime && (
+            <div className="flex items-center gap-2 text-sm text-amber-700 mb-4 p-3 bg-amber-100 rounded-lg">
+              <AlertCircle className="h-4 w-4" />
+              <span>
+                Doctor proposed: {new Date(request.proposedTime).toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          )}
+
+          {request.rejectionReason && (
+            <div className="flex items-start gap-2 text-sm text-red-600 mb-4 p-3 bg-red-50 rounded-lg">
+              <XCircle className="h-4 w-4 mt-0.5" />
+              <span>Reason: {request.rejectionReason}</span>
+            </div>
+          )}
+
+          {request.rescheduleReason && (
+            <div className="flex items-start gap-2 text-sm text-orange-600 mb-4 p-3 bg-orange-50 rounded-lg">
+              <AlertCircle className="h-4 w-4 mt-0.5" />
+              <span>Reason: {request.rescheduleReason}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Link href={`/patient/requests/${request.id}`} className="flex-1">
+              <Button variant="outline" className="w-full">
+                View Details
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   const AppointmentCard = ({ appointment }: { appointment: AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument } }) => {
@@ -160,6 +264,7 @@ export default function PatientAppointmentsPage() {
 
   const showUpcoming = filter === "all" || filter === "upcoming";
   const showPast = filter === "all" || filter === "past";
+  const showRequests = filter === "all" || filter === "requests";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
@@ -195,6 +300,12 @@ export default function PatientAppointmentsPage() {
               All
             </Button>
             <Button
+              variant={filter === "requests" ? "default" : "outline"}
+              onClick={() => setFilter("requests")}
+            >
+              Requests
+            </Button>
+            <Button
               variant={filter === "upcoming" ? "default" : "outline"}
               onClick={() => setFilter("upcoming")}
             >
@@ -207,6 +318,27 @@ export default function PatientAppointmentsPage() {
               Past
             </Button>
           </div>
+
+          {/* Booking Requests */}
+          {showRequests && (
+            <div className="mb-12">
+              <h2 className="font-display text-2xl text-primary mb-6">Booking Requests</h2>
+              {bookingRequests.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {bookingRequests.map((request) => (
+                    <BookingRequestCard key={request.id} request={request} />
+                  ))}
+                </div>
+              ) : (
+                <Card className="border-primary/10 bg-primary/5">
+                  <CardContent className="p-8 text-center">
+                    <Clock className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
+                    <p className="text-base text-muted-foreground">No booking requests</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
 
           {/* Upcoming Appointments */}
           {showUpcoming && (

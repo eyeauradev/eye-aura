@@ -12,9 +12,14 @@ import {
   QueryConstraint,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/services/firebase/client";
+import { appointmentConverter } from "./converters";
 import type { BookingRequestDocument, BookingRequestStatus } from "@/types/firestore";
+import type { AppointmentDocument } from "@/types/firestore";
+import { doctorBlocksService } from "./doctor-blocks.service";
+import { servicesService } from "./index";
 
 const COLLECTION_NAME = "booking_requests";
+const APPOINTMENTS_COLLECTION = "appointments";
 
 export class BookingRequestsService {
   private db = getFirebaseDb();
@@ -32,7 +37,7 @@ export class BookingRequestsService {
     const newRequest: BookingRequestDocument = {
       ...request,
       id,
-      status: "requested",
+      status: "pending",
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -92,7 +97,47 @@ export class BookingRequestsService {
   }
 
   async acceptRequest(id: string): Promise<BookingRequestDocument> {
-    return this.update(id, { status: "accepted" });
+    // First, get the booking request to extract details
+    const request = await this.getById(id);
+    if (!request) throw new Error("Booking request not found");
+
+    // Get the service to determine duration
+    const service = await servicesService.getById(request.serviceId);
+    const duration = service?.duration || 30; // Default to 30 minutes if service not found
+
+    // Create an appointment document
+    const appointmentId = `${request.patientId}_${request.doctorId}_${Date.now()}`;
+    const appointmentDoc = doc(this.db, APPOINTMENTS_COLLECTION, appointmentId);
+    const appointment: AppointmentDocument = {
+      id: appointmentId,
+      patientId: request.patientId,
+      doctorId: request.doctorId,
+      serviceId: request.serviceId,
+      slotId: "", // Will be generated based on the requested time
+      status: "confirmed",
+      scheduledFor: request.requestedTime,
+      consultationPlatform: "google_meet",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await setDoc(appointmentDoc.withConverter(appointmentConverter), appointment);
+
+    // Create a doctor block for the appointment time to prevent double-booking
+    const appointmentTime = new Date(request.requestedTime);
+    const endTime = new Date(appointmentTime.getTime() + duration * 60000);
+    await doctorBlocksService.create({
+      doctorId: request.doctorId,
+      start: appointmentTime,
+      end: endTime,
+      reason: "Accepted booking request",
+    });
+
+    // Update the booking request to link to the appointment and set status to accepted
+    return this.update(id, { 
+      status: "accepted",
+      appointmentId: appointmentId,
+    });
   }
 
   async rejectRequest(id: string, reason: string): Promise<BookingRequestDocument> {

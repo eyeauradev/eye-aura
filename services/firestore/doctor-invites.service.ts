@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/services/firebase/client";
 import { doctorInviteConverter } from "./converters";
-import type { DoctorInviteDocument } from "@/types/firestore";
+import type { DoctorInviteDocument, InviteStatus } from "@/types/firestore";
 
 const COLLECTION_NAME = "doctor_invites";
 
@@ -29,7 +29,7 @@ export class DoctorInvitesService {
     return docSnap.exists() ? docSnap.data() : null;
   }
 
-  async create(data: Omit<DoctorInviteDocument, "id" | "createdAt" | "updatedAt">): Promise<DoctorInviteDocument> {
+  async create(data: Omit<DoctorInviteDocument, "id" | "token" | "status" | "resendCount" | "existingUser" | "createdAt" | "updatedAt" | "role" | "expiresAt">): Promise<DoctorInviteDocument> {
     const token = this.generateToken();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
@@ -37,9 +37,12 @@ export class DoctorInvitesService {
     const invite: DoctorInviteDocument = {
       id: crypto.randomUUID(),
       ...data,
+      role: "doctor",
       token,
+      status: "pending",
       expiresAt,
-      used: false,
+      resendCount: 0,
+      existingUser: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -53,6 +56,27 @@ export class DoctorInvitesService {
     const q = query(this.collection, where("token", "==", token), limit(1));
     const querySnapshot = await getDocs(q);
     return querySnapshot.empty ? null : querySnapshot.docs[0].data();
+  }
+
+  async getByEmail(email: string): Promise<DoctorInviteDocument | null> {
+    const q = query(this.collection, where("email", "==", email), orderBy("createdAt", "desc"), limit(1));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.empty ? null : querySnapshot.docs[0].data();
+  }
+
+  async updateStatus(id: string, status: InviteStatus): Promise<DoctorInviteDocument> {
+    const updates: Partial<DoctorInviteDocument> = {
+      status,
+      updatedAt: new Date(),
+    };
+
+    if (status === "opened") {
+      updates.openedAt = new Date();
+    } else if (status === "completed") {
+      updates.completedAt = new Date();
+    }
+
+    return this.update(id, updates);
   }
 
   async update(id: string, updates: Partial<DoctorInviteDocument>): Promise<DoctorInviteDocument> {
@@ -81,8 +105,47 @@ export class DoctorInvitesService {
     return this.query([orderBy("createdAt", "desc"), limit(limitCount)]);
   }
 
-  async markAsUsed(inviteId: string): Promise<void> {
-    await this.update(inviteId, { used: true });
+  async getByStatus(status: InviteStatus, limitCount: number = 50): Promise<DoctorInviteDocument[]> {
+    return this.query([where("status", "==", status), orderBy("createdAt", "desc"), limit(limitCount)]);
+  }
+
+  async resend(id: string, newToken: string): Promise<DoctorInviteDocument> {
+    const invite = await this.getById(id);
+    if (!invite) throw new Error("Invite not found");
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // Extend expiration by 7 days
+
+    return this.update(id, {
+      token: newToken,
+      expiresAt,
+      status: "pending",
+      resendCount: invite.resendCount + 1,
+      openedAt: undefined, // Reset opened timestamp
+    });
+  }
+
+  async cancel(id: string): Promise<DoctorInviteDocument> {
+    return this.updateStatus(id, "cancelled");
+  }
+
+  async markAsOpened(id: string): Promise<DoctorInviteDocument> {
+    return this.updateStatus(id, "opened");
+  }
+
+  async markAsCompleted(id: string, userId: string): Promise<DoctorInviteDocument> {
+    return this.update(id, {
+      status: "completed",
+      completedAt: new Date(),
+      createdUserId: userId,
+    });
+  }
+
+  async markAsFailed(id: string, errorReason: string): Promise<DoctorInviteDocument> {
+    return this.update(id, {
+      status: "failed",
+      errorReason,
+    });
   }
 
   async cleanupExpiredInvites(): Promise<void> {

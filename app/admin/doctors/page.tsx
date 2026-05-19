@@ -44,8 +44,8 @@ export default function AdminDoctorsPage() {
     if (!confirm("Are you sure you want to disable this doctor?")) return;
     
     try {
-      await usersService.update(doctorId, { onboardingCompleted: false });
-      setDoctors(doctors.map((d) => (d.id === doctorId ? { ...d, onboardingCompleted: false } : d)));
+      await usersService.update(doctorId, { isActive: false });
+      setDoctors(doctors.map((d) => (d.id === doctorId ? { ...d, isActive: false } : d)));
     } catch (error) {
       console.error("Error disabling doctor:", error);
       alert("Failed to disable doctor");
@@ -54,8 +54,8 @@ export default function AdminDoctorsPage() {
 
   const handleActivateDoctor = async (doctorId: string) => {
     try {
-      await usersService.update(doctorId, { onboardingCompleted: true });
-      setDoctors(doctors.map((d) => (d.id === doctorId ? { ...d, onboardingCompleted: true } : d)));
+      await usersService.update(doctorId, { isActive: true });
+      setDoctors(doctors.map((d) => (d.id === doctorId ? { ...d, isActive: true } : d)));
     } catch (error) {
       console.error("Error activating doctor:", error);
       alert("Failed to activate doctor");
@@ -150,8 +150,12 @@ function DoctorCard({ doctor, onDisable, onActivate }: { doctor: UserDocument; o
           <p className="font-medium text-primary">{doctor.displayName || "Unknown"}</p>
           <p className="text-sm text-muted-foreground">{doctor.email}</p>
           <div className="flex items-center gap-2 mt-1">
-            {doctor.onboardingCompleted ? (
-              <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+            {doctor.isActive ? (
+              !doctor.isSuspended ? (
+                <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+              ) : (
+                <Badge className="bg-orange-100 text-orange-800 border-orange-200">Suspended</Badge>
+              )
             ) : (
               <Badge className="bg-gray-100 text-gray-800 border-gray-200">Disabled</Badge>
             )}
@@ -167,7 +171,7 @@ function DoctorCard({ doctor, onDisable, onActivate }: { doctor: UserDocument; o
             <Edit2 className="h-4 w-4" />
           </Button>
         </Link>
-        {doctor.onboardingCompleted ? (
+        {doctor.isActive ? (
           <Button variant="ghost" size="icon" onClick={() => onDisable(doctor.id)}>
             <Ban className="h-4 w-4" />
           </Button>

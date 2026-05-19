@@ -8,17 +8,25 @@ export interface UserDocument {
   photoURL?: string;
   role: UserRole;
   phoneNumber?: string;
-  onboardingCompleted: boolean;
+  emergencyContact?: string;
+  emergencyPhone?: string;
+  
+  // Account status fields (replaces onboardingCompleted for status determination)
+  isActive: boolean;
+  isSuspended: boolean;
+  
+  // Role-specific onboarding tracking
+  onboarding: {
+    patientCompleted: boolean;
+    doctorCompleted: boolean;
+  };
+  
   createdAt: Date;
   updatedAt: Date;
 }
 
 // Appointments Collection
 export type AppointmentStatus = 
-  | "requested"
-  | "accepted"
-  | "reschedule_requested"
-  | "rejected"
   | "pending"
   | "confirmed"
   | "in_progress"
@@ -147,13 +155,34 @@ export interface Exercise {
 }
 
 // Doctor Invites Collection
+export type InviteStatus = "pending" | "opened" | "completed" | "expired" | "cancelled" | "failed";
+
 export interface DoctorInviteDocument {
   id: string;
   email: string;
+  role: "doctor";
+  
+  status: InviteStatus;
+  
   token: string;
   expiresAt: Date;
+  
   invitedBy: string; // Admin user ID
-  used: boolean;
+  invitedByName?: string;
+  
+  openedAt?: Date;
+  completedAt?: Date;
+  
+  resendCount: number;
+  
+  specialization?: string;
+  consultationTypes?: string[];
+  
+  existingUser: boolean;
+  createdUserId?: string;
+  
+  errorReason?: string;
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -261,7 +290,7 @@ export interface DoctorBlockDocument {
 
 // Booking Requests Collection (New Scheduling System)
 export type BookingRequestStatus = 
-  | "requested"
+  | "pending"
   | "accepted"
   | "reschedule_requested"
   | "rejected"

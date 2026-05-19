@@ -20,12 +20,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If trying to access login/signup with token, redirect to patient dashboard
+  // If trying to access login/signup with token, redirect based on role
   // Role-based redirect happens in the page component (server-side)
+  // Middleware just redirects to a generic dashboard, page component handles role-specific redirect
   if (token && (pathname === "/auth/login" || pathname === "/auth/signup")) {
+    // Redirect to patient dashboard as default, page component will handle role-specific redirect
     const dashboardUrl = new URL("/patient/dashboard", request.url);
     return NextResponse.redirect(dashboardUrl);
   }
+
+  // Role-based route protection
+  // If user is on a protected route, let the page component handle role validation
+  // Middleware only ensures authentication, not authorization
+  // This avoids Firebase Admin SDK calls in edge runtime
 
   return NextResponse.next();
 }

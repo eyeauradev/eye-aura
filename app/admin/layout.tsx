@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, UserPlus, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, UserPlus, LogOut, Menu, X, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +41,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/doctors", icon: UserPlus, label: "Doctors" },
     { href: "/admin/services", icon: Calendar, label: "Services" },
     { href: "/admin/appointments", icon: Calendar, label: "Appointments" },
-    { href: "/admin/support", icon: MessageSquare, label: "Support" },
     { href: "/admin/users", icon: Users, label: "Users" },
     { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
     { href: "/admin/settings", icon: Settings, label: "Settings" },
@@ -109,6 +108,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <span className="font-medium">{item.label}</span>
               </Link>
             ))}
+            <Link
+              href="/"
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
+                "hover:bg-primary/5 hover:text-primary",
+                "text-muted-foreground"
+              )}
+            >
+              <Home className="h-5 w-5" />
+              <span className="font-medium">Public Home</span>
+            </Link>
           </nav>
         </aside>
 
@@ -146,7 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-primary/10 px-4 py-2">
         <div className="flex justify-around">
-          {navItems.slice(0, 5).map((item) => (
+          {navItems.slice(0, 4).map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -156,6 +166,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="text-xs">{item.label}</span>
             </Link>
           ))}
+          <Link
+            href="/"
+            className="flex flex-col items-center gap-1 px-3 py-2 text-muted-foreground hover:text-primary transition"
+          >
+            <Home className="h-5 w-5" />
+            <span className="text-xs">Home</span>
+          </Link>
         </div>
       </nav>
     </div>

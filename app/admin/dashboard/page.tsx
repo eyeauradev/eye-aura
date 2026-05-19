@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { usersService, appointmentsService, supportTicketsService, prescriptionsService } from "@/services/firestore";
 import type { UserDocument, AppointmentDocument, PrescriptionDocument, SupportTicketDocument } from "@/types/firestore";
@@ -12,7 +13,8 @@ import { SectionContainer } from "@/components/section-container";
 import Link from "next/link";
 
 export default function AdminDashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalAppointments: 0,
@@ -22,6 +24,24 @@ export default function AdminDashboardPage() {
     revenue: 0,
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
+  // Role-based redirect
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === "patient") {
+        router.replace("/patient/dashboard");
+        return;
+      }
+      if (user.role === "doctor") {
+        router.replace("/doctor/dashboard");
+        return;
+      }
+      if (!user.isActive || user.isSuspended) {
+        router.replace("/auth/login");
+        return;
+      }
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -64,12 +84,16 @@ export default function AdminDashboardPage() {
         }));
 
         const recentTickets = allTickets.slice(-5).reverse().map((ticket: SupportTicketDocument) => ({
+          id: ticket.id,
           type: "ticket",
           date: ticket.createdAt,
           description: ticket.subject,
         }));
 
-        const activity = [...recentAppointments, ...recentPrescriptions, ...recentTickets].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10);
+        const activity = [...recentAppointments, ...recentPrescriptions, ...recentTickets]
+          .filter(item => item.date) // Filter out items with undefined dates
+          .sort((a, b) => b.date.getTime() - a.date.getTime())
+          .slice(0, 10);
 
         setRecentActivity(activity);
       } catch (error) {
@@ -210,7 +234,7 @@ export default function AdminDashboardPage() {
                       {activity.type === "ticket" && "Support Ticket"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {activity.timestamp.toLocaleDateString("en-US", {
+                      {activity.date.toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
                         hour: "2-digit",

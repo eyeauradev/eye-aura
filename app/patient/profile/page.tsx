@@ -28,8 +28,8 @@ export default function PatientProfilePage() {
       setFormData({
         displayName: user.displayName || "",
         phoneNumber: user.phoneNumber || "",
-        emergencyContact: "",
-        emergencyPhone: "",
+        emergencyContact: user.emergencyContact || "",
+        emergencyPhone: user.emergencyPhone || "",
       });
     }
   }, [user]);
@@ -43,11 +43,14 @@ export default function PatientProfilePage() {
       await updateUserProfile({
         displayName: formData.displayName,
         phoneNumber: formData.phoneNumber,
+        emergencyContact: formData.emergencyContact,
+        emergencyPhone: formData.emergencyPhone,
       });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       console.error("Error updating profile:", error);
+      alert("Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
     }

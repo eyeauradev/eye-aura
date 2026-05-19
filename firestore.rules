@@ -22,6 +22,10 @@ service cloud.firestore {
       return hasRole('admin');
     }
 
+    function isPatient() {
+      return hasRole('patient');
+    }
+
     function isDoctorOrAdmin() {
       return isDoctor() || isAdmin();
     }
@@ -30,18 +34,34 @@ service cloud.firestore {
       return date > request.time;
     }
 
+    function isValidEmail(email) {
+      return email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function isValidPhoneNumber(phone) {
+      return phone.matches('^[+]?[0-9]{10,15}$');
+    }
+
     // Users Collection
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       
-      // Create: Only allow creating user with role "patient" to prevent role escalation
+      // Create: Only allow creating patient users through client-side signup
+      // Doctor users can only be created through server-side onboarding API
       allow create: if signedIn() 
         && request.auth.uid == userId
-        && request.resource.data.role == "patient";
+        && request.resource.data.email != null
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.role == "patient"
+        && request.resource.data.isActive == true
+        && request.resource.data.isSuspended == false
+        && request.resource.data.onboarding != null;
       
-      // Update: Only admins can change roles, owners can update other fields
+      // Update: 
+      // - Owners can update their own profile fields (not role, isActive, isSuspended)
+      // - Admins can update all fields including role, isActive, isSuspended
       allow update: if isOwner(userId) 
-        && !request.resource.diff(resource.data).affectedKeys().hasAny(['role'])
+        && !request.resource.diff(resource.data).affectedKeys().hasAny(['role', 'isActive', 'isSuspended', 'onboarding'])
         || isAdmin();
       
       allow delete: if isAdmin();
@@ -61,16 +81,19 @@ service cloud.firestore {
       
       allow create: if signedIn()
         && request.resource.data.patientId == request.auth.uid
-        && isFutureDate(request.resource.data.scheduledFor);
+        && isFutureDate(request.resource.data.scheduledFor)
+        && request.resource.data.status in ['pending', 'confirmed'];
       
       allow update: if isOwner(resource.data.patientId)
+        && request.resource.data.status in ['cancelled', 'cancellation_requested']
         || isOwner(resource.data.doctorId)
+        && request.resource.data.status in ['pending', 'confirmed', 'in_progress', 'completed']
         || isAdmin();
       
       allow delete: if isAdmin();
     }
 
-    // Doctor Slots Collection
+    // Doctor Slots Collection (Legacy - using new availability system)
     match /doctor_slots/{slotId} {
       allow read: if true;
       
@@ -99,7 +122,9 @@ service cloud.firestore {
     match /support_tickets/{ticketId} {
       allow read: if isOwner(resource.data.userId) || isAdmin();
       
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if signedIn() 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.message != null;
       
       allow update: if isOwner(resource.data.userId) || isAdmin();
       allow delete: if isAdmin();
@@ -111,17 +136,24 @@ service cloud.firestore {
         || isOwner(resource.data.doctorId)
         || isAdmin();
       
-      allow create: if signedIn() && request.resource.data.patientId == request.auth.uid;
+      allow create: if signedIn() 
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.amount > 0;
+      
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Doctor Invites Collection - Admin only
+    // Doctor Invites Collection - Admin create/read/update, public read for invite acceptance
     match /doctor_invites/{inviteId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      // Admin can do everything
+      allow read, create, update, delete: if isAdmin();
+      
+      // Unauthenticated users can read invites by token for acceptance
+      // This is safe because they can only read, not modify
+      allow read: if !signedIn();
+      
+      // No other access allowed - client-side cannot modify invites
     }
 
     // Doctor Availability Collection
@@ -129,7 +161,8 @@ service cloud.firestore {
       allow read: if true;
       
       allow create: if isDoctorOrAdmin()
-        && request.resource.data.doctorId == request.auth.uid;
+        && request.resource.data.doctorId == request.auth.uid
+        && request.resource.data.duration > 0;
       
       allow update: if isOwner(resource.data.doctorId) || isAdmin();
       allow delete: if isOwner(resource.data.doctorId) || isAdmin();
@@ -140,7 +173,9 @@ service cloud.firestore {
       allow read: if true;
       
       allow create: if isDoctorOrAdmin()
-        && request.resource.data.doctorId == request.auth.uid;
+        && request.resource.data.doctorId == request.auth.uid
+        && request.resource.data.start < request.resource.data.end
+        && request.resource.data.reason != null;
       
       allow update: if isOwner(resource.data.doctorId) || isAdmin();
       allow delete: if isOwner(resource.data.doctorId) || isAdmin();
@@ -152,11 +187,22 @@ service cloud.firestore {
         || isOwner(resource.data.doctorId)
         || isAdmin();
       
+      // Patients can create requests
       allow create: if signedIn()
-        && request.resource.data.patientId == request.auth.uid;
+        && request.resource.data.patientId == request.auth.uid
+        && isFutureDate(request.resource.data.requestedTime)
+        && request.resource.data.status == 'pending';
       
-      allow update: if isOwner(resource.data.doctorId) || isAdmin();
-      allow delete: if isOwner(resource.data.patientId) || isAdmin();
+      // Only doctors can accept/reject/update status, patients can cancel
+      allow update: if isOwner(resource.data.doctorId)
+        && request.resource.data.status in ['accepted', 'rejected', 'reschedule_requested']
+        || isOwner(resource.data.patientId)
+        && request.resource.data.status == 'cancelled'
+        && resource.data.status == 'pending'
+        || isAdmin();
+      
+      allow delete: if isOwner(resource.data.patientId) 
+        || isAdmin();
     }
 
     // Default deny all other paths

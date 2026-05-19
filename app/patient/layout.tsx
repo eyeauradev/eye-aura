@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { href: "/patient/dashboard", label: "Dashboard", icon: Home },
   { href: "/patient/appointments", label: "Appointments", icon: Calendar },
+  { href: "/", label: "Home", icon: Home, isCenter: true },
   { href: "/patient/prescriptions", label: "Prescriptions", icon: FileText },
-  { href: "/patient/support", label: "Support", icon: MessageSquare },
-  { href: "/patient/notifications", label: "Notifications", icon: Bell },
-  { href: "/patient/profile", label: "Profile", icon: User },
+  { href: "/patient/profile", label: "My Account", icon: User },
 ];
 
 export default function PatientLayout({ children }: { children: React.ReactNode }) {
@@ -59,7 +58,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
           {/* Sidebar Navigation */}
           <aside className="w-64 flex-shrink-0 hidden lg:block">
             <nav className="sticky top-24 space-y-2">
-              {navItems.map((item) => {
+              {navItems.filter(item => !item.isCenter).map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 
@@ -78,6 +77,13 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
                   </Link>
                 );
               })}
+              <Link
+                href="/"
+                className="flex items-center gap-3 px-4 py-3 rounded-2xl transition text-muted-foreground hover:bg-white/50 hover:text-primary"
+              >
+                <Home className="h-5 w-5" />
+                <span className="font-medium">Public Home</span>
+              </Link>
             </nav>
           </aside>
 
@@ -87,16 +93,21 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const isCenter = item.isCenter;
                 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition ${
-                      isActive ? "text-[#0F4F4B]" : "text-muted-foreground"
+                      isCenter
+                        ? "bg-[#0F4F4B] text-white -mt-6 shadow-lg"
+                        : isActive
+                          ? "text-[#0F4F4B]"
+                          : "text-muted-foreground"
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className={`h-5 w-5 ${isCenter ? "h-6 w-6" : ""}`} />
                     <span className="text-xs font-medium">{item.label}</span>
                   </Link>
                 );

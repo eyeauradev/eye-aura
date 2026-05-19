@@ -1781,5 +1781,201 @@ This document must be updated whenever:
 - Role logic changes
 
 **LAST UPDATED**: 2026-05-16
-**CURRENT PHASE**: Phase 8 Complete
+**CURRENT PHASE**: Phase 8 Complete - Doctor Invitation Architecture Refactor Complete
 **NEXT PHASE**: Phase 9 - Payments & Automation
+
+---
+
+## 17. STABILIZATION PASS - MAY 16, 2026
+
+### Overview
+A comprehensive stabilization, refactor, and synchronization pass was completed to fix inconsistencies across the entire Eye Aura booking, scheduling, dashboard, patient, doctor, navigation, Firestore, and documentation systems.
+
+### Changes Implemented
+
+#### Doctor Invitation Architecture Refactor (Major)
+**Problem**: The doctor invite flow was architecturally unsafe with inconsistent lifecycle, permission errors, "email already in use" issues, no resend system, and fragile onboarding. Client-side Firebase Auth operations caused permission errors, and there was no proper invite state management.
+
+**Solution**: Complete redesign of the invitation system with proper lifecycle management, server-side onboarding, and secure role assignment.
+
+**New Invite Status System**:
+- Replaced boolean `used` with enum `InviteStatus`: "pending" | "opened" | "completed" | "expired" | "cancelled" | "failed"
+- Each status has specific business logic and UI states
+- Automatic expiration detection and handling
+
+**New DoctorInviteDocument Schema**:
+```typescript
+{
+  id,
+  email,
+  role: "doctor",
+  status: InviteStatus,
+  token,
+  expiresAt,
+  invitedBy,
+  invitedByName,
+  openedAt?,
+  completedAt?,
+  resendCount,
+  specialization?,
+  consultationTypes?,
+  existingUser: boolean,
+  createdUserId?,
+  errorReason?,
+  createdAt,
+  updatedAt
+}
+```
+
+**Server-Side Onboarding Architecture**:
+- Created `/api/doctor-onboarding/complete` route for secure onboarding
+- Client submits form → Server validates token → Server checks email ownership → Server creates/updates user → Server assigns role → Server marks invite completed
+- All operations happen atomically with proper error handling
+- Client cannot directly assign roles or create doctor users
+
+**Existing Email Handling**:
+- Case A: Email doesn't exist → Proceed normally
+- Case B: Email exists, role ≠ doctor → Block with clear error
+- Case C: Email exists, role = doctor, onboarding incomplete → Allow resume
+- Case D: Email exists, onboarding complete → Redirect to dashboard
+
+**Firestore Security Rules Updates**:
+- `doctor_invites`: Admin full control, public read-only for invite acceptance
+- `users`: Only patient signup allowed client-side, doctor creation requires server-side API
+- Client cannot set `role`, `isActive`, `isSuspended`, or `onboarding` fields
+
+**Admin Invite Management**:
+- Created `/admin/doctors/invites` page with sections:
+  - Pending Invites (with resend, copy link, cancel actions)
+  - Opened Invites (incomplete onboarding)
+  - Completed Invites (linked to doctor accounts)
+  - Failed Invites (with error diagnostics)
+- Real-time invite lifecycle tracking
+- Expiration countdown display
+
+**Resend Invite System**:
+- Created `/api/doctor-invites/resend` API route
+- Generates new secure token
+- Invalidates old token (replay protection)
+- Extends expiration by 7 days
+- Increments resendCount
+- Sends fresh email with new link
+
+**Invite Token Security**:
+- Cryptographically secure random tokens
+- Single-use token lifecycle
+- Automatic expiration support
+- Replay protection through token regeneration on resend
+
+**Files Updated**:
+- `types/firestore.ts` - DoctorInviteDocument schema with new status system
+- `services/firestore/doctor-invites.service.ts` - Status management, resend, cancel methods
+- `app/api/doctor-onboarding/complete/route.ts` - Server-side onboarding API
+- `app/api/doctor-invites/resend/route.ts` - Resend invite API
+- `firestore.rules` - Updated security rules for doctor_invites and users
+- `app/admin/doctors/invite/page.tsx` - Updated to use new schema
+- `app/invite/[token]/page.tsx` - Updated to use server-side API
+- `app/admin/doctors/invites/page.tsx` - New invite management page
+
+#### Authentication & Onboarding Architecture Refactor (Major)
+**Problem**: The system incorrectly used `onboardingCompleted` to determine user active/disabled status, creating accidental coupling between admin, patient, and doctor modules. Admin users appeared "disabled" because onboardingCompleted was false, but onboarding could only be completed in patient flow.
+
+**Solution**: Complete separation of account status from onboarding state with role-isolated flows.
+
+**User Schema Changes**:
+- **Added** `isActive: boolean` - Explicit account activation status
+- **Added** `isSuspended: boolean` - Account suspension status
+- **Added** `onboarding.patientCompleted: boolean` - Patient-specific onboarding
+- **Added** `onboarding.doctorCompleted: boolean` - Doctor-specific onboarding
+- **Deprecated** `onboardingCompleted` (computed from role-specific flags for backward compatibility)
+
+**Status Logic**:
+- **Active**: `isActive === true && isSuspended !== true`
+- **Disabled**: `isActive === false`
+- **Suspended**: `isSuspended === true`
+
+**Module Isolation**:
+- **Admin**: No onboarding required - immediately functional after login
+- **Doctor**: Independent onboarding flow with doctorCompleted flag
+- **Patient**: Independent onboarding flow with patientCompleted flag
+
+**Role-Based Login Gating**:
+- Middleware handles authentication only (no Firebase Admin SDK calls in edge runtime)
+- Page components handle role-specific redirects:
+  - Admin → `/admin/dashboard`
+  - Doctor → `/doctor/dashboard`
+  - Patient → `/patient/dashboard`
+- Suspended/disabled users redirected to login
+
+**Dashboard Access Rules**:
+- All roles can access their dashboard immediately (no onboarding gate)
+- Optional non-blocking banners shown for incomplete onboarding
+- Banner message: "Complete your profile for a better consultation experience"
+
+**Security Rules Updates**:
+- Users can only update own profile fields (not role, isActive, isSuspended)
+- Admins can update all fields including role, isActive, isSuspended
+- New users must have `isActive: true` and `isSuspended: false`
+- Email and phone validation maintained
+
+**Files Updated**:
+- `types/firestore.ts` - UserDocument schema
+- `types/auth.ts` - UserProfile schema
+- `services/auth/auth.service.ts` - getUserProfile, createUserProfile, updateUserProfile
+- `services/firestore/converters.ts` - userConverter
+- `lib/auth-server.ts` - getServerSession
+- `app/patient/dashboard/page.tsx` - Role-based redirect, onboarding banner
+- `app/doctor/dashboard/page.tsx` - Role-based redirect, onboarding banner
+- `app/admin/dashboard/page.tsx` - Role-based redirect
+- `app/admin/users/page.tsx` - Status badges using isActive/isSuspended
+- `app/admin/doctors/page.tsx` - Status badges using isActive/isSuspended
+- `app/admin/doctors/[id]/page.tsx` - Status badges using isActive/isSuspended
+- `app/patient/profile/page.tsx` - Profile status display
+- `app/invite/[token]/page.tsx` - Doctor onboarding with new schema
+- `firestore.rules` - Updated user collection rules
+- `middleware.ts` - Clarified role handling (page-level redirects)
+
+#### Booking Flow Fixes
+- **Booking Request Status**: Changed from "requested" to "pending" for consistency
+- **Appointment Creation**: When doctor accepts a booking request, an appointment document is now automatically created
+- **Calendar Blocking**: Accepted booking requests now create doctor_blocks to prevent double-booking
+- **Service Duration**: Calendar blocking now uses actual service duration instead of hardcoded 30 minutes
+
+#### Data Display Fixes
+- **Patient Name Resolution**: Doctor dashboard now resolves patientId to patient displayName and email
+- **Booking Request Display**: Patient appointments page now shows booking requests with all statuses (pending, accepted, rejected, reschedule_requested)
+- **Date Formatting**: Improved timezone-safe date formatting across dashboards
+
+#### Navigation Fixes
+- **Persistent Home Navigation**: Added Home button to patient, doctor, and admin module sidebars and mobile navs
+- **Bottom Navigation Refactor**: New order - Dashboard, Appointments, Home (CENTER, elevated), Prescriptions/Calendar, My Account
+- **Active State Fixes**: Fixed active state detection in all navigation components
+- **Booking Flow Navigation**: Bottom nav no longer hides during booking flow
+
+#### Dashboard Fixes
+- **Patient Dashboard Empty States**: Now checks for both upcoming appointments AND pending booking requests before showing empty state
+- **Booking Request Indicator**: Patient dashboard shows count of pending booking requests with link to view them
+
+#### Profile Fixes
+- **Emergency Contact Fields**: Added emergencyContact and emergencyPhone to UserProfile type
+- **Profile Save**: Fixed patient profile save to include emergency contact fields
+- **Auth Service**: Updated getUserProfile to read emergency contact fields from Firestore
+
+#### Firestore Security Rules
+- **Production Safety**: Enhanced rules with data validation (email format, phone format)
+- **Status Transition Controls**: Added strict rules for appointment and booking request status changes
+- **Role Protection**: Prevented role escalation and unauthorized field changes
+- **Data Validation**: Added null checks, date validation, and amount validation
+
+#### Firestore Indexes
+- **Composite Indexes**: Added composite indexes for complex queries (patientId + scheduledFor + status)
+- **Booking Request Indexes**: Added doctorId + status + createdAt composite index
+- **Appointment Indexes**: Added patientId + scheduledFor + status and doctorId + scheduledFor + status
+
+#### Type System
+- **BookingRequestStatus**: Changed "requested" to "pending" in type definition
+- **AppointmentStatus**: Removed duplicate statuses (requested, accepted, rejected, reschedule_requested) - these now only exist in booking_requests
+- **UserProfile**: Added emergencyContact and emergencyPhone fields
+
+### Status
+All high-priority stabilization tasks completed. The booking lifecycle now works end-to-end with proper status transitions, calendar blocking, data enrichment, and navigation consistency.

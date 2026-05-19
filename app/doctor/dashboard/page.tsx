@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService } from "@/services/firestore";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
+import { usersService } from "@/services/firestore";
 import type { AppointmentDocument, BookingRequestDocument } from "@/types/firestore";
-import { Calendar, Clock, Users, FileText, Settings, ArrowRight, Video, CheckCircle2, Bell } from "lucide-react";
+import { Calendar, Clock, Users, FileText, Settings, ArrowRight, Video, CheckCircle2, Bell, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,17 +15,36 @@ import { SectionContainer } from "@/components/section-container";
 import Link from "next/link";
 
 export default function DoctorDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [todayAppointments, setTodayAppointments] = useState<AppointmentDocument[]>([]);
-  const [followUpAppointments, setFollowUpAppointments] = useState<AppointmentDocument[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<BookingRequestDocument[]>([]);
+  const [todayAppointments, setTodayAppointments] = useState<(AppointmentDocument & { patient?: any })[]>([]);
+  const [followUpAppointments, setFollowUpAppointments] = useState<(AppointmentDocument & { patient?: any })[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<(BookingRequestDocument & { patient?: any })[]>([]);
   const [stats, setStats] = useState({
     totalUpcoming: 0,
     completedToday: 0,
     pendingPrescriptions: 0,
     pendingRequests: 0,
   });
+
+  // Role-based redirect
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === "admin") {
+        router.replace("/admin/dashboard");
+        return;
+      }
+      if (user.role === "patient") {
+        router.replace("/patient/dashboard");
+        return;
+      }
+      if (!user.isActive || user.isSuspended) {
+        router.replace("/auth/login");
+        return;
+      }
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -50,11 +71,35 @@ export default function DoctorDashboard() {
         const followUpAppts = allAppointments.filter(apt => apt.followUpRequired);
 
         // Get pending booking requests
-        const requests = await bookingRequestsService.getByDoctorIdAndStatus(user.id, "requested");
+        const requests = await bookingRequestsService.getByDoctorIdAndStatus(user.id, "pending");
+
+        // Enrich requests with patient data
+        const requestsWithPatient = await Promise.all(
+          requests.map(async (request) => {
+            const patient = await usersService.getById(request.patientId);
+            return { ...request, patient };
+          })
+        );
+
+        // Enrich today's appointments with patient data
+        const todayApptsWithPatient = await Promise.all(
+          todayAppts.map(async (apt) => {
+            const patient = await usersService.getById(apt.patientId);
+            return { ...apt, patient };
+          })
+        );
+
+        // Enrich follow-up appointments with patient data
+        const followUpApptsWithPatient = await Promise.all(
+          followUpAppts.map(async (apt) => {
+            const patient = await usersService.getById(apt.patientId);
+            return { ...apt, patient };
+          })
+        );
 
         // Calculate stats
         const upcoming = allAppointments.filter(apt => 
-          apt.status === "pending" || apt.status === "confirmed" || apt.status === "accepted"
+          apt.status === "pending" || apt.status === "confirmed"
         ).length;
 
         const completed = todayAppts.filter(apt => 
@@ -66,9 +111,9 @@ export default function DoctorDashboard() {
           apt.status === "completed" && !apt.prescriptionId
         ).length;
 
-        setTodayAppointments(todayAppts);
-        setFollowUpAppointments(followUpAppts);
-        setPendingRequests(requests);
+        setTodayAppointments(todayApptsWithPatient);
+        setFollowUpAppointments(followUpApptsWithPatient);
+        setPendingRequests(requestsWithPatient);
         setStats({
           totalUpcoming: upcoming,
           completedToday: completed,
@@ -130,8 +175,14 @@ export default function DoctorDashboard() {
     try {
       await bookingRequestsService.acceptRequest(requestId);
       // Reload requests
-      const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "requested");
-      setPendingRequests(requests);
+      const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "pending");
+      const requestsWithPatient = await Promise.all(
+        requests.map(async (request) => {
+          const patient = await usersService.getById(request.patientId);
+          return { ...request, patient };
+        })
+      );
+      setPendingRequests(requestsWithPatient);
       setStats(prev => ({ ...prev, pendingRequests: requests.length }));
     } catch (error) {
       console.error("Error accepting request:", error);
@@ -145,8 +196,14 @@ export default function DoctorDashboard() {
     try {
       await bookingRequestsService.rejectRequest(requestId, reason);
       // Reload requests
-      const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "requested");
-      setPendingRequests(requests);
+      const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "pending");
+      const requestsWithPatient = await Promise.all(
+        requests.map(async (request) => {
+          const patient = await usersService.getById(request.patientId);
+          return { ...request, patient };
+        })
+      );
+      setPendingRequests(requestsWithPatient);
       setStats(prev => ({ ...prev, pendingRequests: requests.length }));
     } catch (error) {
       console.error("Error rejecting request:", error);
@@ -166,6 +223,23 @@ export default function DoctorDashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Optional onboarding banner */}
+      {user && !user.onboardingCompleted && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
+          <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-blue-800">
+              Complete your profile for a better consultation experience.
+            </p>
+          </div>
+          <Link href="/doctor/profile">
+            <Button variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
+              Complete Profile
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div>
         <h1 className="font-display text-4xl text-primary mb-2">
@@ -239,7 +313,8 @@ export default function DoctorDashboard() {
                           <Bell className="h-6 w-6 text-amber-600" />
                         </div>
                         <div>
-                          <p className="font-medium text-primary">Patient ID: {request.patientId}</p>
+                          <p className="font-medium text-primary">{request.patient?.displayName || "Patient"}</p>
+                          <p className="text-sm text-muted-foreground">{request.patient?.email || ""}</p>
                           <p className="text-sm text-muted-foreground">
                             Requested: {new Date(request.requestedTime).toLocaleString("en-US", {
                               month: "short",
@@ -303,7 +378,8 @@ export default function DoctorDashboard() {
                             <Users className="h-6 w-6 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium text-primary">Patient ID: {appointment.patientId}</p>
+                            <p className="font-medium text-primary">{appointment.patient?.displayName || "Patient"}</p>
+                            <p className="text-sm text-muted-foreground">{appointment.patient?.email || ""}</p>
                             <p className="text-sm text-muted-foreground">
                               {new Date(appointment.scheduledFor).toLocaleTimeString("en-US", {
                                 hour: "2-digit",
@@ -377,7 +453,7 @@ export default function DoctorDashboard() {
                         <Clock className="h-5 w-5 text-secondary" />
                       </div>
                       <div>
-                        <p className="font-medium text-primary">Patient ID: {appointment.patientId}</p>
+                        <p className="font-medium text-primary">{appointment.patient?.displayName || "Patient"}</p>
                         {appointment.followUpDate && (
                           <p className="text-sm text-muted-foreground">
                             Follow-up: {new Date(appointment.followUpDate).toLocaleDateString("en-US", {

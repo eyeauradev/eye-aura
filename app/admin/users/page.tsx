@@ -51,8 +51,8 @@ export default function AdminUsersPage() {
     }
 
     try {
-      await usersService.update(userId, { onboardingCompleted: !currentStatus });
-      setUsers(users.map((u) => (u.id === userId ? { ...u, onboardingCompleted: !currentStatus } : u)));
+      await usersService.update(userId, { isActive: !currentStatus });
+      setUsers(users.map((u) => (u.id === userId ? { ...u, isActive: !currentStatus } : u)));
     } catch (error) {
       console.error("Error toggling user status:", error);
       alert("Failed to update user status");
@@ -183,8 +183,12 @@ function UserCard({
             <Badge className={getRoleColor(userItem.role)}>
               {userItem.role}
             </Badge>
-            {userItem.onboardingCompleted ? (
-              <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+            {userItem.isActive ? (
+              !userItem.isSuspended ? (
+                <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+              ) : (
+                <Badge className="bg-orange-100 text-orange-800 border-orange-200">Suspended</Badge>
+              )
             ) : (
               <Badge className="bg-gray-100 text-gray-800 border-gray-200">Disabled</Badge>
             )}
@@ -200,10 +204,10 @@ function UserCard({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onToggleStatus(userItem.id, userItem.onboardingCompleted)}
-              title={userItem.onboardingCompleted ? "Disable account" : "Enable account"}
+              onClick={() => onToggleStatus(userItem.id, userItem.isActive)}
+              title={userItem.isActive ? "Disable account" : "Enable account"}
             >
-              {userItem.onboardingCompleted ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+              {userItem.isActive ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
             </Button>
             {userItem.role !== "patient" && (
               <Button

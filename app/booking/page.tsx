@@ -106,7 +106,7 @@ export default function BookingPage() {
         doctorId: state.doctor.id,
         serviceId: state.service.id,
         requestedTime: selectedTime,
-        status: "requested",
+        status: "pending",
         notes: state.notes,
       });
 

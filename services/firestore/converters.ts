@@ -46,7 +46,11 @@ export const userConverter = {
       photoURL: data.photoURL,
       role: data.role,
       phoneNumber: data.phoneNumber,
-      onboardingCompleted: data.onboardingCompleted,
+      emergencyContact: data.emergencyContact,
+      emergencyPhone: data.emergencyPhone,
+      isActive: data.isActive ?? true,
+      isSuspended: data.isSuspended ?? false,
+      onboarding: data.onboarding || { patientCompleted: false, doctorCompleted: false },
       createdAt: fromTimestamp(data.createdAt),
       updatedAt: fromTimestamp(data.updatedAt),
     };
@@ -177,21 +181,51 @@ export const prescriptionConverter = {
 
 // Doctor Invite converter
 export const doctorInviteConverter = {
-  toFirestore: (invite: DoctorInviteDocument): DocumentData => ({
-    ...invite,
-    expiresAt: toTimestamp(invite.expiresAt),
-    createdAt: toTimestamp(invite.createdAt),
-    updatedAt: toTimestamp(invite.updatedAt),
-  }),
+  toFirestore: (data: DoctorInviteDocument): DocumentData => {
+    const firestoreData: DocumentData = {
+      id: data.id,
+      email: data.email,
+      role: data.role,
+      status: data.status,
+      token: data.token,
+      expiresAt: data.expiresAt,
+      invitedBy: data.invitedBy,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    };
+
+    // Only include optional fields if they have values
+    if (data.invitedByName) firestoreData.invitedByName = data.invitedByName;
+    if (data.openedAt) firestoreData.openedAt = data.openedAt;
+    if (data.completedAt) firestoreData.completedAt = data.completedAt;
+    if (data.specialization) firestoreData.specialization = data.specialization;
+    if (data.consultationTypes) firestoreData.consultationTypes = data.consultationTypes;
+    if (data.createdUserId) firestoreData.createdUserId = data.createdUserId;
+    if (data.errorReason) firestoreData.errorReason = data.errorReason;
+    if (data.resendCount !== undefined) firestoreData.resendCount = data.resendCount;
+    if (data.existingUser !== undefined) firestoreData.existingUser = data.existingUser;
+
+    return firestoreData;
+  },
   fromFirestore: (snapshot: QueryDocumentSnapshot): DoctorInviteDocument => {
     const doc = snapshot;
     return {
       id: doc.id,
       email: doc.data().email,
+      role: doc.data().role || "doctor",
+      status: doc.data().status || "pending",
       token: doc.data().token,
       expiresAt: doc.data().expiresAt?.toDate() || new Date(),
       invitedBy: doc.data().invitedBy,
-      used: doc.data().used,
+      invitedByName: doc.data().invitedByName,
+      openedAt: doc.data().openedAt?.toDate(),
+      completedAt: doc.data().completedAt?.toDate(),
+      resendCount: doc.data().resendCount || 0,
+      specialization: doc.data().specialization,
+      consultationTypes: doc.data().consultationTypes,
+      existingUser: doc.data().existingUser || false,
+      createdUserId: doc.data().createdUserId,
+      errorReason: doc.data().errorReason,
       createdAt: doc.data().createdAt?.toDate() || new Date(),
       updatedAt: doc.data().updatedAt?.toDate() || new Date(),
     };
