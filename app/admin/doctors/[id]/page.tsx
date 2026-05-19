@@ -8,7 +8,7 @@ import { ArrowLeft, Calendar, Clock, User, CheckCircle, Ban, Edit2, Eye } from "
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 import type { UserDocument, AppointmentDocument, PrescriptionDocument, DoctorSlotDocument } from "@/types/firestore";
 
@@ -133,7 +133,7 @@ export default function AdminDoctorDetailPage() {
       </div>
 
       {/* Doctor Profile */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Profile Information</CardTitle>
@@ -165,10 +165,10 @@ export default function AdminDoctorDetailPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
       {/* Statistics */}
-      <SectionContainer>
+      
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -203,10 +203,10 @@ export default function AdminDoctorDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </SectionContainer>
+      
 
       {/* Recent Appointments */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Recent Appointments</CardTitle>
@@ -238,7 +238,7 @@ export default function AdminDoctorDetailPage() {
             )}
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

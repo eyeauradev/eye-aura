@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function AdminDoctorInvitePage() {
@@ -128,7 +128,7 @@ export default function AdminDoctorInvitePage() {
           </p>
         </div>
 
-        <SectionContainer>
+        
           <Card className="border-primary/10 bg-green-50/50">
             <CardContent className="p-12 text-center">
               <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-6" />
@@ -174,7 +174,7 @@ export default function AdminDoctorInvitePage() {
               </Link>
             </CardContent>
           </Card>
-        </SectionContainer>
+        
       </div>
     );
   }
@@ -194,7 +194,7 @@ export default function AdminDoctorInvitePage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Doctor Information</CardTitle>
@@ -290,7 +290,7 @@ export default function AdminDoctorInvitePage() {
             </form>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

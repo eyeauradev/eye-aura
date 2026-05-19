@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function AdminSettingsPage() {
   const { user } = useAuth();
@@ -50,7 +50,7 @@ export default function AdminSettingsPage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <form onSubmit={handleSave} className="space-y-6">
           {/* Platform Settings */}
           <Card className="border-primary/10">
@@ -222,7 +222,7 @@ export default function AdminSettingsPage() {
             {loading ? "Saving..." : "Save Settings"}
           </Button>
         </form>
-      </SectionContainer>
+      
     </div>
   );
 }

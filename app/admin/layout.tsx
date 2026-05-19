@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, UserPlus, LogOut, Menu, X, Home } from "lucide-react";
@@ -12,6 +12,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isActive = (href: string) =>
+    pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href + "/"));
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "admin")) {
@@ -99,13 +103,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                  "hover:bg-primary/5 hover:text-primary",
-                  "text-muted-foreground"
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium",
+                  isActive(item.href)
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
                 )}
               >
                 <item.icon className="h-5 w-5" />
-                <span className="font-medium">{item.label}</span>
+                <span>{item.label}</span>
               </Link>
             ))}
             <Link
@@ -132,14 +137,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                      "hover:bg-primary/5 hover:text-primary",
-                      "text-muted-foreground"
+                      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium",
+                      isActive(item.href)
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
                     )}
                     onClick={() => setSidebarOpen(false)}
                   >
                     <item.icon className="h-5 w-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <span>{item.label}</span>
                   </Link>
                 ))}
               </nav>
@@ -160,17 +166,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 px-3 py-2 text-muted-foreground hover:text-primary transition"
+              className={cn(
+                "flex flex-col items-center gap-1 px-3 py-2 transition",
+                isActive(item.href)
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-primary"
+              )}
             >
-              <item.icon className="h-5 w-5" />
-              <span className="text-xs">{item.label}</span>
+              <div className={cn(
+                "p-1 rounded-lg transition",
+                isActive(item.href) ? "bg-primary/10" : ""
+              )}>
+                <item.icon className="h-5 w-5" />
+              </div>
+              <span className={cn("text-xs", isActive(item.href) && "font-semibold")}>{item.label}</span>
             </Link>
           ))}
           <Link
             href="/"
             className="flex flex-col items-center gap-1 px-3 py-2 text-muted-foreground hover:text-primary transition"
           >
-            <Home className="h-5 w-5" />
+            <div className="p-1 rounded-lg"><Home className="h-5 w-5" /></div>
             <span className="text-xs">Home</span>
           </Link>
         </div>

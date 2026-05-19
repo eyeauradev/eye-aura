@@ -9,7 +9,7 @@ import { LayoutDashboard, Users, Calendar, MessageSquare, DollarSign, TrendingUp
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function AdminDashboardPage() {
@@ -144,7 +144,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Platform Overview */}
-      <SectionContainer>
+      
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -190,10 +190,10 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </SectionContainer>
+      
 
       {/* Quick Actions */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Quick Actions</CardTitle>
@@ -227,10 +227,10 @@ export default function AdminDashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
       {/* Recent Activity */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Recent Activity</CardTitle>
@@ -270,10 +270,10 @@ export default function AdminDashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
       {/* Platform Health */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Platform Health</CardTitle>
@@ -325,7 +325,7 @@ export default function AdminDashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

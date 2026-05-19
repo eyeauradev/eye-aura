@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 import type { SupportTicketDocument } from "@/types/firestore";
 
@@ -75,7 +75,7 @@ export default function AdminSupportPage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -126,7 +126,7 @@ export default function AdminSupportPage() {
             )}
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

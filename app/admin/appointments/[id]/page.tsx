@@ -8,7 +8,7 @@ import { ArrowLeft, Calendar, User, FileText, Clock, CheckCircle, X } from "luci
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function AdminAppointmentDetailPage() {
@@ -109,7 +109,7 @@ export default function AdminAppointmentDetailPage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Participants */}
           <Card className="border-primary/10">
@@ -175,10 +175,10 @@ export default function AdminAppointmentDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </SectionContainer>
+      
 
       {/* Service */}
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Service</CardTitle>
@@ -200,11 +200,11 @@ export default function AdminAppointmentDetailPage() {
             )}
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
       {/* Prescription */}
       {prescription && (
-        <SectionContainer>
+        
           <Card className="border-primary/10">
             <CardHeader>
               <CardTitle className="text-lg">Prescription</CardTitle>
@@ -235,12 +235,12 @@ export default function AdminAppointmentDetailPage() {
               </div>
             </CardContent>
           </Card>
-        </SectionContainer>
+        
       )}
 
       {/* Notes */}
       {appointment.notes && (
-        <SectionContainer>
+        
           <Card className="border-primary/10">
             <CardHeader>
               <CardTitle className="text-lg">Consultation Notes</CardTitle>
@@ -249,7 +249,7 @@ export default function AdminAppointmentDetailPage() {
               <p className="text-muted-foreground whitespace-pre-wrap">{appointment.notes}</p>
             </CardContent>
           </Card>
-        </SectionContainer>
+        
       )}
     </div>
   );

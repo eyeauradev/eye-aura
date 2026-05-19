@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 import type { SupportTicketDocument } from "@/types/firestore";
 
@@ -158,7 +158,7 @@ export default function AdminSupportDetailPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Ticket Information</CardTitle>
@@ -188,9 +188,9 @@ export default function AdminSupportDetailPage() {
             )}
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Conversation</CardTitle>
@@ -264,7 +264,7 @@ export default function AdminSupportDetailPage() {
             )}
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

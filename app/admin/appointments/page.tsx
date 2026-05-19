@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 import type { AppointmentDocument, UserDocument } from "@/types/firestore";
 
@@ -81,7 +81,7 @@ export default function AdminAppointmentsPage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -135,7 +135,7 @@ export default function AdminAppointmentsPage() {
             )}
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

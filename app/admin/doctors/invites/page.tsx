@@ -8,7 +8,7 @@ import type { DoctorInviteDocument, InviteStatus } from "@/types/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import { Mail, Copy, RefreshCw, X, Clock, CheckCircle, AlertCircle, Calendar, User as UserIcon } from "lucide-react";
 
 export default function DoctorInvitesPage() {
@@ -269,7 +269,7 @@ export default function DoctorInvitesPage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <div className="mx-auto max-w-7xl space-y-8">
           {/* Pending Invites */}
           <div>
@@ -329,7 +329,7 @@ export default function DoctorInvitesPage() {
             </div>
           )}
         </div>
-      </SectionContainer>
+      
     </div>
   );
 }

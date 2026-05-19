@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 
 export default function AdminServiceCreatePage() {
@@ -134,7 +134,7 @@ export default function AdminServiceCreatePage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Service Details</CardTitle>
@@ -312,7 +312,7 @@ export default function AdminServiceCreatePage() {
             </form>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

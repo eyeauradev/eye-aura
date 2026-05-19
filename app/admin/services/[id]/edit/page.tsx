@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 import type { ServiceDocument, UserDocument } from "@/types/firestore";
 
@@ -149,7 +149,7 @@ export default function AdminServiceEditPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle>Service Information</CardTitle>
@@ -285,7 +285,7 @@ export default function AdminServiceEditPage() {
             </form>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

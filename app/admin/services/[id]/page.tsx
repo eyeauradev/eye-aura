@@ -8,7 +8,7 @@ import { ArrowLeft, Edit2, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 import Link from "next/link";
 import type { ServiceDocument } from "@/types/firestore";
 
@@ -122,7 +122,7 @@ export default function AdminServiceDetailPage() {
         </div>
       </div>
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Service Details</CardTitle>
@@ -184,7 +184,7 @@ export default function AdminServiceDetailPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }

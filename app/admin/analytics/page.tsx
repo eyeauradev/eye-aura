@@ -7,7 +7,7 @@ import type { UserDocument, AppointmentDocument, PrescriptionDocument } from "@/
 import { BarChart3, Calendar, Users, TrendingUp, Activity, Clock, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SectionContainer } from "@/components/section-container";
+
 
 export default function AdminAnalyticsPage() {
   const { user } = useAuth();
@@ -97,7 +97,7 @@ export default function AdminAnalyticsPage() {
         </p>
       </div>
 
-      <SectionContainer>
+      
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -143,9 +143,9 @@ export default function AdminAnalyticsPage() {
             </CardContent>
           </Card>
         </div>
-      </SectionContainer>
+      
 
-      <SectionContainer>
+      
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="border-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -180,9 +180,9 @@ export default function AdminAnalyticsPage() {
             </CardContent>
           </Card>
         </div>
-      </SectionContainer>
+      
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Prescription Analytics</CardTitle>
@@ -199,9 +199,9 @@ export default function AdminAnalyticsPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
 
-      <SectionContainer>
+      
         <Card className="border-primary/10">
           <CardHeader>
             <CardTitle className="text-lg">Platform Health</CardTitle>
@@ -275,7 +275,7 @@ export default function AdminAnalyticsPage() {
             </div>
           </CardContent>
         </Card>
-      </SectionContainer>
+      
     </div>
   );
 }
