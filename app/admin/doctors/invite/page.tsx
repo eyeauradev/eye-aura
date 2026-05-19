@@ -70,6 +70,7 @@ export default function AdminDoctorInvitePage() {
       // Create invite
       const invite = await doctorInvitesService.create({
         email: formData.email,
+        doctorName: formData.doctorName,
         invitedBy: user.id,
         invitedByName: user.displayName,
         specialization: formData.specialization,

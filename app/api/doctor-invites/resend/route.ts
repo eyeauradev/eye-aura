@@ -1,70 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doctorInvitesService } from "@/services/firestore/doctor-invites.service";
-import { sendDoctorInviteEmail } from "@/services/email/email.service";
+import { sendDoctorInviteEmail } from "@/lib/send-email";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { inviteId } = body;
+    const { inviteId } = await request.json();
 
     if (!inviteId) {
-      return NextResponse.json(
-        { error: "Missing invite ID" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing invite ID" }, { status: 400 });
     }
 
-    // Get the invite
     const invite = await doctorInvitesService.getById(inviteId);
     if (!invite) {
-      return NextResponse.json(
-        { error: "Invite not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Invite not found" }, { status: 404 });
     }
 
     if (invite.status === "completed") {
-      return NextResponse.json(
-        { error: "Cannot resend completed invite" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Cannot resend a completed invite" }, { status: 400 });
     }
-
     if (invite.status === "cancelled") {
-      return NextResponse.json(
-        { error: "Cannot resend cancelled invite" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Cannot resend a cancelled invite" }, { status: 400 });
     }
 
-    // Generate new token and resend
-    const newToken = doctorInvitesService["generateToken"]();
-    const updatedInvite = await doctorInvitesService.resend(inviteId, newToken);
+    const updatedInvite = await doctorInvitesService.resend(inviteId);
 
-    // Generate new invite link
-    const link = `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/invite/${newToken}`;
+    const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const inviteLink = `${origin}/invite/${updatedInvite.token}`;
     const expiryDate = updatedInvite.expiresAt.toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
       year: "numeric",
     });
 
-    // Send email
-    try {
-      await sendDoctorInviteEmail(invite.email, {
-        doctorName: invite.specialization || "Doctor",
-        inviteLink: link,
-        expiryDate,
-      });
-    } catch (emailError) {
-      console.warn("Email service not configured, but invite was resent:", emailError);
-    }
-
-    return NextResponse.json({
-      success: true,
-      invite: updatedInvite,
-      inviteLink: link,
+    await sendDoctorInviteEmail({
+      to: invite.email,
+      doctorName: invite.doctorName || invite.specialization || "Doctor",
+      inviteLink,
+      expiryDate,
     });
+
+    return NextResponse.json({ success: true, invite: updatedInvite, inviteLink });
   } catch (error: any) {
     console.error("Resend invite error:", error);
     return NextResponse.json(

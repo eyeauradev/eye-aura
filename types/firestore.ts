@@ -167,6 +167,8 @@ export interface DoctorInviteDocument {
   token: string;
   expiresAt: Date;
   
+  doctorName?: string;
+
   invitedBy: string; // Admin user ID
   invitedByName?: string;
   

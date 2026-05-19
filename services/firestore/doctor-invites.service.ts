@@ -109,19 +109,19 @@ export class DoctorInvitesService {
     return this.query([where("status", "==", status), orderBy("createdAt", "desc"), limit(limitCount)]);
   }
 
-  async resend(id: string, newToken: string): Promise<DoctorInviteDocument> {
+  async resend(id: string): Promise<DoctorInviteDocument> {
     const invite = await this.getById(id);
     if (!invite) throw new Error("Invite not found");
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Extend expiration by 7 days
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
     return this.update(id, {
-      token: newToken,
+      token: this.generateToken(),
       expiresAt,
       status: "pending",
       resendCount: invite.resendCount + 1,
-      openedAt: undefined, // Reset opened timestamp
+      openedAt: undefined,
     });
   }
 
