@@ -35,7 +35,7 @@ Phases 1-8 completed:
 - ✅ Phase 5: Patient Module (dashboard, appointments, prescriptions, support)
 - ✅ Phase 6: Doctor Module (dashboard, appointments, slots, patients, prescriptions)
 - ✅ Phase 7: Admin Module (doctor invites, service management, user management, analytics)
-- ✅ Phase 8: Scheduling System Refactor (request/approval system, weekly availability, smart slot generation, FullCalendar integration)
+- ✅ Phase 8: Scheduling System Refactor (request/approval system, weekly availability, smart slot generation, custom minimal calendar UI, modular scheduling components, removed Framer Motion, mobile-responsive design)
 
 ### Finalized Architecture Decisions
 - **NO Firebase Storage** - All data is structured Firestore data
@@ -55,7 +55,7 @@ Phases 1-8 completed:
 - **Shadcn UI** - Pre-built accessible UI components
 - **Firebase Auth** - Authentication (email/password, Google OAuth)
 - **Firestore** - NoSQL database for all data storage
-- **Framer Motion** - Animations for smooth UI transitions
+- **CSS Transitions** - Animations for smooth UI transitions (replaced Framer Motion)
 
 ### Architectural Reasoning
 - **Next.js App Router**: Modern React framework with server components, optimized performance, and built-in routing
@@ -64,7 +64,7 @@ Phases 1-8 completed:
 - **Shadcn UI**: Accessible, customizable components that match design requirements
 - **Firebase Auth**: Managed authentication service with OAuth support
 - **Firestore**: Scalable NoSQL database with real-time capabilities, no server infrastructure needed
-- **Framer Motion**: Smooth animations for premium feel without complex CSS
+- **CSS Transitions**: Smooth animations for premium feel without external animation libraries
 
 ---
 
@@ -81,6 +81,8 @@ Phases 1-8 completed:
 /components
   /ui - Shadcn UI components
   /section-container - Reusable section wrapper
+  /doctor
+    /schedule - Modular scheduling components (ScheduleHeader, WeeklyAvailabilityCard, UnavailableBlockCard, AvailabilityPreview, TimeRangeRow)
 /modules
   /public - Public website components
   /patient - Patient module components
@@ -426,44 +428,47 @@ Public website components check auth state via `useAuth()` hook:
 **Purpose**: Store structured prescription data generated from consultations
 
 **Key Fields**:
-- `id` (string) - Prescription ID
+- `id` (string) - Prescription ID (generated via crypto.randomUUID())
 - `appointmentId` (string) - Reference to appointments collection
 - `patientId` (string) - Reference to users collection
 - `doctorId` (string) - Reference to users collection
 - `rightEye` (object) - Right eye examination data
-  - `sph` (string) - Spherical power
-  - `cyl` (string) - Cylindrical power
-  - `axis` (string) - Axis
-  - `va` (string) - Visual acuity
+  - `sph` (string) - Spherical power (e.g., "-2.50")
+  - `cyl` (string) - Cylindrical power (e.g., "-0.50")
+  - `axis` (string) - Axis (e.g., "180")
+  - `va` (string) - Visual acuity (e.g., "6/6")
 - `leftEye` (object) - Left eye examination data (same structure as rightEye)
-- `pd` (string) - Pupillary distance
-- `findings` (string) - Examination findings
-- `diagnosis` (string) - Diagnosis
-- `medications` (string) - Prescribed medications (text-based)
-- `eyeDrops` (string) - Prescribed eye drops (text-based)
-- `recommendations` (string) - Recommendations (text-based)
-- `exercises` (string) - Recommended exercises (text-based)
+- `pd` (string) - Pupillary distance (e.g., "64")
+- `findings` (string) - Examination findings (textarea, multi-line)
+- `diagnosis` (string) - Diagnosis (textarea, multi-line)
+- `medications` (string) - Prescribed medications (textarea, multi-line, text-based)
+- `eyeDrops` (string) - Prescribed eye drops (textarea, multi-line, text-based)
+- `recommendations` (string) - Recommendations (textarea, multi-line, text-based)
+- `exercises` (string) - Recommended exercises (textarea, multi-line, text-based)
+- `consultationNotes` (string) - Additional consultation notes (textarea, multi-line)
 - `followUpRequired` (boolean) - Whether follow-up is needed
-- `followUpDate` (timestamp, optional) - Follow-up date
-- `consultationNotes` (string, optional) - Additional consultation notes
+- `followUpDate` (timestamp, optional) - Follow-up date (if followUpRequired = true)
 - `createdAt` (timestamp) - Creation date
 - `updatedAt` (timestamp) - Last update date
 
 **Relationships**:
-- One-to-one with appointments
-- Many-to-one with users (patient)
-- Many-to-one with users (doctor)
+- One-to-one with appointments (via appointmentId)
+- Many-to-one with users (patient via patientId)
+- Many-to-one with users (doctor via doctorId)
 
 **Role Access**:
-- Patients can read their own prescriptions
-- Doctors can read prescriptions they created
+- Patients can read their own prescriptions (where patientId = current user)
+- Doctors can read prescriptions they created (where doctorId = current user)
 - Admins can read all prescriptions
 
 **Business Rules**:
 - Prescriptions are generated from structured data, not file uploads
-- PDF/PNG export generated from Firestore data
-- Shareable links generated from prescription ID
+- ID generated using crypto.randomUUID() for cryptographic security
+- PDF/PNG export architecture prepared but not implemented
+- Shareable links would be generated from prescription ID (not implemented)
 - No file attachments allowed
+- Prescription can only be created for completed appointments
+- Appointment updated with prescriptionId when prescription is created
 
 #### notifications
 **Purpose**: Store user notifications
@@ -741,9 +746,25 @@ Public website components check auth state via `useAuth()` hook:
 - **Purpose**: Doctor home dashboard
 - **Accessible Role**: doctor
 - **Main Features**: Today's consultations, follow-ups, stats, quick actions
-- **Data Dependencies**: Appointments, prescriptions
-- **Related Firestore Collections**: appointments, prescriptions
-- **Business Logic**: Fetch today's appointments, follow-ups, calculate stats
+- **Data Dependencies**: Appointments, prescriptions, booking_requests, users
+- **Related Firestore Collections**: appointments, prescriptions, booking_requests, users
+- **Business Logic**:
+  - Role-based redirect on load:
+    - If user.role === "admin" → redirect to `/admin/dashboard`
+    - If user.role === "patient" → redirect to `/patient/dashboard`
+    - If user.isActive === false OR user.isSuspended === true → redirect to `/auth/login`
+  - Fetch today's appointments (scheduled between 00:00 and 23:59 today)
+  - Fetch follow-up appointments (where followUpRequired === true)
+  - Fetch pending booking requests (status === "pending")
+  - Enrich appointments and requests with patient data (displayName, email, phoneNumber)
+  - Calculate stats:
+    - `totalUpcoming`: Count of appointments with status "pending" or "confirmed"
+    - `completedToday`: Count of today's appointments with status "completed"
+    - `pendingPrescriptions`: Count of today's completed appointments without prescriptionId
+    - `pendingRequests`: Count of booking requests with status "pending"
+  - Greeting based on time of day (morning/afternoon/evening)
+  - Display current date in "weekday, month day" format
+  - Consultation join logic: Allow joining 15 minutes before appointment time up to 1 hour after
 
 #### `/doctor/appointments`
 - **Purpose**: Doctor appointments list
@@ -757,41 +778,122 @@ Public website components check auth state via `useAuth()` hook:
 - **Purpose**: Doctor appointment detail
 - **Accessible Role**: doctor
 - **Main Features**: Appointment details, consultation notes, status updates, prescription creation
-- **Data Dependencies**: Appointments, prescriptions
-- **Related Firestore Collections**: appointments, prescriptions
-- **Business Logic**: Fetch appointment, update status, add notes, create prescription
+- **Data Dependencies**: Appointments, prescriptions, users
+- **Related Firestore Collections**: appointments, prescriptions, users
+- **Business Logic**:
+  - Fetch appointment by ID
+  - Load patient information (displayName, email, phoneNumber)
+  - Load prescription if appointment has prescriptionId
+  - Status update actions:
+    - "confirmed" - Mark appointment as confirmed
+    - "completed" - Mark appointment as completed
+    - "cancelled" - Mark appointment as cancelled
+  - Consultation notes:
+    - Textarea for entering notes
+    - Save button updates appointment.notes field
+  - Consultation join logic:
+    - Allow joining 15 minutes before appointment time
+    - Allow joining up to 1 hour after appointment time
+    - Video consultation link displayed if available
+    - Join button opens external video platform (Google Meet/Zoom)
+  - Prescription creation:
+    - Link to `/doctor/prescriptions/create/[appointmentId]` if no prescription exists
+    - Display prescription details if already created
+  - Status badge colors:
+    - confirmed: green
+    - pending: yellow
+    - completed: blue
+    - cancelled: red
 
 #### `/doctor/slots`
-- **Purpose**: Doctor availability management with FullCalendar integration
+- **Purpose**: Doctor availability overview and block management with custom minimal calendar UI
 - **Accessible Role**: doctor
-- **Main Features**: Calendar view of availability and blocks, block time ranges, delete blocks
+- **Main Features**: Week navigation, day strip with availability indicators, selected day detail, stats cards, block time management
 - **Data Dependencies**: Doctor availability collection, doctor blocks collection
 - **Related Firestore Collections**: doctor_availability, doctor_blocks
-- **Business Logic**: Display availability and blocks on FullCalendar, create/delete blocks
+- **Business Logic**:
+  - Display custom week view with 7-day horizontal strip
+  - Each day pill shows: weekday, date, availability indicator (green dot), block indicator (red dot)
+  - Stats cards show: working days per week, upcoming blocks count, average slot duration
+  - Selected day detail shows:
+    - Working hours from doctor_availability (if configured)
+    - Blocked time from doctor_blocks for that day
+    - Delete blocks directly from day detail view
+  - Add block form with start date/time, end date/time, optional reason
+  - All upcoming blocks list at bottom of page
+  - Mobile-responsive design (works down to 320px width)
+  - Uses CSS transitions (no Framer Motion)
+  - No FullCalendar dependency - custom React implementation
 
 #### `/doctor/schedule`
-- **Purpose**: Doctor weekly availability configuration
+- **Purpose**: Doctor weekly availability configuration with modular components
 - **Accessible Role**: doctor
-- **Main Features**: Configure weekly working hours, set off days, set consultation duration, copy schedule between days
-- **Data Dependencies**: Doctor availability collection
-- **Related Firestore Collections**: doctor_availability
-- **Business Logic**: Create/update/delete weekly availability configuration
+- **Main Features**: Configure weekly working hours, set off days, set consultation duration, copy schedule between days, preview upcoming availability
+- **Data Dependencies**: Doctor availability collection, doctor blocks collection
+- **Related Firestore Collections**: doctor_availability, doctor_blocks
+- **Business Logic**:
+  - Uses modular components from /components/doctor/schedule:
+    - ScheduleHeader: Title, subtitle, save button with loading/saved states
+    - WeeklyAvailabilityCard: Per-day configuration with accordion expansion
+    - UnavailableBlockCard: Add/manage unavailable time blocks
+    - AvailabilityPreview: Read-only 7-day availability preview
+    - TimeRangeRow: Individual time range with start/end inputs and validation
+  - Display 7 days of the week (Monday through Sunday)
+  - Each day has:
+    - "Off" toggle to mark entire day as unavailable
+    - Duration input (in minutes) - applies to all time ranges for that day
+    - Time ranges array (start time, end time in HH:MM format)
+    - "Add Time Range" button to add multiple working periods per day
+    - "Copy to [day]" buttons to copy schedule to other days
+  - Create/update doctor_availability document for each day
+  - Used by smart slot generation to create available booking slots
+  - Validation: time ranges cannot overlap on same day
+  - Mobile-responsive design with sticky save button on mobile
+  - Uses CSS transitions (no Framer Motion)
 
 #### `/doctor/requests`
 - **Purpose**: Doctor booking request management
 - **Accessible Role**: doctor
 - **Main Features**: View pending requests, accept/reject/reschedule requests
-- **Data Dependencies**: Booking requests collection
-- **Related Firestore Collections**: booking_requests
-- **Business Logic**: Fetch pending requests, accept (create appointment), reject (with reason), propose reschedule
+- **Data Dependencies**: Booking requests collection, users, services
+- **Related Firestore Collections**: booking_requests, users, services
+- **Business Logic**:
+  - Fetch booking requests where doctorId = current user AND status = "pending"
+  - Enrich requests with patient data (displayName, email)
+  - Enrich requests with service data (title, description)
+  - Accept action:
+    - Create appointment document in appointments collection
+    - Update booking request status to "accepted"
+    - Update booking request.appointmentId with new appointment ID
+    - Create doctor_block for the accepted time to prevent double-booking
+    - Redirect to appointment detail page
+  - Reject action:
+    - Update booking request status to "rejected"
+    - Prompt for rejection reason
+    - Update booking request.rejectionReason
+  - Reschedule action:
+    - Update booking request status to "reschedule_requested"
+    - Prompt for proposed time
+    - Update booking request.proposedTime
+    - Patient must approve reschedule proposal
 
 #### `/doctor/patients`
 - **Purpose**: Doctor patient list
 - **Accessible Role**: doctor
 - **Main Features**: Patient list with consultation history, follow-up status
-- **Data Dependencies**: Appointments collection
+- **Data Dependencies**: Appointments collection, users
 - **Related Firestore Collections**: appointments, users
-- **Business Logic**: Fetch all patients doctor has consulted with, group by patient
+- **Business Logic**:
+  - Fetch all appointments where doctorId = current user
+  - Extract unique patientIds from appointments
+  - Fetch user documents for each patient
+  - Group appointments by patientId
+  - For each patient, show:
+    - Display name, email
+    - Total consultation count
+    - Last consultation date
+    - Follow-up status (if any appointment has followUpRequired = true)
+  - Click on patient to view detailed history
 
 #### `/doctor/patients/[id]`
 - **Purpose**: Doctor patient detail
@@ -799,23 +901,41 @@ Public website components check auth state via `useAuth()` hook:
 - **Main Features**: Patient profile, consultation history, prescriptions, follow-ups
 - **Data Dependencies**: Appointments, prescriptions, users
 - **Related Firestore Collections**: appointments, prescriptions, users
-- **Business Logic**: Fetch patient info, consultation history, prescriptions
+- **Business Logic**:
+  - Fetch patient user document (displayName, email, phoneNumber, emergencyContact, emergencyPhone)
+  - Fetch all appointments where patientId = [id] AND doctorId = current user
+  - Sort appointments by scheduledFor (descending)
+  - For each appointment:
+    - Load prescription if exists
+    - Display appointment status, date/time, service
+    - Display prescription link if created
+    - Display follow-up status if required
+  - Show follow-up appointments in dedicated section
+  - Show prescription history in dedicated section
 
 #### `/doctor/prescriptions/create/[appointmentId]`
 - **Purpose**: Doctor prescription creation
 - **Accessible Role**: doctor
 - **Main Features**: Structured prescription form, real-time preview
-- **Data Dependencies**: Appointments, prescriptions
-- **Related Firestore Collections**: appointments, prescriptions
-- **Business Logic**: Fetch appointment, create prescription from structured data, update appointment
+- **Data Dependencies**: Appointments, prescriptions, users
+- **Related Firestore Collections**: appointments, prescriptions, users
+- **Business Logic**: Fetch appointment, load patient info, create prescription from structured data, update appointment with prescriptionId, redirect to prescription detail page
 
 #### `/doctor/prescriptions/[id]`
 - **Purpose**: Doctor prescription detail
 - **Accessible Role**: doctor
 - **Main Features**: Prescription display, PDF/PNG export, share link
-- **Data Dependencies**: Prescriptions collection
-- **Related Firestore Collections**: prescriptions
-- **Business Logic**: Fetch prescription, generate PDF/PNG (placeholder), generate share link
+- **Data Dependencies**: Prescriptions collection, users, appointments
+- **Related Firestore Collections**: prescriptions, users, appointments
+- **Business Logic**:
+  - Fetch prescription by ID
+  - Load patient information (displayName, email, phoneNumber)
+  - Load doctor information (displayName)
+  - Load appointment information (service, date/time)
+  - Display prescription in branded Eye Aura template (same as preview)
+  - PDF/PNG export buttons (placeholder - not implemented)
+  - Share link generation (placeholder - not implemented)
+  - Back to appointments button
 
 #### `/doctor/profile`
 - **Purpose**: Doctor profile management
@@ -823,7 +943,18 @@ Public website components check auth state via `useAuth()` hook:
 - **Main Features**: Profile editing, account info
 - **Data Dependencies**: Users collection
 - **Related Firestore Collections**: users
-- **Business Logic**: Update user profile information
+- **Business Logic**:
+  - Display current profile information:
+    - Display name
+    - Email (replaces User ID for better UX)
+    - Role
+    - Phone number
+    - Created date
+  - Editable fields:
+    - Display name
+    - Phone number
+  - Save button updates user document in Firestore
+  - Account information section with read-only fields
 
 ### BOOKING ROUTES
 
@@ -1059,37 +1190,85 @@ Public website components check auth state via `useAuth()` hook:
 
 **Doctor fills structured form**
 1. Doctor navigates to `/doctor/prescriptions/create/[appointmentId]`
-2. Structured form displayed with fields:
-   - Right eye: SPH, CYL, AXIS, VA
-   - Left eye: SPH, CYL, AXIS, VA
-   - PD: pupillary distance
-   - Diagnosis, findings
-   - Medications (text)
-   - Eye drops (text)
-   - Exercises (text)
-   - Recommendations (text)
-   - Consultation notes (text)
-   - Follow-up required toggle
-   - Follow-up date (if required)
-3. Real-time preview shows branded prescription layout
-4. Doctor saves prescription
+2. Appointment loaded and patient information fetched (displayName, email, phoneNumber)
+3. Structured form displayed with fields:
+   - **Right Eye Card**: SPH, CYL, AXIS, VA (4-column grid layout)
+   - **Left Eye Card**: SPH, CYL, AXIS, VA (4-column grid layout)
+   - **Pupillary Distance Card**: PD input field
+   - **Diagnosis Card**: Textarea for diagnosis
+   - **Findings Card**: Textarea for examination findings
+   - **Medications Card**: Textarea for prescribed medications
+   - **Eye Drops Card**: Textarea for prescribed eye drops
+   - **Exercises Card**: Textarea for recommended exercises
+   - **Recommendations Card**: Textarea for recommendations
+   - **Consultation Notes Card**: Textarea for consultation notes (4 rows)
+   - **Follow-Up Card**: Checkbox for follow-up required + date picker (min date = today)
+4. Real-time preview toggle button shows/hides branded prescription preview
+5. Doctor saves prescription
+
+**Real-time Prescription Preview Component**
+- Branded Eye Aura template with gradient background (`from-[#F7F4EF] to-[#DDE5DF]`)
+- **Header Section**:
+  - Eye Aura logo (circle with "EA" text, gradient background)
+  - "Eye Aura" title with "Digital Eye Wellness" subtitle
+  - Right side: Current date + Doctor name
+- **Patient Info Section**:
+  - Patient display name
+  - Patient email
+  - Patient phone number (if provided)
+- **Eye Examination Results Section**:
+  - 2-column grid for Right Eye (OD) and Left Eye (OS)
+  - Each eye shows: SPH, CYL, AXIS, VA with label-value pairs
+  - PD displayed below if provided
+- **Findings & Diagnosis Section**:
+  - Findings (if provided)
+  - Diagnosis (if provided)
+- **Medications Section**: Text with whitespace preservation
+- **Eye Drops Section**: Text with whitespace preservation
+- **Exercises Section**: Text with whitespace preservation
+- **Recommendations Section**: Text with whitespace preservation
+- **Consultation Notes Section**: Text with whitespace preservation
+- **Follow-Up Section** (if required):
+  - Eye icon + "Follow-up Required: [date]"
+- **Footer Section**:
+  - "This prescription is generated by Eye Aura Digital Eye Wellness Platform."
+  - "For questions, please contact your eye care provider."
 
 **Prescription stored in Firestore**
-1. Prescription document created in `prescriptions` collection with structured data
-2. Appointment document updated with `prescriptionId`
-3. Notification sent to patient
+1. Prescription document created in `prescriptions` collection:
+   - `id`: Generated using `crypto.randomUUID()` (cryptographically secure)
+   - `patientId`: From appointment
+   - `doctorId`: From current user
+   - `appointmentId`: From appointment
+   - `rightEye`: { sph, cyl, axis, va }
+   - `leftEye`: { sph, cyl, axis, va }
+   - `pd`: Pupillary distance string
+   - `diagnosis`: Diagnosis text
+   - `findings`: Examination findings text
+   - `medications`: Medications text
+   - `eyeDrops`: Eye drops text
+   - `exercises`: Exercises text
+   - `recommendations`: Recommendations text
+   - `consultationNotes`: Consultation notes text
+   - `followUpRequired`: Boolean
+   - `followUpDate`: Date object if required, undefined otherwise
+   - `createdAt`: Current timestamp
+   - `updatedAt`: Current timestamp
+2. Appointment document updated with `prescriptionId` field
+3. Doctor redirected to `/doctor/prescriptions/${prescription.id}` (detail page)
+4. Notification would be sent to patient (placeholder - not implemented)
 
 **PDF/PNG generated** (placeholder - architecture prepared)
 1. Prescription data fetched from Firestore
-2. PDF generation library would render branded template
-3. PNG generation library would render branded template
-4. Export options provided to patient and doctor
+2. PDF generation library would render branded template (not implemented)
+3. PNG generation library would render branded template (not implemented)
+4. Export options provided to patient and doctor (not implemented)
 
 **Patient views/downloads/share link**
 1. Patient navigates to `/patient/prescriptions/[id]`
-2. Prescription displayed in branded template
-3. PDF/PNG export buttons available (placeholder)
-4. Share link generated from prescription ID
+2. Prescription displayed in branded template (same as preview)
+3. PDF/PNG export buttons available (placeholder - not implemented)
+4. Share link generated from prescription ID (placeholder - not implemented)
 5. Share link would be `/prescriptions/[id]` (public page - not implemented)
 
 ### DOCTOR INVITE FLOW
@@ -1780,7 +1959,7 @@ This document must be updated whenever:
 - Type definitions change
 - Role logic changes
 
-**LAST UPDATED**: 2026-05-16
+**LAST UPDATED**: 2026-05-20
 **CURRENT PHASE**: Phase 8 Complete - Doctor Invitation Architecture Refactor Complete
 **NEXT PHASE**: Phase 9 - Payments & Automation
 
@@ -1979,3 +2158,40 @@ A comprehensive stabilization, refactor, and synchronization pass was completed 
 
 ### Status
 All high-priority stabilization tasks completed. The booking lifecycle now works end-to-end with proper status transitions, calendar blocking, data enrichment, and navigation consistency.
+
+---
+
+#### 2026-05-20 - Doctor Module Documentation Update
+
+**Changed**
+- Updated PRESCRIPTION FLOW section with detailed form structure, real-time preview component layout, Firestore storage details
+- Updated prescriptions collection documentation with complete field details including example values and crypto.randomUUID() ID generation
+- Updated `/doctor/dashboard` route with detailed business logic (role-based redirects, stats calculation, consultation join logic)
+- Updated `/doctor/appointments/[id]` route with detailed business logic (status updates, consultation notes, join logic, status badge colors)
+- Updated `/doctor/slots` route with FullCalendar integration details
+- Updated `/doctor/schedule` route with weekly availability configuration details
+- Updated `/doctor/requests` route with booking request management details
+- Updated `/doctor/patients` route with patient list logic
+- Updated `/doctor/patients/[id]` route with patient detail logic
+- Updated `/doctor/prescriptions/create/[appointmentId]` route with business logic
+- Updated `/doctor/prescriptions/[id]` route with display logic
+- Updated `/doctor/profile` route with profile management details
+
+**Added**
+- Detailed prescription form field structure (Right Eye, Left Eye, PD, Diagnosis, Findings, Medications, Eye Drops, Exercises, Recommendations, Consultation Notes, Follow-Up)
+- Real-time Prescription Preview component detailed layout (Header, Patient Info, Eye Examination Results, Findings & Diagnosis, Medications, Eye Drops, Exercises, Recommendations, Consultation Notes, Follow-Up, Footer)
+- Doctor dashboard role-based redirect logic (admin → admin, patient → patient, suspended → login)
+- Doctor dashboard stats calculation (totalUpcoming, completedToday, pendingPrescriptions, pendingRequests)
+- Consultation join time window specification (15 minutes before to 1 hour after)
+- FullCalendar configuration details for doctor slots page
+- Weekly availability configuration details with copy schedule functionality
+- Booking request management details (accept, reject, reschedule actions)
+- Patient list grouping and enrichment logic
+- Patient detail page consultation history and prescription history sections
+
+**Technical**
+- Documented crypto.randomUUID() for prescription ID generation
+- Documented prescription redirect flow after save
+- Documented appointment prescriptionId update on prescription creation
+- Documented doctor_block creation on booking request acceptance
+- Updated LAST UPDATED date to 2026-05-20

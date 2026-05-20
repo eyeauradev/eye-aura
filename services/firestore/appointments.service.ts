@@ -74,6 +74,15 @@ export class AppointmentsService {
     ]);
   }
 
+  async getByPatientIdAndDoctorId(patientId: string, doctorId: string, limitCount: number = 20): Promise<AppointmentDocument[]> {
+    return this.query([
+      where("patientId", "==", patientId),
+      where("doctorId", "==", doctorId),
+      orderBy("scheduledFor", "desc"),
+      limit(limitCount),
+    ]);
+  }
+
   async getByDoctorId(doctorId: string, limitCount: number = 20): Promise<AppointmentDocument[]> {
     return this.query([
       where("doctorId", "==", doctorId),

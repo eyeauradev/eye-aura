@@ -51,9 +51,24 @@ export default function DoctorPrescriptionDetailPage() {
     loadPrescription();
   }, [params.id]);
 
-  const handleExportPDF = () => {
-    // TODO: Implement PDF export
-    alert("PDF export will be implemented with a PDF generation library");
+  const handleExportPDF = async () => {
+    if (!prescription) return;
+    try {
+      const response = await fetch(`/api/prescription/pdf/${prescription.id}`);
+      if (!response.ok) throw new Error("Failed to generate PDF");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `eye-aura-prescription-${prescription.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      alert("Failed to export PDF. Please try again.");
+    }
   };
 
   const handleExportPNG = () => {

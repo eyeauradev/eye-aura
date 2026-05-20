@@ -17,12 +17,25 @@ interface EyeData {
   cyl: string;
   axis: string;
   va: string;
+  remarks: string;
+}
+
+interface NearVisionData {
+  add: string;
+  va: string;
+  remarks: string;
 }
 
 interface PrescriptionFormData {
   rightEye: EyeData;
   leftEye: EyeData;
   pd: string;
+  nearPD: string;
+  nearVisionRight: NearVisionData;
+  nearVisionLeft: NearVisionData;
+  patientAge: string;
+  patientGender: string;
+  referredBy: string;
   diagnosis: string;
   findings: string;
   medications: string;
@@ -32,6 +45,7 @@ interface PrescriptionFormData {
   consultationNotes: string;
   followUpRequired: boolean;
   followUpDate: string;
+  reviewAfter: string;
 }
 
 const initialEyeData: EyeData = {
@@ -39,12 +53,25 @@ const initialEyeData: EyeData = {
   cyl: "",
   axis: "",
   va: "",
+  remarks: "",
+};
+
+const initialNearVisionData: NearVisionData = {
+  add: "",
+  va: "",
+  remarks: "",
 };
 
 const initialFormData: PrescriptionFormData = {
   rightEye: { ...initialEyeData },
   leftEye: { ...initialEyeData },
   pd: "",
+  nearPD: "",
+  nearVisionRight: { ...initialNearVisionData },
+  nearVisionLeft: { ...initialNearVisionData },
+  patientAge: "",
+  patientGender: "",
+  referredBy: "",
   diagnosis: "",
   findings: "",
   medications: "",
@@ -54,6 +81,7 @@ const initialFormData: PrescriptionFormData = {
   consultationNotes: "",
   followUpRequired: false,
   followUpDate: "",
+  reviewAfter: "",
 };
 
 export default function DoctorPrescriptionCreatePage() {
@@ -100,6 +128,13 @@ export default function DoctorPrescriptionCreatePage() {
     }));
   };
 
+  const handleNearVisionChange = (eye: "nearVisionRight" | "nearVisionLeft", field: keyof NearVisionData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [eye]: { ...prev[eye], [field]: value }
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!appointment || !user) return;
@@ -115,6 +150,12 @@ export default function DoctorPrescriptionCreatePage() {
         rightEye: formData.rightEye,
         leftEye: formData.leftEye,
         pd: formData.pd,
+        nearPD: formData.nearPD,
+        nearVisionRight: formData.nearVisionRight,
+        nearVisionLeft: formData.nearVisionLeft,
+        patientAge: formData.patientAge,
+        patientGender: formData.patientGender,
+        referredBy: formData.referredBy,
         diagnosis: formData.diagnosis,
         findings: formData.findings,
         medications: formData.medications,
@@ -122,6 +163,7 @@ export default function DoctorPrescriptionCreatePage() {
         exercises: formData.exercises,
         recommendations: formData.recommendations,
         consultationNotes: formData.consultationNotes,
+        reviewAfter: formData.reviewAfter,
         followUpRequired: formData.followUpRequired,
         followUpDate: formData.followUpRequired ? new Date(formData.followUpDate) : undefined,
         createdAt: new Date(),
@@ -247,6 +289,16 @@ export default function DoctorPrescriptionCreatePage() {
                     />
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-2">Remarks</label>
+                  <input
+                    type="text"
+                    value={formData.rightEye.remarks}
+                    onChange={(e) => handleEyeDataChange("rightEye", "remarks", e.target.value)}
+                    placeholder="Optional remarks"
+                    className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -298,6 +350,16 @@ export default function DoctorPrescriptionCreatePage() {
                     />
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-2">Remarks</label>
+                  <input
+                    type="text"
+                    value={formData.leftEye.remarks}
+                    onChange={(e) => handleEyeDataChange("leftEye", "remarks", e.target.value)}
+                    placeholder="Optional remarks"
+                    className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -306,14 +368,153 @@ export default function DoctorPrescriptionCreatePage() {
               <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg">Pupillary Distance</CardTitle>
               </CardHeader>
-              <CardContent className="p-3 sm:p-6">
-                <input
-                  type="text"
-                  value={formData.pd}
-                  onChange={(e) => handleInputChange("pd", e.target.value)}
-                  placeholder="e.g., 64"
-                  className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
+              <CardContent className="space-y-4 p-3 sm:p-6">
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-2">Distance PD</label>
+                  <input
+                    type="text"
+                    value={formData.pd}
+                    onChange={(e) => handleInputChange("pd", e.target.value)}
+                    placeholder="e.g., 64"
+                    className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-2">Near PD</label>
+                  <input
+                    type="text"
+                    value={formData.nearPD}
+                    onChange={(e) => handleInputChange("nearPD", e.target.value)}
+                    placeholder="e.g., 62"
+                    className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Near Vision Right */}
+            <Card className="border-primary/10">
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-lg">Near Vision Right (ADD)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-3 sm:p-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-2">ADD</label>
+                    <input
+                      type="text"
+                      value={formData.nearVisionRight.add}
+                      onChange={(e) => handleNearVisionChange("nearVisionRight", "add", e.target.value)}
+                      placeholder="e.g., +1.50"
+                      className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-2">VA</label>
+                    <input
+                      type="text"
+                      value={formData.nearVisionRight.va}
+                      onChange={(e) => handleNearVisionChange("nearVisionRight", "va", e.target.value)}
+                      placeholder="e.g., N6"
+                      className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-2">Remarks</label>
+                    <input
+                      type="text"
+                      value={formData.nearVisionRight.remarks}
+                      onChange={(e) => handleNearVisionChange("nearVisionRight", "remarks", e.target.value)}
+                      placeholder="Optional"
+                      className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Near Vision Left */}
+            <Card className="border-primary/10">
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-lg">Near Vision Left (ADD)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-3 sm:p-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-2">ADD</label>
+                    <input
+                      type="text"
+                      value={formData.nearVisionLeft.add}
+                      onChange={(e) => handleNearVisionChange("nearVisionLeft", "add", e.target.value)}
+                      placeholder="e.g., +1.50"
+                      className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-2">VA</label>
+                    <input
+                      type="text"
+                      value={formData.nearVisionLeft.va}
+                      onChange={(e) => handleNearVisionChange("nearVisionLeft", "va", e.target.value)}
+                      placeholder="e.g., N6"
+                      className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-2">Remarks</label>
+                    <input
+                      type="text"
+                      value={formData.nearVisionLeft.remarks}
+                      onChange={(e) => handleNearVisionChange("nearVisionLeft", "remarks", e.target.value)}
+                      placeholder="Optional"
+                      className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Patient Demographics */}
+            <Card className="border-primary/10">
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-lg">Patient Demographics</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 p-3 sm:p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-2">Age</label>
+                    <input
+                      type="text"
+                      value={formData.patientAge}
+                      onChange={(e) => handleInputChange("patientAge", e.target.value)}
+                      placeholder="e.g., 32 years"
+                      className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-primary mb-2">Gender</label>
+                    <select
+                      value={formData.patientGender}
+                      onChange={(e) => handleInputChange("patientGender", e.target.value)}
+                      className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-2">Referred By</label>
+                  <input
+                    type="text"
+                    value={formData.referredBy}
+                    onChange={(e) => handleInputChange("referredBy", e.target.value)}
+                    placeholder="Referral source (optional)"
+                    className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
               </CardContent>
             </Card>
 
@@ -459,6 +660,16 @@ export default function DoctorPrescriptionCreatePage() {
                     />
                   </div>
                 )}
+                <div>
+                  <label className="block text-sm font-medium text-primary mb-2">Review After</label>
+                  <input
+                    type="text"
+                    value={formData.reviewAfter}
+                    onChange={(e) => handleInputChange("reviewAfter", e.target.value)}
+                    placeholder="e.g., 1 month, 3 months"
+                    className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
               </CardContent>
             </Card>
 

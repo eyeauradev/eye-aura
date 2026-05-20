@@ -306,36 +306,33 @@ export default function DoctorDashboard() {
             {pendingRequests.slice(0, 3).map((request) => (
               <Card key={request.id} className="border-amber-200 bg-amber-50">
                 <CardContent className="p-3 sm:p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
-                          <Bell className="h-6 w-6 text-amber-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-primary">{request.patient?.displayName || "Patient"}</p>
-                          <p className="text-sm text-muted-foreground">{request.patient?.email || ""}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Requested: {new Date(request.requestedTime).toLocaleString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                        <Bell className="h-5 w-5 text-amber-600" />
                       </div>
-                      {request.notes && (
-                        <p className="text-sm text-muted-foreground mt-2 italic">
-                          "{request.notes}"
+                      <div className="min-w-0">
+                        <p className="font-medium text-primary truncate">{request.patient?.displayName || "Patient"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{request.patient?.email || ""}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(request.requestedTime).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
-                      )}
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
+                    {request.notes && (
+                      <p className="text-sm text-muted-foreground italic px-1">
+                        "{request.notes}"
+                      </p>
+                    )}
+                    <div className="flex gap-2">
                       <Button
                         onClick={() => handleAcceptRequest(request.id)}
-                        className="bg-green-600 hover:bg-green-700"
+                        className="flex-1 bg-green-600 hover:bg-green-700 h-9 text-sm"
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />
                         Accept
@@ -343,6 +340,7 @@ export default function DoctorDashboard() {
                       <Button
                         variant="outline"
                         onClick={() => handleRejectRequest(request.id)}
+                        className="flex-1 h-9 text-sm"
                       >
                         Reject
                       </Button>
@@ -371,53 +369,49 @@ export default function DoctorDashboard() {
               return (
                 <Card key={appointment.id} className="border-primary/10">
                   <CardContent className="p-3 sm:p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Users className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-primary">{appointment.patient?.displayName || "Patient"}</p>
-                            <p className="text-sm text-muted-foreground">{appointment.patient?.email || ""}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(appointment.scheduledFor).toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </p>
-                          </div>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Users className="h-5 w-5 text-primary" />
                         </div>
-                        <Badge className={getStatusColor(appointment.status)}>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-primary truncate">{appointment.patient?.displayName || "Patient"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(appointment.scheduledFor).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <Badge className={`${getStatusColor(appointment.status)} shrink-0 text-[10px]`}>
                           {appointment.status}
                         </Badge>
                       </div>
-
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap gap-2">
                         {canJoin && appointment.consultationLink && (
-                          <Button asChild size="default">
+                          <Button asChild className="flex-1 min-w-[80px] h-9 text-sm">
                             <a
                               href={appointment.consultationLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-2"
+                              className="flex items-center gap-1"
                             >
-                              <Video className="h-4 w-4" />
+                              <Video className="h-3.5 w-3.5" />
                               Join
                             </a>
                           </Button>
                         )}
                         {appointment.status === "completed" && !appointment.prescriptionId && (
-                          <Button asChild variant="outline">
+                          <Button asChild variant="outline" className="flex-1 min-w-[100px] h-9 text-sm">
                             <Link href={`/doctor/prescriptions/create/${appointment.id}`}>
-                              <FileText className="h-4 w-4 mr-2" />
-                              Create Prescription
+                              <FileText className="h-3.5 w-3.5 mr-1" />
+                              Prescription
                             </Link>
                           </Button>
                         )}
-                        <Link href={`/doctor/appointments/${appointment.id}`}>
-                          <Button variant="ghost">View Details</Button>
-                        </Link>
+                        <Button asChild variant="ghost" className="flex-1 min-w-[80px] h-9 text-sm">
+                          <Link href={`/doctor/appointments/${appointment.id}`}>View</Link>
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

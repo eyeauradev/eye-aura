@@ -106,16 +106,27 @@ export interface PrescriptionDocument {
   // Eye examination data
   rightEye: EyeData;
   leftEye: EyeData;
-  pd: string; // Pupillary distance
+  pd: string; // Distance pupillary distance (kept for backward compat)
+  nearPD?: string; // Near pupillary distance
+  // Near vision (ADD)
+  nearVisionRight?: NearVisionData;
+  nearVisionLeft?: NearVisionData;
+  // Patient demographics (captured at time of prescription)
+  patientAge?: string; // e.g. "32 years"
+  patientGender?: string; // e.g. "Male" / "Female"
+  // Referral
+  referredBy?: string;
   // Clinical findings
   findings: string;
   diagnosis: string;
   // Treatments
-  medications: string;
+  medications: string; // Used for glasses recommendation in template
   eyeDrops: string;
   // Recommendations
   recommendations: string;
   exercises: string;
+  // Review
+  reviewAfter?: string; // e.g. "1 month", "3 months"
   // Follow-up
   followUpRequired: boolean;
   followUpDate?: Date;
@@ -130,6 +141,13 @@ export interface EyeData {
   cyl: string; // Cylindrical power
   axis: string; // Axis
   va: string; // Visual acuity
+  remarks?: string; // Remarks
+}
+
+export interface NearVisionData {
+  add: string; // Addition power for near vision
+  va: string; // Visual acuity for near
+  remarks: string; // Remarks
 }
 
 export interface Medication {

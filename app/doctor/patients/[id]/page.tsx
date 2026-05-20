@@ -23,7 +23,7 @@ export default function DoctorPatientDetailPage() {
 
   useEffect(() => {
     async function loadPatientData() {
-      if (!params.id) return;
+      if (!params.id || !user) return;
 
       try {
         setLoading(true);
@@ -33,9 +33,8 @@ export default function DoctorPatientDetailPage() {
         setPatient(patientData);
 
         // Load appointments for this patient with this doctor
-        const allAppointments = await appointmentsService.getByPatientId(params.id as string);
-        const doctorAppointments = allAppointments.filter(apt => apt.doctorId === user?.id);
-        const sortedAppointments = doctorAppointments.sort((a, b) => 
+        const doctorAppointments = await appointmentsService.getByPatientIdAndDoctorId(params.id as string, user.id);
+        const sortedAppointments = doctorAppointments.sort((a, b) =>
           new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime()
         );
         setAppointments(sortedAppointments);

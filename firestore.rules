@@ -70,7 +70,7 @@ service cloud.firestore {
 
     // Users Collection - Allow list for authenticated users
     match /users {
-      allow list: if signedIn();
+      allow list: if isAdmin();
     }
 
     // Services Collection (Public read, Admin write)
@@ -81,28 +81,31 @@ service cloud.firestore {
 
     // Appointments Collection
     match /appointments/{appointmentId} {
-      allow read: if signedIn() && request.auth.uid == resource.data.patientId 
+      allow read: if signedIn() && request.auth.uid == resource.data.patientId
         || signedIn() && request.auth.uid == resource.data.doctorId
         || isAdmin();
-      
+
       // Patients can create their own appointments; doctors can create when accepting requests
       allow create: if signedIn()
         && (request.resource.data.patientId == request.auth.uid
             || isDoctorOrAdmin())
         && request.resource.data.status in ['pending', 'confirmed'];
-      
+
       allow update: if signedIn() && request.auth.uid == resource.data.patientId
         && request.resource.data.status in ['cancelled', 'cancellation_requested']
         || signedIn() && request.auth.uid == resource.data.doctorId
         && request.resource.data.status in ['pending', 'confirmed', 'in_progress', 'completed']
         || isAdmin();
-      
+
       allow delete: if isAdmin();
     }
 
-    // Appointments Collection - Allow list for authenticated users
+    // Appointments Collection - Allow list with proper filtering
     match /appointments {
-      allow list: if signedIn();
+      // For queries, we need to ensure the user can only access documents they have permission to read
+      // Since Firestore rules can't inspect query conditions, we allow list for doctors and patients
+      // but rely on the individual document read rule to enforce access
+      allow list: if isDoctor() || isPatient() || isAdmin();
     }
 
     // Doctor Slots Collection (Legacy - using new availability system)
@@ -122,17 +125,16 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == resource.data.patientId
         || signedIn() && request.auth.uid == resource.data.doctorId
         || isAdmin();
-      
-      allow create: if signedIn() && request.auth.uid == resource.data.doctorId
-        || isAdmin();
-      
+
+      allow create: if isDoctor() || isAdmin();
+
       allow update: if signedIn() && request.auth.uid == resource.data.doctorId || isAdmin();
       allow delete: if isAdmin();
     }
 
     // Prescriptions Collection - Allow list for authenticated users
     match /prescriptions {
-      allow list: if signedIn();
+      allow list: if isDoctor() || isPatient() || isAdmin();
     }
 
     // Support Tickets Collection
@@ -149,7 +151,7 @@ service cloud.firestore {
 
     // Support Tickets Collection - Allow list for authenticated users
     match /support_tickets {
-      allow list: if signedIn();
+      allow list: if isAdmin();
     }
 
     // Payments Collection
@@ -168,7 +170,7 @@ service cloud.firestore {
 
     // Payments Collection - Allow list for authenticated users
     match /payments {
-      allow list: if signedIn();
+      allow list: if isAdmin();
     }
 
     // Doctor Invites Collection - Admin create/read/update, public read for invite acceptance
@@ -196,7 +198,7 @@ service cloud.firestore {
 
     // Doctor Availability Collection - Allow list for authenticated users
     match /doctor_availability {
-      allow list: if signedIn();
+      allow list: if isDoctor() || isAdmin();
     }
 
     // Doctor Blocks Collection
@@ -212,7 +214,7 @@ service cloud.firestore {
 
     // Doctor Blocks Collection - Allow list for authenticated users
     match /doctor_blocks {
-      allow list: if signedIn();
+      allow list: if isDoctor() || isAdmin();
     }
 
     // Booking Requests Collection
@@ -240,7 +242,7 @@ service cloud.firestore {
 
     // Booking Requests Collection - Allow list for authenticated users
     match /booking_requests {
-      allow list: if signedIn();
+      allow list: if isDoctor() || isPatient() || isAdmin();
     }
 
     // Default deny all other paths
