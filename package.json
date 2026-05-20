@@ -37,6 +37,7 @@
     "next": "^15.5.18",
     "postcss": "^8.5.14",
     "puppeteer": "^25.0.4",
+    "razorpay": "^2.9.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hook-form": "^7.75.0",

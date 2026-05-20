@@ -17,6 +17,7 @@ import type {
   DoctorAvailabilityDocument,
   DoctorBlockDocument,
   BookingRequestDocument,
+  PaymentDocument,
 } from "@/types/firestore";
 
 // Timestamp converter helpers
@@ -289,22 +290,41 @@ export const supportTicketConverter = {
 
 // Payment converter
 export const paymentConverter = {
-  toFirestore: (payment: any): DocumentData => ({
+  toFirestore: (payment: PaymentDocument): DocumentData => ({
     ...payment,
+    requestedTime: toTimestamp(payment.requestedTime),
     completedAt: payment.completedAt ? toTimestamp(payment.completedAt) : null,
+    failedAt: payment.failedAt ? toTimestamp(payment.failedAt) : null,
     refundedAt: payment.refundedAt ? toTimestamp(payment.refundedAt) : null,
     createdAt: toTimestamp(payment.createdAt),
     updatedAt: toTimestamp(payment.updatedAt),
   }),
-  fromFirestore: (snapshot: QueryDocumentSnapshot): any => {
+  fromFirestore: (snapshot: QueryDocumentSnapshot): PaymentDocument => {
     const data = snapshot.data();
     return {
       id: snapshot.id,
-      ...data,
-      completedAt: data.completedAt?.toDate(),
-      refundedAt: data.refundedAt?.toDate(),
-      createdAt: data.createdAt?.toDate(),
-      updatedAt: data.updatedAt?.toDate(),
+      userId: data.userId,
+      doctorId: data.doctorId,
+      serviceId: data.serviceId,
+      amount: data.amount,
+      currency: data.currency || "INR",
+      status: data.status,
+      razorpayOrderId: data.razorpayOrderId,
+      razorpayPaymentId: data.razorpayPaymentId,
+      razorpaySignature: data.razorpaySignature,
+      bookingRequestId: data.bookingRequestId,
+      requestedTime: fromTimestamp(data.requestedTime),
+      notes: data.notes,
+      method: data.method,
+      createdAt: fromTimestamp(data.createdAt),
+      updatedAt: fromTimestamp(data.updatedAt),
+      completedAt: data.completedAt ? fromTimestamp(data.completedAt) : undefined,
+      failedAt: data.failedAt ? fromTimestamp(data.failedAt) : undefined,
+      failureReason: data.failureReason,
+      refundedAt: data.refundedAt ? fromTimestamp(data.refundedAt) : undefined,
+      refundReason: data.refundReason,
+      appointmentId: data.appointmentId,
+      transactionId: data.transactionId,
     };
   },
 };

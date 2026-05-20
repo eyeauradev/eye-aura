@@ -155,22 +155,18 @@ service cloud.firestore {
     }
 
     // Payments Collection
+    // All writes (create, update) happen exclusively via Admin SDK through API routes.
+    // Clients only read their own payment documents for display purposes.
     match /payments/{paymentId} {
-      allow read: if signedIn() && request.auth.uid == resource.data.patientId
-        || signedIn() && request.auth.uid == resource.data.doctorId
+      allow read: if signedIn() && request.auth.uid == resource.data.userId
         || isAdmin();
       
-      allow create: if signedIn() 
-        && request.resource.data.patientId == request.auth.uid
-        && request.resource.data.amount > 0;
-      
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create, update, delete: if false;
     }
 
-    // Payments Collection - Allow list for authenticated users
+    // Payments Collection - Patients can list their own payments; admin has full access
     match /payments {
-      allow list: if isAdmin();
+      allow list: if isPatient() || isAdmin();
     }
 
     // Doctor Invites Collection - Admin create/read/update, public read for invite acceptance

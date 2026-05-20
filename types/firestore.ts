@@ -255,19 +255,34 @@ export type PaymentMethod = "card" | "upi" | "net_banking" | "wallet";
 
 export interface PaymentDocument {
   id: string;
-  appointmentId: string;
-  userId: string;
-  amount: number;
-  currency: string;
+  userId: string;               // Patient UID
+  doctorId: string;             // Doctor UID
+  serviceId: string;            // Service UID
+  amount: number;               // Amount in INR (human-readable, e.g. 500)
+  currency: string;             // "INR"
   status: PaymentStatus;
-  method: PaymentMethod;
-  transactionId?: string;
-  gatewayResponse?: any;
+  // Razorpay fields
+  razorpayOrderId: string;      // Created by /api/payments/create-order
+  razorpayPaymentId?: string;   // Returned by Razorpay after successful payment
+  razorpaySignature?: string;   // Verified server-side in /api/payments/verify-payment
+  // Booking linkage
+  bookingRequestId?: string;    // Set after successful verification (links to booking_requests)
+  // Booking snapshot at payment time
+  requestedTime: Date;
+  notes?: string;
+  // Payment method (resolved after checkout)
+  method?: PaymentMethod;
+  // Timestamps and audit
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
+  failedAt?: Date;
+  failureReason?: string;
   refundedAt?: Date;
   refundReason?: string;
+  // Deprecated — kept for schema backward compatibility
+  appointmentId?: string;
+  transactionId?: string;
 }
 
 // Doctor Availability Collection (New Scheduling System)
@@ -327,6 +342,10 @@ export interface BookingRequestDocument {
   notes?: string; // Patient's notes
   rejectionReason?: string; // Reason for rejection
   rescheduleReason?: string; // Reason for reschedule request
+  // Payment linkage — set when booking_request is created via Razorpay verify-payment flow
+  paymentId?: string;        // Links to payments collection
+  paymentStatus?: string;    // "completed" at creation time
+  paymentAmount?: number;    // Amount paid in INR
   createdAt: Date;
   updatedAt: Date;
   appointmentId?: string; // Once converted to appointment

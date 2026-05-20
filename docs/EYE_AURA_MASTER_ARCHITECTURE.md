@@ -58,7 +58,7 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 | Request/approval booking model | Doctors control acceptance — reduces no-shows and gives professional authority |
 | Invite-only doctors | Quality control over practitioner panel. Admins invite via time-limited tokens. |
 | No file uploads or S3 | Prescriptions generated from structured Firestore data via Puppeteer. Reproducible from data. |
-| Payment at consultation time | Collecting at booking adds friction. Offline payment at consultation is simpler. |
+| Online payment at booking (Razorpay) | Payment collected up-front before booking request reaches the doctor. Verified server-side via HMAC signature. booking_request created only after verification. |
 | No video infrastructure | Consultations on Google Meet / Zoom. Eye Aura manages scheduling only. |
 | Firebase-only backend | Zero server infrastructure. Firestore + Admin SDK in API routes covers all needs. |
 | Removed FullCalendar | ~200KB bundle, unusable on mobile. Replaced with custom React calendar. |
@@ -1227,83 +1227,274 @@ This custom implementation is mobile-friendly and ~50x smaller than FullCalendar
 <!-- SECTION:12 -->
 # 12. PAYMENT ARCHITECTURE
 
-## Current State
+## Status: IMPLEMENTED (Razorpay)
 
-**Payment infrastructure is NOT implemented.** The payment collection schema and TypeScript types exist in the codebase, but:
+Razorpay is fully integrated as of this revision. Online payment is **required** before a booking request reaches the doctor. Payments are collected up-front; the booking request is created only after server-side verification succeeds.
 
-- No Razorpay SDK is integrated
-- No payment gateway API calls are made
-- Booking confirmation shows "Payment on Consultation" badge
-- Payments are collected offline during the actual consultation
+---
 
-## Existing Schema (Ready for Future Implementation)
+## Payment Lifecycle
+
+```
+Patient selects service → doctor → time → adds notes
+  │
+  └─ Step 5: ConfirmationStep — "Pay {currency} {price} & Book" button
+       │
+       ├─ 1. POST /api/payments/create-order
+       │       Auth: Bearer <Firebase ID token>
+       │       Body: { doctorId, serviceId, requestedTime, notes, amount, currency }
+       │       Server: creates Razorpay order via Razorpay REST API
+       │       Server: persists payments/{id} { status: "pending", razorpayOrderId }
+       │       Returns: { orderId, amount (paise), currency, paymentId, keyId }
+       │
+       ├─ 2. Razorpay checkout.js loaded dynamically
+       │       window.Razorpay({ key, amount, currency, order_id, handler, ... })
+       │       Patient selects UPI / card / net-banking and completes payment
+       │
+       ├─ 3. Razorpay calls handler(response) on success
+       │       response: { razorpay_payment_id, razorpay_order_id, razorpay_signature }
+       │
+       ├─ 4. POST /api/payments/verify-payment
+       │       Auth: Bearer <Firebase ID token>
+       │       Body: { razorpayOrderId, razorpayPaymentId, razorpaySignature, paymentId }
+       │       Server: HMAC-SHA256 signature verification (CRITICAL SECURITY STEP)
+       │       Server: creates booking_requests/{id} with paymentId linkage
+       │       Server: updates payments/{id} { status: "completed", razorpayPaymentId, bookingRequestId }
+       │       Returns: { success: true, bookingRequestId }
+       │
+       └─ 5. Client redirects → /booking/request-submitted/{bookingRequestId}
+```
+
+**CRITICAL RULE:** `booking_requests` are NEVER created by the client directly. They are created exclusively by the `/api/payments/verify-payment` API route after signature verification succeeds. Appointments are still created only after the doctor accepts the request — payment does not auto-create appointments.
+
+---
+
+## Firestore Schema — payments collection
 
 ```typescript
 interface PaymentDocument {
-  id: string;
-  appointmentId: string;
-  userId: string;            // Patient UID
-  amount: number;
-  currency: string;
-  status: "pending"|"processing"|"completed"|"failed"|"refunded"|"cancelled";
-  method: "card"|"upi"|"net_banking"|"wallet";
-  transactionId?: string;    // Gateway transaction ID
+  id: string;                    // "pay_{userId}_{timestamp}"
+  userId: string;                // Patient UID
+  doctorId: string;              // Doctor UID
+  serviceId: string;             // Service UID
+  amount: number;                // Human-readable INR (e.g. 500, not 50000 paise)
+  currency: string;              // "INR"
+  status: PaymentStatus;         // "pending" | "processing" | "completed" | "failed" | "refunded" | "cancelled"
+  // Razorpay identifiers
+  razorpayOrderId: string;       // rzp_live_... / rzp_test_... order ID
+  razorpayPaymentId?: string;    // pay_... — set after successful payment
+  razorpaySignature?: string;    // HMAC signature — stored for audit
+  // Booking linkage
+  bookingRequestId?: string;     // Set after verify-payment creates the booking_request
+  // Booking snapshot at payment time (preserved even if booking_request is later cancelled)
+  requestedTime: Date;
+  notes?: string;
+  method?: PaymentMethod;        // "card" | "upi" | "net_banking" | "wallet"
+  // Timestamps
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
+  failedAt?: Date;
+  failureReason?: string;
   refundedAt?: Date;
   refundReason?: string;
+  // Deprecated (kept for backward schema compatibility)
+  appointmentId?: string;
+  transactionId?: string;
 }
 ```
 
-## Designed Architecture (For Future Razorpay Integration)
-
-```
-Patient confirms booking request
-  │
-  ├─ [FUTURE] Create Razorpay order via API route
-  │     POST /api/payments/create-order
-  │     → Razorpay API: orders.create({ amount, currency, receipt })
-  │     → Store: payments/{id} {
-  │         status: "pending",
-  │         transactionId: razorpayOrderId,
-  │         amount: service.price,
-  │         currency: "INR"
-  │       }
-  │
-  ├─ [FUTURE] Patient completes payment in browser (Razorpay checkout)
-  │     Razorpay.open({ order_id: razorpayOrderId, key: RAZORPAY_KEY_ID })
-  │     → On success: payment_id returned
-  │
-  └─ [FUTURE] Webhook verification
-        POST /api/payments/webhook (Razorpay callback)
-        → Verify signature using Razorpay secret
-        → Update: payments/{id} { status: "completed", transactionId: razorpayPaymentId }
-        → Update: appointments/{id} { paymentId }
-```
-
-## Security Requirement for Future
-
-Payment webhooks **must verify Razorpay signature** using `crypto.createHmac`. Never trust unverified payment callbacks.
+## Firestore Schema — booking_requests payment fields
 
 ```typescript
-// Future implementation pattern
-const expectedSignature = crypto
-  .createHmac('sha256', RAZORPAY_SECRET)
-  .update(orderId + "|" + paymentId)
-  .digest('hex');
-  
-if (expectedSignature !== receivedSignature) {
-  throw new Error('Invalid signature');
+interface BookingRequestDocument {
+  // ... all existing fields ...
+  paymentId?: string;        // Links to payments collection
+  paymentStatus?: string;    // "completed" at creation time
+  paymentAmount?: number;    // Amount paid in INR
 }
 ```
 
-## Why Payment Was Deferred
+---
 
-- Initial focus on core scheduling and booking flow
-- Offline payment is acceptable in early launch
-- Razorpay integration requires significant testing and error handling
-- Reduces initial complexity — one less external dependency
+## API Routes
+
+### POST /api/payments/create-order
+
+| Property | Value |
+|---|---|
+| File | `app/api/payments/create-order/route.ts` |
+| Auth | Firebase ID token in `Authorization: Bearer <token>` header |
+| Role | `patient` only |
+| Idempotency | Returns existing pending order if same userId+doctorId+serviceId already has a pending payment |
+
+**Request body:**
+```json
+{
+  "doctorId": "string",
+  "serviceId": "string",
+  "requestedTime": "ISO8601 string",
+  "notes": "string | null",
+  "amount": 500,
+  "currency": "INR"
+}
+```
+
+**Response:**
+```json
+{
+  "orderId": "order_...",
+  "amount": 50000,
+  "currency": "INR",
+  "paymentId": "pay_{userId}_{ts}",
+  "keyId": "rzp_test_..."
+}
+```
+
+---
+
+### POST /api/payments/verify-payment
+
+| Property | Value |
+|---|---|
+| File | `app/api/payments/verify-payment/route.ts` |
+| Auth | Firebase ID token in `Authorization: Bearer <token>` header |
+| Role | `patient` only |
+| Idempotency | If `bookingRequestId` already set on payment doc, returns it immediately |
+
+**Request body:**
+```json
+{
+  "razorpayOrderId": "order_...",
+  "razorpayPaymentId": "pay_...",
+  "razorpaySignature": "hex string",
+  "paymentId": "pay_{userId}_{ts}"
+}
+```
+
+**Signature verification (SECURITY CRITICAL):**
+```typescript
+const body = `${razorpayOrderId}|${razorpayPaymentId}`;
+const expected = crypto.createHmac("sha256", RAZORPAY_KEY_SECRET)
+  .update(body).digest("hex");
+
+if (expected !== razorpaySignature) {
+  // Mark payment failed, return 400
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "bookingRequestId": "{patientId}_{doctorId}_{ts}"
+}
+```
+
+---
+
+## Client-Side Integration (booking page)
+
+Located in `app/booking/page.tsx` — `handleConfirm` function:
+
+1. `getFirebaseAuth().currentUser.getIdToken()` — get ID token for API auth
+2. `POST /api/payments/create-order` — get order details
+3. `loadRazorpayScript()` — dynamically loads `checkout.razorpay.com/v1/checkout.js`
+4. `new window.Razorpay(options).open()` — opens checkout modal
+5. On success: `POST /api/payments/verify-payment` → redirect
+6. On dismiss: loading cleared, button re-enabled (user can retry)
+7. On `payment.failed` event: error shown in UI, user can retry
+
+**Theme:**
+```typescript
+theme: { color: "#0F4F4B" }  // Eye Aura primary (deep teal)
+```
+
+---
+
+## Authentication Pattern for Payment API Routes
+
+The payment routes use `Authorization: Bearer <Firebase ID token>` headers instead of cookie-based auth. This is intentional:
+
+- Firebase Auth does not automatically set HTTP cookies (only manages state in memory/localStorage)
+- The `auth-token` cookie in `lib/auth-server.ts` is reserved for server-rendered page auth
+- For client-initiated API calls, the Firebase ID token is fetched via `auth.currentUser.getIdToken()` and passed explicitly
+- The Admin SDK's `verifyIdToken()` validates the JWT on the server — no cookie dependency
+
+---
+
+## Security Design
+
+| Threat | Mitigation |
+|---|---|
+| Client faking payment success | HMAC-SHA256 signature verification on server — impossible to forge without `RAZORPAY_KEY_SECRET` |
+| Secret key exposure | `RAZORPAY_KEY_SECRET` is server-only env var — never in `NEXT_PUBLIC_*` |
+| Duplicate payments | Idempotency check in create-order returns existing pending order |
+| Duplicate booking_requests | verify-payment checks `bookingRequestId` field before creating |
+| Unauthorized payment modification | All payment writes via Admin SDK — Firestore rules set `allow create, update, delete: if false` for clients |
+| Payment for wrong user | verify-payment validates `payment.userId === req.uid` before processing |
+
+---
+
+## Failure Handling
+
+| Scenario | Behavior |
+|---|---|
+| User dismisses Razorpay modal | Loading cleared, "Pay & Book" button re-enabled, no error shown |
+| Payment declined by bank | `payment.failed` event fires, error message shown, user can retry |
+| Network error during verify | Error shown, user can retry — verify-payment is idempotent |
+| Signature mismatch | Payment marked `failed` in Firestore, 400 returned, user told to contact support |
+| Firestore write failure in verify | Payment remains `pending`, no booking_request created — support can manually resolve |
+| Page refresh after payment but before verify | User would need to re-initiate payment — Razorpay order is reused via idempotency check |
+| Doctor rejects after payment | Booking request shows "rejected" status — refund policy handled separately |
+
+---
+
+## Amount Handling
+
+- `ServiceDocument.price` = human-readable INR amount (e.g. `500`)
+- Razorpay API expects paise: `amount * 100` sent to Razorpay REST API in create-order
+- `PaymentDocument.amount` = human-readable INR (500) — stored for display and refund reference
+- `orderData.amount` from create-order response = paise (50000) — passed directly to Razorpay checkout `amount` field
+
+---
+
+## Mobile UX
+
+- Razorpay checkout is a full-screen overlay modal — works on mobile without any special handling
+- Theme color `#0F4F4B` matches Eye Aura's teal palette in the Razorpay header
+- Button shows "Pay INR 500 & Book" — clear, unambiguous call to action
+- Security note "256-bit encrypted · Powered by Razorpay" reassures patients
+- Loading state uses `Loader2` spinner — no button flash on slow connections
+
+---
+
+## Environment Variables Required
+
+```bash
+# Public key — safe to expose to browser (used in Razorpay checkout options)
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_...
+
+# Server-side only — NEVER expose to browser
+RAZORPAY_KEY_ID=rzp_test_...
+RAZORPAY_KEY_SECRET=...
+```
+
+Note: `RAZORPAY_KEY_ID` and `NEXT_PUBLIC_RAZORPAY_KEY_ID` should have the same value. The duplication exists because Next.js requires the `NEXT_PUBLIC_` prefix for browser access, while the server-side API route uses the plain `RAZORPAY_KEY_ID` for Razorpay REST API Basic auth.
+
+---
+
+## New Service
+
+`services/firestore/payments.service.ts` — client-side read service:
+
+```typescript
+paymentsService.getById(id)                         // Single payment doc
+paymentsService.getByUserId(userId)                  // Patient's payment history
+paymentsService.getByBookingRequestId(bookingRequestId) // Payment for a booking
+```
+
+All writes go through Admin SDK in API routes only.
 
 <!-- SECTION:13 -->
 # 13. PRESCRIPTION SYSTEM ARCHITECTURE
@@ -1544,14 +1735,30 @@ FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE K
 
 # Resend API (transactional emails)
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# ============================================================
+# RAZORPAY (Payment Gateway)
+# ============================================================
+
+# Safe to expose — used in Razorpay checkout options client-side
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxx
+
+# Server-side only — NEVER add NEXT_PUBLIC_ prefix to these
+# Used for Razorpay REST API Basic auth in /api/payments/create-order
+RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxx
+# Used for HMAC-SHA256 signature verification in /api/payments/verify-payment
+RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
 ```
+
+**Note on Razorpay key duplication:** `NEXT_PUBLIC_RAZORPAY_KEY_ID` and `RAZORPAY_KEY_ID` hold the same key ID value. The duplication is required because Next.js only exposes `NEXT_PUBLIC_*` prefixed variables to the browser. The server needs `RAZORPAY_KEY_ID` for the Basic auth header to the Razorpay REST API.
 
 ## Critical Rules
 
 1. **NEVER add `NEXT_PUBLIC_` prefix to Firebase Admin SDK keys** — they must stay server-only
-2. **NEVER commit `.env.local`** — this file contains actual secrets
-3. **DO commit `.env.example`** — this serves as a template for other developers
-4. **Admin SDK private key must preserve newlines** — copy exactly from service account JSON
+2. **NEVER add `NEXT_PUBLIC_` prefix to `RAZORPAY_KEY_SECRET`** — exposing this breaks all payment security
+3. **NEVER commit `.env.local`** — this file contains actual secrets
+4. **DO commit `.env.example`** — this serves as a template for other developers
+5. **Admin SDK private key must preserve newlines** — copy exactly from service account JSON
 
 ## How to Get Firebase Admin SDK Keys
 
@@ -1568,6 +1775,14 @@ RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 1. Go to resend.com → API Keys
 2. Create new API key
 3. Copy to `.env.local` as `RESEND_API_KEY`
+
+## How to Get Razorpay Keys
+
+1. Go to [dashboard.razorpay.com](https://dashboard.razorpay.com) → Settings → API Keys
+2. Generate test/live key pair
+3. Copy `Key ID` to both `NEXT_PUBLIC_RAZORPAY_KEY_ID` and `RAZORPAY_KEY_ID`
+4. Copy `Key Secret` to `RAZORPAY_KEY_SECRET`
+5. Use `rzp_test_*` keys for development; switch to `rzp_live_*` for production
 
 <!-- SECTION:16 -->
 # 16. DEPLOYMENT ARCHITECTURE
@@ -2929,24 +3144,27 @@ This section documents WHY each major architectural decision exists. Future cont
 
 ---
 
-## Why Payment at Consultation Time
+## Why Online Payment at Booking (Razorpay)
 
-**Decision:** Collect payments during consultation instead of at booking time.
+**Decision:** Collect payment up-front during the booking flow, before the booking request reaches the doctor.
 
 **Rationale:**
-- **Reduced friction:** Payment at booking adds a step. Many patients abandon checkout.
-- **Trust-based:** Patients pay after meeting doctor. Builds trust.
-- **Flexibility:** Doctors can adjust pricing based on consultation complexity.
-- **Simpler MVP:** No payment integration needed for launch. Offline payment is acceptable.
+- **Commitment:** Pre-payment commits patients. Reduces speculative booking requests.
+- **Doctor quality:** Doctors see only paid requests — higher signal, less noise.
+- **Server-side verification:** HMAC-SHA256 signature verification ensures payment authenticity. Client cannot forge a successful payment.
+- **Separation of concerns:** Payment lifecycle (pending → completed) is decoupled from booking lifecycle (pending → accepted → appointment). Refund logic operates on payment status independently.
+- **Razorpay's reach:** Supports UPI, cards, net-banking, wallets — covers the Indian market comprehensively.
+
+**Architecture preserved:**
+- `booking_request` is still created ONLY after payment verification — never before
+- Doctor still must accept for appointment to be created — payment does not auto-confirm
+- Payment and booking_request are separate entities linked via `paymentId` field
+- All payment writes via Admin SDK — Firestore rules deny client writes to payments collection
 
 **Alternatives rejected:**
-- Payment at booking: Higher abandonment, more complex
-- Pre-paid packages: Adds accounting complexity
-
-**Future contributors must preserve:**
-- Payment at consultation time (until Razorpay integrated)
-- Offline payment acceptable
-- Future payment integration via Razorpay
+- Payment at consultation (offline): Creates debt collection problem, no commitment from patient
+- Pre-paid packages: Adds accounting/credits complexity
+- Collect after doctor accepts: Race condition — patient may not pay, doctor slot wasted
 
 ---
 

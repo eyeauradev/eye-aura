@@ -7,6 +7,7 @@ import { servicesService } from "./services.service";
 import { doctorInvitesService } from "./doctor-invites.service";
 import { doctorAvailabilityService } from "./doctor-availability.service";
 import { doctorBlocksService } from "./doctor-blocks.service";
+import { paymentsService } from "./payments.service";
 
 export {
   usersService,
@@ -18,4 +19,5 @@ export {
   doctorInvitesService,
   doctorAvailabilityService,
   doctorBlocksService,
+  paymentsService,
 };

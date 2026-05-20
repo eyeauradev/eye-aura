@@ -3,15 +3,30 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
+import { getFirebaseAuth } from "@/services/firebase/client";
 import { servicesService, usersService, doctorAvailabilityService } from "@/services/firestore";
 import type { ServiceDocument, UserDocument, DoctorAvailabilityDocument } from "@/types/firestore";
 import type { BookingState, BookingStep } from "@/types/booking";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Calendar, Clock, Check, FileText, User, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Calendar, Clock, Check, FileText, User, Star, ChevronLeft, ChevronRight, ShieldCheck, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window !== "undefined" && typeof window.Razorpay !== "undefined") {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
 
 const STEPS: BookingStep[] = [
   { id: "service", title: "Choose Service", description: "Select your consultation type", completed: false },
@@ -98,22 +113,109 @@ export default function BookingPage() {
   const handleConfirm = async () => {
     if (!state.service || !state.doctor || !selectedTime || !user) return;
 
-    setState({ ...state, loading: true, error: null });
+    setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      // Create booking request instead of appointment
-      const bookingRequest = await bookingRequestsService.create({
-        patientId: user.id,
-        doctorId: state.doctor.id,
-        serviceId: state.service.id,
-        requestedTime: selectedTime,
-        status: "pending",
-        notes: state.notes,
+      // 1. Get Firebase ID token for authenticated API calls
+      const auth = getFirebaseAuth();
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error("Authentication required. Please sign in again.");
+
+      // 2. Create Razorpay order on the server
+      const orderRes = await fetch("/api/payments/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          doctorId: state.doctor.id,
+          serviceId: state.service.id,
+          requestedTime: selectedTime.toISOString(),
+          notes: state.notes || null,
+          amount: state.service.price,
+          currency: state.service.currency || "INR",
+        }),
       });
 
-      router.push(`/booking/request-submitted/${bookingRequest.id}`);
+      if (!orderRes.ok) {
+        const errData = await orderRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to initiate payment. Please try again.");
+      }
+
+      const orderData = await orderRes.json();
+
+      // 3. Load Razorpay checkout script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error("Payment gateway failed to load. Please check your connection and try again.");
+      }
+
+      // 4. Open Razorpay checkout — waits for user to complete or dismiss
+      await new Promise<void>((resolve, reject) => {
+        const options: RazorpayOptions = {
+          key: orderData.keyId,
+          amount: orderData.amount, // Already in paise from Razorpay order
+          currency: orderData.currency,
+          name: "Eye Aura",
+          description: state.service?.title,
+          order_id: orderData.orderId,
+          handler: async (response) => {
+            try {
+              // 5. Verify payment signature server-side — creates booking_request
+              const verifyRes = await fetch("/api/payments/verify-payment", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                  paymentId: orderData.paymentId,
+                }),
+              });
+
+              if (!verifyRes.ok) {
+                const errData = await verifyRes.json().catch(() => ({}));
+                reject(new Error(errData.error || "Payment verification failed. Please contact support."));
+                return;
+              }
+
+              const verifyData = await verifyRes.json();
+              resolve();
+              router.push(`/booking/request-submitted/${verifyData.bookingRequestId}`);
+            } catch (err: any) {
+              reject(err);
+            }
+          },
+          prefill: {
+            name: user?.displayName || "",
+            email: user?.email || "",
+          },
+          notes: {
+            booking_notes: state.notes || "",
+          },
+          modal: {
+            ondismiss: () => {
+              setState((prev) => ({ ...prev, loading: false }));
+              resolve(); // Dismissed — not an error, just cancelled
+            },
+          },
+          theme: {
+            color: "#0F4F4B",
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", (resp: any) => {
+          reject(new Error(resp.error?.description || "Payment failed. Please try again."));
+        });
+        rzp.open();
+      });
     } catch (error: any) {
-      setState({ ...state, loading: false, error: error.message });
+      setState((prev) => ({ ...prev, loading: false, error: error.message }));
     }
   };
 
@@ -709,14 +811,20 @@ function ConfirmationStep({
           </div>
 
           <div className="p-4 rounded-2xl bg-secondary/10 border border-secondary/20">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="text-xs font-bold text-muted-foreground mb-1">Total Amount</p>
+                <p className="text-xs font-bold text-muted-foreground mb-1">Amount Due Now</p>
                 <p className="font-display text-3xl text-secondary">
                   {service?.currency} {service?.price}
                 </p>
               </div>
-              <Badge className="bg-secondary text-white border-secondary">Payment on Consultation</Badge>
+              <div className="flex flex-col items-end gap-1.5">
+                <Badge className="bg-secondary text-white border-secondary">Secure Online Payment</Badge>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-3 w-3 text-accent shrink-0" />
+                  <span>256-bit encrypted · Powered by Razorpay</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -729,10 +837,10 @@ function ConfirmationStep({
 
           <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
             <p className="text-sm font-bold text-amber-800 mb-1">
-              ⚠️ Request Pending Approval
+              What happens after payment?
             </p>
             <p className="text-xs text-amber-700">
-              Your booking request will be reviewed by the doctor. You'll receive a notification once it's accepted or if a reschedule is needed.
+              Your booking request is sent to the doctor after payment is confirmed. The doctor will review and accept or propose a reschedule. You will not be charged again regardless of outcome.
             </p>
           </div>
         </CardContent>
@@ -748,8 +856,18 @@ function ConfirmationStep({
         <Button variant="outline" onClick={onBack} disabled={loading} size="lg">
           Back
         </Button>
-        <Button onClick={onConfirm} size="lg" disabled={loading} className="min-w-[200px]">
-          {loading ? "Submitting..." : "Submit Request"}
+        <Button onClick={onConfirm} size="lg" disabled={loading} className="min-w-[220px]">
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processing…
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              Pay {service?.currency} {service?.price} &amp; Book
+            </span>
+          )}
         </Button>
       </div>
     </div>
