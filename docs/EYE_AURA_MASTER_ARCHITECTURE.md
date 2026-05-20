@@ -1496,6 +1496,95 @@ paymentsService.getByBookingRequestId(bookingRequestId) // Payment for a booking
 
 All writes go through Admin SDK in API routes only.
 
+---
+
+## Refund Architecture
+
+### Refund Lifecycle
+
+```
+Doctor clicks "Decline" on a pending booking request
+  │
+  └─ 1. Doctor types rejection reason in styled Dialog (no window.prompt)
+       │
+       ├─ 2. POST /api/payments/refund
+       │       Auth: Bearer <doctor Firebase ID token>
+       │       Body: { bookingRequestId, reason }
+       │       Server: verifies doctor owns the request
+       │       Server: updates booking_request { status: "rejected", refundStatus: "pending" }
+       │       Server: loads linked payment document
+       │       Server: calls Razorpay refund API (full amount, speed: "normal")
+       │       Server: updates payment { status: "refunded", refundStatus: "processed", refundId }
+       │       Server: updates booking_request { refundStatus: "processed" }
+       │       Returns: { success: true, refunded: true, refundId }
+       │
+       └─ 3. Patient sees on /patient/requests:
+               "Consultation request declined. Refund initiated — expect 5–7 business days."
+```
+
+**CRITICAL RULE:** Refunds are initiated ONLY server-side via `/api/payments/refund`. The doctor client never calls Razorpay. The patient client never initiates refunds.
+
+### Refund Idempotency
+
+| Scenario | Behaviour |
+|---|---|
+| Doctor clicks Decline twice | Second call hits `status === "rejected"` check — returns early, no duplicate refund |
+| Payment already refunded (`refundStatus === "processed"`) | Syncs booking_request and returns existing `refundId` — no re-refund |
+| No payment attached (old or free flow) | Sets `refundStatus: "none"` — no refund attempted |
+| No `razorpayPaymentId` on payment | Marks `refundStatus: "failed"`, still rejects booking — support resolves manually |
+
+### Refund Failure Handling
+
+If Razorpay API returns a non-2xx response:
+- Booking request remains `status: "rejected"` (patient cannot be re-admitted)
+- Payment marked `refundStatus: "failed"`, `refundFailureReason` set
+- Patient sees: *"Refund processing is taking longer than expected. Our team has been notified."*
+- Support can retry via Razorpay Dashboard manually
+
+### Payment State Transitions
+
+```
+pending → completed   (via verify-payment after checkout success)
+pending → failed      (via verify-payment if signature mismatch)
+completed → refunded  (via refund after doctor rejection)
+completed → failed    (if refund initiation fails — manual recovery)
+```
+
+### Refund Schema Extensions
+
+```typescript
+// PaymentDocument additions
+refundStatus?: "none" | "pending" | "processed" | "failed";
+refundId?: string;            // Razorpay rfnd_... ID
+refundFailureReason?: string; // Populated if refundStatus === "failed"
+
+// BookingRequestDocument addition
+refundStatus?: "none" | "pending" | "processed" | "failed";
+// Mirrors payment.refundStatus for quick client-side display (avoids extra Firestore read)
+```
+
+### New API Route
+
+| Route | Method | Auth | Purpose |
+|---|---|---|---|
+| `/api/payments/refund` | POST | Doctor Bearer token | Reject booking + initiate Razorpay refund |
+
+### Patient UX for Refund States
+
+| `refundStatus` | Patient-facing message |
+|---|---|
+| `pending` | "Refund being initiated…" (spinner) |
+| `processed` | "Refund initiated — expect 5–7 business days" |
+| `failed` | "Refund processing is taking longer than expected. Our team has been notified." |
+| `none` / not set | No refund message shown |
+
+### New Pages
+
+| Route | Role | Description |
+|---|---|---|
+| `/doctor/requests` | Doctor | Full booking requests management — all statuses (pending, accepted, declined, cancelled), filterable tabs, styled Decline dialog, refund status display |
+| `/patient/requests` | Patient | All booking requests with status, refund status, rejection reason, "Book Again" CTA for rejected, appointment link for accepted |
+
 <!-- SECTION:13 -->
 # 13. PRESCRIPTION SYSTEM ARCHITECTURE
 

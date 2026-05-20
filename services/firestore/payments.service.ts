@@ -33,6 +33,12 @@ class PaymentsService {
     return snap.docs.map((d) => d.data());
   }
 
+  async getAll(): Promise<PaymentDocument[]> {
+    const q = query(this.col(), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => d.data());
+  }
+
   async getByBookingRequestId(bookingRequestId: string): Promise<PaymentDocument | null> {
     const q = query(
       this.col(),

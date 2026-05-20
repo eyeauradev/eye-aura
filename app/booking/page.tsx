@@ -185,7 +185,7 @@ export default function BookingPage() {
 
               const verifyData = await verifyRes.json();
               resolve();
-              router.push(`/booking/request-submitted/${verifyData.bookingRequestId}`);
+              router.push(`/patient/requests/${verifyData.bookingRequestId}`);
             } catch (err: any) {
               reject(err);
             }

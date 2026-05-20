@@ -251,6 +251,8 @@ export type PaymentStatus =
   | "refunded"
   | "cancelled";
 
+export type RefundStatus = "none" | "pending" | "processed" | "failed";
+
 export type PaymentMethod = "card" | "upi" | "net_banking" | "wallet";
 
 export interface PaymentDocument {
@@ -280,6 +282,10 @@ export interface PaymentDocument {
   failureReason?: string;
   refundedAt?: Date;
   refundReason?: string;
+  // Refund tracking
+  refundStatus?: RefundStatus;  // "none" | "pending" | "processed" | "failed"
+  refundId?: string;            // Razorpay refund ID (rfnd_...)
+  refundFailureReason?: string; // Populated if refundStatus === "failed"
   // Deprecated — kept for schema backward compatibility
   appointmentId?: string;
   transactionId?: string;
@@ -346,6 +352,7 @@ export interface BookingRequestDocument {
   paymentId?: string;        // Links to payments collection
   paymentStatus?: string;    // "completed" at creation time
   paymentAmount?: number;    // Amount paid in INR
+  refundStatus?: RefundStatus; // Mirrors payment.refundStatus for quick UI access
   createdAt: Date;
   updatedAt: Date;
   appointmentId?: string; // Once converted to appointment

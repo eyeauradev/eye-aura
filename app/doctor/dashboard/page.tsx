@@ -7,10 +7,13 @@ import { appointmentsService } from "@/services/firestore";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import { usersService } from "@/services/firestore";
 import type { AppointmentDocument, BookingRequestDocument } from "@/types/firestore";
-import { Calendar, Clock, Users, FileText, Settings, ArrowRight, Video, CheckCircle2, Bell, AlertCircle } from "lucide-react";
+import { Calendar, Clock, Users, FileText, Settings, ArrowRight, Video, CheckCircle2, Bell, AlertCircle, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { getFirebaseAuth } from "@/services/firebase/client";
 
 import Link from "next/link";
 
@@ -27,6 +30,10 @@ export default function DoctorDashboard() {
     pendingPrescriptions: 0,
     pendingRequests: 0,
   });
+  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; requestId: string }>({ open: false, requestId: "" });
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [rejectError, setRejectError] = useState<string | null>(null);
 
   // Role-based redirect
   useEffect(() => {
@@ -189,13 +196,43 @@ export default function DoctorDashboard() {
     }
   };
 
-  const handleRejectRequest = async (requestId: string) => {
-    const reason = prompt("Please provide a reason for rejecting this request:");
-    if (!reason) return;
+  const openRejectDialog = (requestId: string) => {
+    setRejectReason("");
+    setRejectError(null);
+    setRejectDialog({ open: true, requestId });
+  };
 
+  const handleConfirmReject = async () => {
+    if (!rejectReason.trim()) {
+      setRejectError("Please provide a reason for rejecting this request.");
+      return;
+    }
+    setRejectLoading(true);
+    setRejectError(null);
     try {
-      await bookingRequestsService.rejectRequest(requestId, reason);
-      // Reload requests
+      const auth = getFirebaseAuth();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch("/api/payments/refund", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bookingRequestId: rejectDialog.requestId,
+          reason: rejectReason.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to reject request");
+      }
+
+      setRejectDialog({ open: false, requestId: "" });
+      // Reload pending requests
       const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "pending");
       const requestsWithPatient = await Promise.all(
         requests.map(async (request) => {
@@ -205,8 +242,10 @@ export default function DoctorDashboard() {
       );
       setPendingRequests(requestsWithPatient);
       setStats(prev => ({ ...prev, pendingRequests: requests.length }));
-    } catch (error) {
-      console.error("Error rejecting request:", error);
+    } catch (error: any) {
+      setRejectError(error.message || "Something went wrong. Please try again.");
+    } finally {
+      setRejectLoading(false);
     }
   };
 
@@ -222,6 +261,7 @@ export default function DoctorDashboard() {
   }
 
   return (
+    <>
     <div className="space-y-8">
       {/* Optional onboarding banner */}
       {user && !user.onboardingCompleted && (
@@ -339,7 +379,7 @@ export default function DoctorDashboard() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => handleRejectRequest(request.id)}
+                        onClick={() => openRejectDialog(request.id)}
                         className="flex-1 h-9 text-sm"
                       >
                         Reject
@@ -584,5 +624,67 @@ export default function DoctorDashboard() {
         </div>
       </div>
     </div>
+
+      {/* Rejection Dialog — must be inside JSX return */}
+      <Dialog
+        open={rejectDialog.open}
+        onOpenChange={(open) => !rejectLoading && setRejectDialog({ open, requestId: open ? rejectDialog.requestId : "" })}
+      >
+        <DialogContent className="sm:max-w-md mx-4">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl text-primary flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-500" />
+              Decline Booking Request
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Please let the patient know why you are unable to accept this request. A full refund will be automatically initiated.
+            </p>
+            <Textarea
+              placeholder="e.g. I am unavailable on this date. Please book for a different time."
+              value={rejectReason}
+              onChange={(e) => { setRejectReason(e.target.value); setRejectError(null); }}
+              rows={3}
+              className="resize-none"
+              disabled={rejectLoading}
+            />
+            {rejectError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                {rejectError}
+              </p>
+            )}
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
+              <p className="text-xs text-amber-800">
+                The patient will be notified and their payment will be refunded automatically.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setRejectDialog({ open: false, requestId: "" })}
+              disabled={rejectLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmReject}
+              disabled={rejectLoading || !rejectReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {rejectLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Declining…
+                </span>
+              ) : (
+                "Decline & Refund"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { Home, Calendar, Users, FileText, Clock, Settings, LogOut } from "lucide-react";
+import { Home, Calendar, Clock, Settings, LogOut, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { href: "/doctor/dashboard", label: "Dashboard", icon: Home },
-  { href: "/doctor/appointments", label: "Appointments", icon: Calendar },
-  { href: "/", label: "Home", icon: Home, isCenter: true },
-  { href: "/doctor/slots", label: "Calendar", icon: Clock },
-  { href: "/doctor/profile", label: "My Account", icon: Settings },
+  { href: "/doctor/dashboard",    label: "Dashboard",    icon: Home,     isCenter: false, hideOnMobile: false },
+  { href: "/doctor/requests",     label: "Requests",     icon: Bell,     isCenter: false, hideOnMobile: false },
+  { href: "/",                    label: "Home",         icon: Home,     isCenter: true,  hideOnMobile: false },
+  { href: "/doctor/appointments", label: "Appointments", icon: Calendar, isCenter: false, hideOnMobile: false },
+  { href: "/doctor/slots",        label: "Calendar",     icon: Clock,    isCenter: false, hideOnMobile: true  },
+  { href: "/doctor/profile",      label: "My Account",   icon: Settings, isCenter: false, hideOnMobile: false },
 ];
 
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
@@ -90,7 +91,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
           {/* Mobile Navigation */}
           <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-primary/10 z-50">
             <div className="flex items-end py-2">
-              {navItems.map((item) => {
+              {navItems.filter(item => !item.hideOnMobile).map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const isCenter = item.isCenter;
