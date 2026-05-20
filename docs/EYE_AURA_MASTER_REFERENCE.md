@@ -372,6 +372,10 @@ Public website components check auth state via `useAuth()` hook:
 - `notes` (string, optional) - Patient notes
 - `rejectionReason` (string, optional) - Reason for rejection
 - `rescheduleReason` (string, optional) - Reason for reschedule request
+- `paymentId` (string, optional) - Links to payments collection
+- `paymentStatus` (string, optional) - "completed" at creation time
+- `paymentAmount` (number, optional) - Amount paid in INR
+- `refundStatus` (RefundStatus, optional) - Mirrors payment.refundStatus for quick UI access: "none" | "pending" | "processed" | "failed"
 - `appointmentId` (string, optional) - Reference to appointments collection when accepted
 - `createdAt` (timestamp) - Creation date
 - `updatedAt` (timestamp) - Last update date
@@ -524,34 +528,56 @@ Public website components check auth state via `useAuth()` hook:
 - Responses are chronologically ordered
 
 #### payments
-**Purpose**: Store payment information (reserved for future implementation)
+**Purpose**: Store Razorpay payment information and refund tracking
 
 **Key Fields**:
 - `id` (string) - Payment ID
-- `appointmentId` (string) - Reference to appointments collection
-- `patientId` (string) - Reference to users collection
-- `doctorId` (string) - Reference to users collection
-- `amount` (number) - Payment amount
-- `currency` (string) - Currency code
-- `status` (string) - "pending" | "completed" | "failed" | "refunded"
-- `paymentMethod` (string) - Payment method
-- `transactionId` (string, optional) - External transaction ID
+- `userId` (string) - Patient UID (reference to users collection)
+- `doctorId` (string) - Doctor UID (reference to users collection)
+- `serviceId` (string) - Service UID (reference to services collection)
+- `amount` (number) - Amount in INR (human-readable, e.g. 500)
+- `currency` (string) - "INR"
+- `status` (PaymentStatus) - "pending" | "processing" | "completed" | "failed" | "refunded" | "cancelled"
+- `razorpayOrderId` (string) - Created by /api/payments/create-order
+- `razorpayPaymentId` (string, optional) - Returned by Razorpay after successful payment
+- `razorpaySignature` (string, optional) - Verified server-side in /api/payments/verify-payment
+- `bookingRequestId` (string, optional) - Set after successful verification (links to booking_requests)
+- `requestedTime` (timestamp) - Patient's requested appointment time
+- `notes` (string, optional) - Patient notes
+- `method` (PaymentMethod, optional) - "card" | "upi" | "net_banking" | "wallet"
 - `createdAt` (timestamp) - Creation date
 - `updatedAt` (timestamp) - Last update date
+- `completedAt` (timestamp, optional) - When payment was completed
+- `failedAt` (timestamp, optional) - When payment failed
+- `failureReason` (string, optional) - Payment failure reason
+- `refundedAt` (timestamp, optional) - When refund was processed
+- `refundReason` (string, optional) - Reason for refund (doctor's rejection reason)
+- `refundStatus` (RefundStatus, optional) - "none" | "pending" | "processed" | "failed"
+- `refundId` (string, optional) - Razorpay refund ID (rfnd_...)
+- `refundFailureReason` (string, optional) - Populated if refundStatus === "failed"
+- `appointmentId` (string, optional) - Deprecated — kept for schema backward compatibility
+- `transactionId` (string, optional) - Deprecated — kept for schema backward compatibility
 
 **Relationships**:
-- One-to-one with appointments
-- Many-to-one with users (patient)
-- Many-to-one with users (doctor)
+- Many-to-one with users (patient via userId)
+- Many-to-one with users (doctor via doctorId)
+- Many-to-one with services (via serviceId)
+- One-to-one with booking_requests (via bookingRequestId)
+- One-to-one with appointments (via appointmentId - deprecated)
 
 **Role Access**:
-- Patients can read their own payments
-- Doctors can read payments for their appointments
-- Admins can read all payments
+- Patients can read their own payments (where userId = current user)
+- Doctors can read payments for their services (where doctorId = current user)
+- Admins can read all payments via /admin/payments
 
 **Business Rules**:
-- Payment processing reserved for future phases
-- Currently placeholder for payment integration
+- All writes go through Admin SDK in API routes only
+- Payments created via /api/payments/create-order (before checkout)
+- Payments verified via /api/payments/verify-payment (after Razorpay callback)
+- Refunds initiated via /api/payments/refund (doctor rejection)
+- Refund API uses next/server after() pattern — response returns in <3s, Razorpay call runs in background
+- Idempotency via X-Razorpay-Idempotency-Key header prevents duplicate refunds
+- Requests with refundStatus "pending" or "failed" can be retried via doctor's Requests page
 
 #### doctor_invites
 **Purpose**: Store doctor invitation tokens for secure onboarding
@@ -722,7 +748,39 @@ Public website components check auth state via `useAuth()` hook:
 - **Main Features**: View ticket, add responses
 - **Data Dependencies**: Support tickets collection
 - **Related Firestore Collections**: support_tickets
-- **Business Logic**: Fetch ticket, add response to ticket
+- **Business Logic**: Fetch ticket, allow adding responses
+
+#### `/patient/requests`
+- **Purpose**: Patient booking requests list
+- **Accessible Role**: patient
+- **Main Features**: All booking requests with status, refund status, rejection reason, "Book Again" CTA for rejected, appointment link for accepted
+- **Data Dependencies**: Booking requests collection, users, services
+- **Related Firestore Collections**: booking_requests, users, services
+- **Business Logic**:
+  - Fetch booking requests where patientId = current user
+  - Enrich requests with doctor data (displayName, email)
+  - Enrich requests with service data (title, description)
+  - Display status badges: pending, accepted, rejected, cancelled
+  - Display refund status: pending, processed, failed
+  - Show rejection reason for declined requests
+  - "Book Again" button for rejected requests (redirects to booking flow)
+  - "View Appointment" link for accepted requests (links to appointment detail)
+
+#### `/patient/requests/[id]`
+- **Purpose**: Patient booking request detail
+- **Accessible Role**: patient
+- **Main Features**: Status, doctor info, service details, requested time, notes, rejection reason, refund status with timestamps
+- **Data Dependencies**: Booking requests collection, users, services
+- **Related Firestore Collections**: booking_requests, users, services
+- **Business Logic**:
+  - Fetch booking request by ID
+  - Verify patientId matches current user
+  - Load doctor information (displayName, email, phoneNumber)
+  - Load service information (title, description, price)
+  - Display requested time in user's timezone
+  - Show rejection reason if status is "rejected"
+  - Show refund status with timestamps (refundedAt, refundReason)
+  - Show failure reason if refundStatus is "failed"
 
 #### `/patient/notifications`
 - **Purpose**: Patient notifications
@@ -731,14 +789,6 @@ Public website components check auth state via `useAuth()` hook:
 - **Data Dependencies**: Notifications collection
 - **Related Firestore Collections**: notifications
 - **Business Logic**: Fetch notifications, update read status, delete notification
-
-#### `/patient/requests`
-- **Purpose**: Patient booking requests management
-- **Accessible Role**: patient
-- **Main Features**: View all booking requests, see status changes, respond to reschedule proposals
-- **Data Dependencies**: Booking requests collection
-- **Related Firestore Collections**: booking_requests
-- **Business Logic**: Fetch patient's requests, display status, handle reschedule responses
 
 ### DOCTOR ROUTES
 
@@ -852,15 +902,16 @@ Public website components check auth state via `useAuth()` hook:
   - Uses CSS transitions (no Framer Motion)
 
 #### `/doctor/requests`
-- **Purpose**: Doctor booking request management
+- **Purpose**: Doctor booking request management with full status visibility and refund integration
 - **Accessible Role**: doctor
-- **Main Features**: View pending requests, accept/reject/reschedule requests
+- **Main Features**: View all requests (pending, accepted, rejected, cancelled), accept/reject/retry refund, styled rejection dialog
 - **Data Dependencies**: Booking requests collection, users, services
 - **Related Firestore Collections**: booking_requests, users, services
 - **Business Logic**:
-  - Fetch booking requests where doctorId = current user AND status = "pending"
-  - Enrich requests with patient data (displayName, email)
+  - Fetch booking requests where doctorId = current user (all statuses)
+  - Enrich requests with patient data (displayName, email, phoneNumber)
   - Enrich requests with service data (title, description)
+  - Filter tabs: All, Pending, Accepted, Declined, Cancelled
   - Accept action:
     - Create appointment document in appointments collection
     - Update booking request status to "accepted"
@@ -868,9 +919,17 @@ Public website components check auth state via `useAuth()` hook:
     - Create doctor_block for the accepted time to prevent double-booking
     - Redirect to appointment detail page
   - Reject action:
-    - Update booking request status to "rejected"
-    - Prompt for rejection reason
-    - Update booking request.rejectionReason
+    - Open styled Dialog for rejection reason input (no window.prompt)
+    - POST to /api/payments/refund with bookingRequestId and reason
+    - Server marks booking_request status as "rejected", refundStatus as "pending"
+    - Server schedules Razorpay refund in background via after() pattern
+    - Response returns immediately with refundStatus: "pending"
+  - Retry Refund action:
+    - "Retry Refund" button appears for declined requests with refundStatus "pending" or "failed"
+    - Calls /api/payments/refund with same bookingRequestId
+    - Uses X-Razorpay-Idempotency-Key to prevent duplicate refunds
+    - On success: refundFailureReason is cleared to prevent stale error display
+  - Navigation: Added "Requests" link in doctor layout (desktop + mobile nav)
   - Reschedule action:
     - Update booking request status to "reschedule_requested"
     - Prompt for proposed time
@@ -1095,6 +1154,32 @@ Public website components check auth state via `useAuth()` hook:
 - **Data Dependencies**: Users, appointments, prescriptions
 - **Related Firestore Collections**: users, appointments, prescriptions
 - **Business Logic**: Calculate metrics and statistics
+
+#### `/admin/payments`
+- **Purpose**: Admin payments and refunds dashboard
+- **Accessible Role**: admin
+- **Main Features**: Expandable cards with patient, doctor, service, full timeline, all transaction IDs, stats row, view toggle, filter pills, search
+- **Data Dependencies**: Payments collection, users, services
+- **Related Firestore Collections**: payments, users, services
+- **Business Logic**:
+  - Fetch all payments via paymentsService.getAll()
+  - Enrich payments with patient data (displayName, email, phoneNumber)
+  - Enrich payments with doctor data (displayName, email)
+  - Enrich payments with service data (title, type, duration, price)
+  - Stats row: Revenue (completed), Refunded (total), Refund Pending (count), Refund Failed (count), Net Revenue (revenue - refunded)
+  - View toggle: Payments tab (filter by status), Refunds tab (filter by refund status)
+  - Per-card details (expanded):
+    - Patient section: Name, Email, Phone, UID
+    - Doctor section: Name, Email, Phone, UID
+    - Service section: Title, Type, Duration, Price
+    - Timeline section: Payment created, Payment received, Requested time, Refunded at, Refund reason, Last updated, Payment method
+    - Transaction IDs section: Order ID, Payment ID, Refund ID, Booking Request ID (monospace)
+    - Failure banner: Only shown if refundStatus === "failed"
+  - Search: by patient name, email, payment ID, order ID, refund ID
+  - Card design: Collapsed view (patient, doctor, service, timestamp, badges, amount, chevron), Expanded view (tappable sections)
+  - Responsive: Works from 320px upward
+  - Visual cues: Red accent strip for failed refunds, amber border for pending refunds
+  - Navigation: Added "Payments" link in admin layout
 
 ### INVITE ROUTES
 

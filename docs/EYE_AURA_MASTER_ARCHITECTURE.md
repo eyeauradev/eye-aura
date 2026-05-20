@@ -1500,7 +1500,7 @@ All writes go through Admin SDK in API routes only.
 
 ## Refund Architecture
 
-### Refund Lifecycle
+### Refund Lifecycle (with `after()` pattern)
 
 ```
 Doctor clicks "Decline" on a pending booking request
@@ -1513,25 +1513,51 @@ Doctor clicks "Decline" on a pending booking request
        │       Server: verifies doctor owns the request
        │       Server: updates booking_request { status: "rejected", refundStatus: "pending" }
        │       Server: loads linked payment document
-       │       Server: calls Razorpay refund API (full amount, speed: "normal")
-       │       Server: updates payment { status: "refunded", refundStatus: "processed", refundId }
-       │       Server: updates booking_request { refundStatus: "processed" }
-       │       Returns: { success: true, refunded: true, refundId }
+       │       Server: marks payment { refundStatus: "pending" }
+       │       Server: schedules Razorpay call via after(() => ...) — runs AFTER response sent
+       │       Server: returns { success: true, refundStatus: "pending" } in <3s
+       │       │
+       │       └─ [AFTER RESPONSE SENT] Background task:
+       │               Server: calls Razorpay refund API with X-Razorpay-Idempotency-Key
+       │               Server: if success → payment { refundStatus: "processed", refundId, refundFailureReason: null }
+       │               Server: if success → booking_request { refundStatus: "processed" }
+       │               Server: if failure → payment { refundStatus: "failed", refundFailureReason }
+       │               Server: if failure → booking_request { refundStatus: "failed" }
        │
        └─ 3. Patient sees on /patient/requests:
-               "Consultation request declined. Refund initiated — expect 5–7 business days."
+               "Consultation request declined. Refund being initiated…"
+               → refreshes page → sees "Refund initiated — expect 5–7 business days"
 ```
 
 **CRITICAL RULE:** Refunds are initiated ONLY server-side via `/api/payments/refund`. The doctor client never calls Razorpay. The patient client never initiates refunds.
+
+### Why `after()`?
+
+The `after()` function (stable in Next.js 15.2+) decouples the HTTP response from long-running operations:
+
+- **Response time:** <3s regardless of Razorpay latency (no Vercel timeout)
+- **Background execution:** Razorpay API call runs after response is sent (up to 30s with `maxDuration = 30`)
+- **No aborts:** Sequential Firestore reads + Razorpay fetch previously exceeded 8–10s, triggering AbortController
 
 ### Refund Idempotency
 
 | Scenario | Behaviour |
 |---|---|
-| Doctor clicks Decline twice | Second call hits `status === "rejected"` check — returns early, no duplicate refund |
+| Doctor clicks Decline twice | Second call hits `status === "rejected"` + `refundStatus: "processed"` check — returns early, no duplicate refund |
 | Payment already refunded (`refundStatus === "processed"`) | Syncs booking_request and returns existing `refundId` — no re-refund |
 | No payment attached (old or free flow) | Sets `refundStatus: "none"` — no refund attempted |
 | No `razorpayPaymentId` on payment | Marks `refundStatus: "failed"`, still rejects booking — support resolves manually |
+| Retry after timeout (`refundStatus: "pending"` or `"failed"`) | Falls through to retry with same `X-Razorpay-Idempotency-Key` — Razorpay returns existing refund or processes new one |
+
+### Razorpay Idempotency Key
+
+```
+Header: X-Razorpay-Idempotency-Key: refund-{bookingRequestId}
+```
+
+- Razorpay deduplicates refund requests with the same key
+- Retrying `/api/payments/refund` never creates a duplicate refund
+- Doctor can click "Retry Refund" button on `/doctor/requests` safely
 
 ### Refund Failure Handling
 
@@ -1539,7 +1565,8 @@ If Razorpay API returns a non-2xx response:
 - Booking request remains `status: "rejected"` (patient cannot be re-admitted)
 - Payment marked `refundStatus: "failed"`, `refundFailureReason` set
 - Patient sees: *"Refund processing is taking longer than expected. Our team has been notified."*
-- Support can retry via Razorpay Dashboard manually
+- **Doctor can retry:** "Retry Refund" button appears on `/doctor/requests` for `refundStatus: "pending"` or `"failed"`
+- On successful retry: `refundFailureReason` is cleared to prevent stale error display
 
 ### Payment State Transitions
 
@@ -1547,7 +1574,9 @@ If Razorpay API returns a non-2xx response:
 pending → completed   (via verify-payment after checkout success)
 pending → failed      (via verify-payment if signature mismatch)
 completed → refunded  (via refund after doctor rejection)
-completed → failed    (if refund initiation fails — manual recovery)
+completed → failed    (if refund initiation fails — manual recovery or retry)
+pending → processed   (via background Razorpay call in after() callback)
+failed → processed   (via retry on doctor's requests page)
 ```
 
 ### Refund Schema Extensions
@@ -1582,8 +1611,37 @@ refundStatus?: "none" | "pending" | "processed" | "failed";
 
 | Route | Role | Description |
 |---|---|---|
-| `/doctor/requests` | Doctor | Full booking requests management — all statuses (pending, accepted, declined, cancelled), filterable tabs, styled Decline dialog, refund status display |
+| `/doctor/requests` | Doctor | Full booking requests management — all statuses (pending, accepted, declined, cancelled), filterable tabs, styled Decline dialog, refund status display, "Retry Refund" button for stuck/failed refunds |
 | `/patient/requests` | Patient | All booking requests with status, refund status, rejection reason, "Book Again" CTA for rejected, appointment link for accepted |
+| `/patient/requests/[id]` | Patient | Individual booking request detail — status, doctor info, service details, requested time, notes, rejection reason, refund status with timestamps |
+| `/admin/payments` | Admin | Payments & refunds dashboard — expandable cards with patient, doctor, service, full timeline (created, completed, refunded), all transaction IDs (Order, Payment, Refund, Booking), stats row (Revenue, Refunded, Pending, Failed, Net), view toggle (Payments vs Refunds), filter pills, search |
+
+### Admin Payments Dashboard Features
+
+**Stats Row:**
+- Revenue (total from completed payments)
+- Refunded (total amount refunded)
+- Refund Pending (stuck/in-progress refunds)
+- Refund Failed (count with red highlight if > 0)
+- Net Revenue (revenue minus refunds)
+
+**View Toggle:**
+- Payments tab — filterable by status (All / Completed / Refunded / Pending / Failed)
+- Refunds tab — filtered view of only transactions with refunds (All / Pending / Processed / Failed)
+
+**Per-Card Details (expanded):**
+- Patient section: Name, Email, Phone, UID
+- Doctor section: Name, Email, Phone, UID
+- Service section: Title, Type, Duration, Price
+- Timeline section: Payment created, Payment received, Requested time, Refunded at, Refund reason, Last updated, Payment method
+- Transaction IDs section: Order ID, Payment ID, Refund ID, Booking Request ID (all monospace)
+- Failure banner: Only shown if `refundStatus === "failed"` — displays exact failure reason
+
+**Card Design:**
+- Collapsed view: Patient name, Doctor name, Service title, Payment timestamp, Status badges, Amount, Expand chevron
+- Expanded view: Tappable sections with labeled detail rows
+- Responsive: Works from 320px upward
+- Visual cues: Red accent strip for failed refunds, amber border for pending refunds
 
 <!-- SECTION:13 -->
 # 13. PRESCRIPTION SYSTEM ARCHITECTURE
