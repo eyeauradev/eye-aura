@@ -178,9 +178,9 @@ service cloud.firestore {
       // Admin can do everything
       allow read, create, update, delete: if isAdmin();
       
-      // Unauthenticated users can read invites by token for acceptance
+      // All users (authenticated and unauthenticated) can read invites by token for acceptance
       // This is safe because they can only read, not modify
-      allow read: if !signedIn();
+      allow read: if true;
       
       // No other access allowed - client-side cannot modify invites
     }
