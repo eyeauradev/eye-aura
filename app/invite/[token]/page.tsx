@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doctorInvitesService } from "@/services/firestore";
-import { Eye, EyeOff, Lock, User, AlertCircle, CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
+import { Eye, EyeOff, Lock, User, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 export default function InviteAcceptancePage() {
   const params = useParams();
   const router = useRouter();
+  const { signInWithEmail } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<any>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
   const [formData, setFormData] = useState({
     displayName: "",
     password: "",
@@ -33,8 +36,9 @@ export default function InviteAcceptancePage() {
       }
 
       try {
+        // READ ONLY — public Firestore read, no writes on client side
         const inviteData = await doctorInvitesService.getByToken(params.token as string);
-        
+
         if (!inviteData) {
           setError("Invalid invite link");
           setLoading(false);
@@ -54,7 +58,7 @@ export default function InviteAcceptancePage() {
         }
 
         if (new Date() > inviteData.expiresAt) {
-          await doctorInvitesService.updateStatus(inviteData.id, "expired");
+          // Don't write from client — just show the error
           setError("This invite has expired");
           setLoading(false);
           return;
@@ -63,7 +67,7 @@ export default function InviteAcceptancePage() {
         setInvite(inviteData);
         setLoading(false);
       } catch (err: any) {
-        setError("Failed to load invite");
+        setError(err.message || "Failed to load invite");
         setLoading(false);
       }
     }
@@ -87,16 +91,12 @@ export default function InviteAcceptancePage() {
 
     try {
       setSubmitting(true);
+      setStatusMessage("Creating your account...");
 
-      // Mark invite as opened
-      await doctorInvitesService.markAsOpened(invite.id);
-
-      // Call server-side API for onboarding completion
+      // Step 1: Server-side account creation via Admin SDK (bypasses Firestore rules)
       const response = await fetch("/api/doctor-onboarding/complete", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token: invite.token,
           displayName: formData.displayName,
@@ -111,21 +111,19 @@ export default function InviteAcceptancePage() {
         throw new Error(data.error || "Failed to complete onboarding");
       }
 
-      // Redirect to login (user will be signed in by the API or needs to sign in)
-      if (data.redirect) {
-        router.push(data.redirect);
-      } else {
-        setSuccess(true);
-      }
+      // Step 2: Auto sign-in with the newly created credentials
+      setStatusMessage("Signing you in...");
+      await signInWithEmail({ email: data.email, password: formData.password });
+
+      // Step 3: Redirect to doctor dashboard
+      setSuccess(true);
+      router.push("/doctor/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to complete onboarding");
+      setStatusMessage("");
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleGoToDashboard = () => {
-    router.push("/doctor/dashboard");
   };
 
   if (loading) {
@@ -165,12 +163,9 @@ export default function InviteAcceptancePage() {
             <h2 className="font-display text-2xl text-primary mb-4">
               Welcome to Eye Aura!
             </h2>
-            <p className="text-muted-foreground mb-8">
-              Your account has been created successfully. You can now access the doctor dashboard.
+            <p className="text-muted-foreground">
+              Your account has been created. Redirecting to your dashboard...
             </p>
-            <Button onClick={handleGoToDashboard} className="w-full">
-              Go to Dashboard
-            </Button>
           </CardContent>
         </Card>
       </div>
@@ -265,7 +260,12 @@ export default function InviteAcceptancePage() {
               )}
 
               <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? "Creating Account..." : "Complete Onboarding"}
+                {submitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {statusMessage || "Processing..."}
+                  </span>
+                ) : "Complete Onboarding"}
               </Button>
             </form>
           </CardContent>

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
-import { doctorInvitesService } from "@/services/firestore/doctor-invites.service";
-import { usersService } from "@/services/firestore/users.service";
+import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,174 +8,157 @@ export async function POST(request: NextRequest) {
     const { token, displayName, password, phoneNumber } = body;
 
     if (!token || !displayName || !password) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
     }
 
-    // Lazy initialize Firebase Admin
+    // All Firestore operations use Admin SDK — bypasses security rules entirely
     const adminAuth = getAdminAuth();
     const adminDb = getAdminDb();
-    const invite = await doctorInvitesService.getByToken(token);
-    if (!invite) {
-      return NextResponse.json(
-        { error: "Invalid invite link" },
-        { status: 404 }
-      );
+
+    // 1. Fetch invite by token
+    const inviteSnap = await adminDb
+      .collection("doctor_invites")
+      .where("token", "==", token)
+      .limit(1)
+      .get();
+
+    if (inviteSnap.empty) {
+      return NextResponse.json({ error: "Invalid invite link" }, { status: 404 });
     }
 
-    if (invite.status === "completed") {
-      return NextResponse.json(
-        { error: "This invite has already been used" },
-        { status: 400 }
-      );
+    const inviteDoc = inviteSnap.docs[0];
+    const inviteData = inviteDoc.data();
+    const inviteId = inviteDoc.id;
+
+    // 2. Validate invite state
+    if (inviteData.status === "completed") {
+      return NextResponse.json({ error: "This invite has already been used" }, { status: 400 });
+    }
+    if (inviteData.status === "cancelled") {
+      return NextResponse.json({ error: "This invite has been cancelled" }, { status: 400 });
     }
 
-    if (invite.status === "cancelled") {
-      return NextResponse.json(
-        { error: "This invite has been cancelled" },
-        { status: 400 }
-      );
+    const expiresAt: Date = inviteData.expiresAt?.toDate
+      ? inviteData.expiresAt.toDate()
+      : new Date(inviteData.expiresAt);
+
+    if (new Date() > expiresAt) {
+      await adminDb.collection("doctor_invites").doc(inviteId).update({
+        status: "expired",
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      return NextResponse.json({ error: "This invite has expired" }, { status: 400 });
     }
 
-    if (new Date() > invite.expiresAt) {
-      await doctorInvitesService.updateStatus(invite.id, "expired");
-      return NextResponse.json(
-        { error: "This invite has expired" },
-        { status: 400 }
-      );
-    }
+    const email: string = inviteData.email;
 
-    // Check if Firebase Auth user already exists
-    let firebaseUser;
+    // 3. Mark invite as opened
+    await adminDb.collection("doctor_invites").doc(inviteId).update({
+      status: "opened",
+      openedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    // 4. Check if Firebase Auth user already exists
+    let existingAuthUser;
     try {
-      firebaseUser = await adminAuth.getUserByEmail(invite.email);
-    } catch (error) {
-      // User doesn't exist, will create new
+      existingAuthUser = await adminAuth.getUserByEmail(email);
+    } catch {
+      // User does not exist yet — expected for new doctors
     }
 
-    if (firebaseUser) {
-      // Check if user already has a Firestore document
-      const existingUser = await usersService.getById(firebaseUser.uid);
-      
-      if (existingUser) {
-        // User already exists in Firestore
-        if (existingUser.role !== "doctor") {
+    let userId: string;
+
+    if (existingAuthUser) {
+      userId = existingAuthUser.uid;
+
+      // Check if Firestore user document exists
+      const userDoc = await adminDb.collection("users").doc(userId).get();
+
+      if (userDoc.exists) {
+        const userData = userDoc.data()!;
+
+        if (userData.role !== "doctor") {
           return NextResponse.json(
-            { error: "This email is already associated with another account type" },
+            { error: "This email is already registered with a different account type" },
             { status: 400 }
           );
         }
-        
-        if (existingUser.onboarding?.doctorCompleted) {
-          // Doctor onboarding already complete
-          await doctorInvitesService.markAsCompleted(invite.id, firebaseUser.uid);
-          return NextResponse.json({
-            success: true,
-            message: "Account already exists, redirecting to dashboard",
-            redirect: "/doctor/dashboard",
+
+        if (userData.onboarding?.doctorCompleted) {
+          // Already onboarded — mark invite complete and let client sign in
+          await adminDb.collection("doctor_invites").doc(inviteId).update({
+            status: "completed",
+            completedAt: FieldValue.serverTimestamp(),
+            createdUserId: userId,
+            updatedAt: FieldValue.serverTimestamp(),
           });
+          return NextResponse.json({ success: true, email });
         }
-        
-        // Doctor exists but onboarding incomplete, update profile
-        await usersService.update(firebaseUser.uid, {
+
+        // Exists but onboarding incomplete — update profile
+        await adminDb.collection("users").doc(userId).update({
           displayName,
-          phoneNumber,
+          ...(phoneNumber && { phoneNumber }),
+          "onboarding.doctorCompleted": true,
+          updatedAt: FieldValue.serverTimestamp(),
         });
-        
-        // Mark invite as completed
-        await doctorInvitesService.markAsCompleted(invite.id, firebaseUser.uid);
-        
-        return NextResponse.json({
-          success: true,
-          message: "Profile updated successfully",
-          redirect: "/doctor/dashboard",
+      } else {
+        // Auth user exists but no Firestore doc — create it
+        await adminDb.collection("users").doc(userId).set({
+          id: userId,
+          email,
+          displayName,
+          phoneNumber: phoneNumber || null,
+          role: "doctor",
+          isActive: true,
+          isSuspended: false,
+          onboarding: { patientCompleted: false, doctorCompleted: true },
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         });
       }
-      
-      // Firebase Auth user exists but no Firestore doc
-      // Create Firestore user
-      await usersService.create({
-        id: firebaseUser.uid,
-        email: invite.email,
+    } else {
+      // 5. Create new Firebase Auth user
+      const newUser = await adminAuth.createUser({
+        email,
+        password,
         displayName,
-        phoneNumber,
+      });
+      userId = newUser.uid;
+
+      // 6. Create Firestore user document
+      await adminDb.collection("users").doc(userId).set({
+        id: userId,
+        email,
+        displayName,
+        phoneNumber: phoneNumber || null,
         role: "doctor",
         isActive: true,
         isSuspended: false,
-        onboarding: {
-          patientCompleted: false,
-          doctorCompleted: true,
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      
-      await doctorInvitesService.markAsCompleted(invite.id, firebaseUser.uid);
-      
-      return NextResponse.json({
-        success: true,
-        message: "Account created successfully",
-        redirect: "/doctor/dashboard",
+        onboarding: { patientCompleted: false, doctorCompleted: true },
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       });
     }
 
-    // Create new Firebase Auth user
-    const newFirebaseUser = await adminAuth.createUser({
-      email: invite.email,
-      password,
-      displayName,
+    // 7. Mark invite as completed
+    await adminDb.collection("doctor_invites").doc(inviteId).update({
+      status: "completed",
+      completedAt: FieldValue.serverTimestamp(),
+      createdUserId: userId,
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Create Firestore user
-    await usersService.create({
-      id: newFirebaseUser.uid,
-      email: invite.email,
-      displayName,
-      phoneNumber,
-      role: "doctor",
-      isActive: true,
-      isSuspended: false,
-      onboarding: {
-        patientCompleted: false,
-        doctorCompleted: true,
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    // Return email so client can auto sign-in
+    return NextResponse.json({ success: true, email });
 
-    // Mark invite as completed
-    await doctorInvitesService.markAsCompleted(invite.id, newFirebaseUser.uid);
-
-    return NextResponse.json({
-      success: true,
-      message: "Account created successfully",
-      redirect: "/doctor/dashboard",
-    });
   } catch (error: any) {
     console.error("Doctor onboarding error:", error);
-    
-    // Try to mark invite as failed if we have the token
-    try {
-      const body = await request.json().catch(() => ({}));
-      if (body.token) {
-        const invite = await doctorInvitesService.getByToken(body.token);
-        if (invite) {
-          await doctorInvitesService.markAsFailed(invite.id, error.message || "Unknown error");
-        }
-      }
-    } catch (markFailedError) {
-      console.error("Failed to mark invite as failed:", markFailedError);
-    }
-    
     return NextResponse.json(
       { error: error.message || "Failed to complete onboarding" },
       { status: 500 }
