@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doctorInvitesService } from "@/services/firestore";
 import { useAuth } from "@/contexts/auth-context";
-import { Eye, EyeOff, Lock, User, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Lock, User, Mail, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 export default function InviteAcceptancePage() {
   const params = useParams();
   const router = useRouter();
-  const { signInWithEmail } = useAuth();
+  const { signInWithEmail, sendVerificationEmail } = useAuth();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [invite, setInvite] = useState<any>(null);
@@ -115,9 +115,17 @@ export default function InviteAcceptancePage() {
       setStatusMessage("Signing you in...");
       await signInWithEmail({ email: data.email, password: formData.password });
 
-      // Step 3: Redirect to doctor dashboard
+      // Step 3: Send verification email
+      setStatusMessage("Sending verification email...");
+      try {
+        await sendVerificationEmail();
+      } catch (verifyErr) {
+        console.warn("[InvitePage] Could not send verification email:", verifyErr);
+      }
+
+      // Step 4: Redirect to verify-email page
       setSuccess(true);
-      router.push("/doctor/dashboard");
+      router.push("/auth/verify-email");
     } catch (err: any) {
       setError(err.message || "Failed to complete onboarding");
       setStatusMessage("");
@@ -164,7 +172,7 @@ export default function InviteAcceptancePage() {
               Welcome to Eye Aura!
             </h2>
             <p className="text-muted-foreground">
-              Your account has been created. Redirecting to your dashboard...
+              Your account has been created. Redirecting to email verification...
             </p>
           </CardContent>
         </Card>
@@ -184,7 +192,7 @@ export default function InviteAcceptancePage() {
           </div>
           <h1 className="font-display text-3xl text-primary mb-2">Complete Onboarding</h1>
           <p className="text-base text-muted-foreground">
-            Set up your doctor account for {invite.email}
+            You've been invited to join Eye Aura as a doctor
           </p>
         </div>
 
@@ -197,6 +205,22 @@ export default function InviteAcceptancePage() {
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Read-only email from invite — cannot be changed */}
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <div className="relative mt-2">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={invite.email}
+                    readOnly
+                    className="pl-10 bg-muted cursor-not-allowed"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">This email was set by the admin and cannot be changed</p>
+              </div>
+
               <div>
                 <Label htmlFor="displayName">Full Name *</Label>
                 <div className="relative mt-2">

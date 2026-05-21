@@ -26,7 +26,13 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     if (!loading && user?.emailVerified) {
-      router.push("/patient/dashboard");
+      if (user.role === "doctor") {
+        router.push("/doctor/dashboard");
+      } else if (user.role === "admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/patient/dashboard");
+      }
     }
   }, [user, loading, router]);
 
