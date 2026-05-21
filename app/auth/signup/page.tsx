@@ -21,22 +21,35 @@ export default function SignupPage() {
     displayName: "",
   });
   const [error, setError] = useState("");
+  const [showLoginLink, setShowLoginLink] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     console.log("[SignupPage] Starting signup process for:", formData.email);
-    
+
     try {
       const user = await signUp(formData);
       console.log("[SignupPage] Signup successful, user:", user.id);
       console.log("[SignupPage] User role:", user.role);
-      console.log("[SignupPage] Redirecting to /patient/dashboard");
-      router.push("/patient/dashboard");
+      console.log("[SignupPage] Email verified:", user.emailVerified);
+      console.log("[SignupPage] Redirecting to /auth/verify-email");
+      router.push("/auth/verify-email");
     } catch (err: any) {
       console.error("[SignupPage] Signup error:", err);
-      setError(err.message || "Failed to create account");
+
+      // Handle specific Firebase errors with user-friendly messages
+      if (err.code === 'auth/email-already-in-use') {
+        setError("This email is already registered.");
+        setShowLoginLink(true);
+      } else if (err.code === 'auth/weak-password') {
+        setError("Password is too weak. Please use at least 8 characters.");
+      } else if (err.code === 'auth/invalid-email') {
+        setError("Please enter a valid email address.");
+      } else {
+        setError(err.message || "Failed to create account");
+      }
     }
   };
 
@@ -149,6 +162,13 @@ export default function SignupPage() {
               {error && (
                 <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
                   {error}
+                  {showLoginLink && (
+                    <div className="mt-2">
+                      <Link href="/auth/login" className="text-primary hover:underline font-medium">
+                        Sign in instead →
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
 

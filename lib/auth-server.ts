@@ -40,6 +40,7 @@ export async function getServerSession() {
       isActive: userData.isActive ?? true,
       isSuspended: userData.isSuspended ?? false,
       onboardingCompleted: (userData.onboarding?.patientCompleted ?? false) || (userData.onboarding?.doctorCompleted ?? false),
+      emailVerified: decodedToken.emailVerified || false,
       createdAt: userData.createdAt?.toDate() || new Date(),
       updatedAt: userData.updatedAt?.toDate() || new Date(),
     };

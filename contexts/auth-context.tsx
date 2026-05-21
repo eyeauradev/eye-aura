@@ -13,6 +13,8 @@ interface AuthContextType extends AuthState {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<UserProfile>;
+  sendVerificationEmail: () => Promise<void>;
+  reloadUser: () => Promise<UserProfile>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -113,6 +115,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const sendVerificationEmail = async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      await authService.sendVerificationEmail();
+      setState(prev => ({ ...prev, loading: false, error: null }));
+    } catch (error) {
+      setState(prev => ({ ...prev, loading: false, error: error as Error }));
+      throw error;
+    }
+  };
+
+  const reloadUser = async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const user = await authService.reloadUser();
+      setState({ user, loading: false, error: null });
+      return user;
+    } catch (error) {
+      setState(prev => ({ ...prev, loading: false, error: error as Error }));
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     ...state,
     signInWithEmail,
@@ -121,6 +146,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     updateUserProfile,
+    sendVerificationEmail,
+    reloadUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

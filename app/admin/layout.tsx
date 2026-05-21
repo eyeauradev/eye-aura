@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, UserPlus, LogOut, Menu, X, Home, CreditCard } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, UserPlus, LogOut, Menu, X, Home, CreditCard, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,17 +21,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!loading && (!user || user.role !== "admin")) {
       router.push("/auth/login");
     }
+    if (!loading && user && user.role === "admin" && !user.emailVerified) {
+      router.push("/auth/verify-email");
+    }
   }, [user, loading, router]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <RefreshCw className="h-12 w-12 text-primary animate-spin" />
       </div>
     );
   }
 
   if (!user || user.role !== "admin") {
+    return null;
+  }
+
+  if (user && !user.emailVerified) {
     return null;
   }
 

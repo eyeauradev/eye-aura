@@ -184,11 +184,44 @@ Public website components check auth state via `useAuth()` hook:
 ### Signup Flow
 1. User navigates to `/auth/signup`
 2. Fills in email, password, and display name
-3. Firebase Auth creates user account
-4. User document created in `users/{uid}` collection with `role = "patient"` (automatic)
-5. User redirected to `/patient/dashboard`
+3. Firebase Auth creates user account (`emailVerified: false`)
+4. Server-side API creates Firestore user document via Admin SDK (bypasses security rules)
+5. Verification email sent via Firebase Auth with actionCodeSettings (`sendEmailVerification`)
+6. User redirected to `/auth/verify-email`
+7. User must verify email before accessing protected routes
 
 **IMPORTANT**: Public signup ALWAYS creates patient accounts. Doctor accounts can only be created through admin invite flow.
+
+### Email Verification Flow
+1. After signup, user redirected to `/auth/verify-email`
+2. User sees verification screen with:
+   - "Please verify your email to continue" message
+   - User's email address displayed
+   - "I've verified my email" button (reloads Firebase Auth state)
+   - "Resend verification email" button (60-second cooldown)
+   - "Sign out" button
+3. User clicks verification link in email
+4. Firebase Auth marks `emailVerified: true`
+5. User returns to `/auth/verify-email` and clicks "I've verified my email"
+6. `reloadUser()` refreshes Firebase Auth state
+7. User redirected to `/patient/dashboard`
+
+**Verification Enforcement**:
+- Unverified users (`emailVerified: false`) cannot access:
+  - `/patient/*` routes
+  - `/doctor/*` routes
+  - `/admin/*` routes
+  - `/booking/*` routes
+  - Payment flows
+  - Booking request creation
+- Enforcement happens at page layout level (client-side)
+- Google Sign-In accounts are auto-verified (no verification screen)
+
+**Verification Page**: `/auth/verify-email`
+- Premium, calm, wellness-oriented UI
+- Mobile-responsive (320px minimum)
+- Reassuring messaging (no technical jargon)
+- Clear instructions and action buttons
 
 ### Login Flow
 1. User navigates to `/auth/login`
@@ -196,7 +229,26 @@ Public website components check auth state via `useAuth()` hook:
 3. Firebase Auth authenticates credentials
 4. Session cookie (`__session`) set
 5. User document fetched from Firestore
-6. User redirected to role-appropriate dashboard
+6. If `emailVerified: false` → redirect to `/auth/verify-email`
+7. If `emailVerified: true` → redirect to role-appropriate dashboard
+8. Google Sign-In accounts are auto-verified → direct dashboard redirect
+
+### Forgot Password Flow
+1. User navigates to `/auth/forgot-password` (from login page link)
+2. Enters email address
+3. Firebase Auth sends password reset email
+4. User sees success message with email confirmation
+5. User clicks reset link in email
+6. Redirected to Firebase password reset page
+7. User sets new password
+8. User can sign in with new password
+
+**Forgot Password Page:**
+- Premium, calm UI matching Eye Aura aesthetic
+- Email input form
+- Success state showing email confirmation
+- Link back to login page
+- Mobile-responsive (320px minimum)
 
 ### Google Auth Flow
 1. User clicks "Sign in with Google"
@@ -221,6 +273,9 @@ Public website components check auth state via `useAuth()` hook:
 - Middleware checks for session cookie
 - Routes without session redirect to `/auth/login`
 - Role-based protection implemented via route prefixes
+- Email verification enforced at page layout level (patient, doctor, admin layouts)
+- Unverified users (`emailVerified: false`) redirected to `/auth/verify-email`
+- `/auth/verify-email` is a public route (accessible without verification)
 
 ### Loading States
 - Auth context provides `loading` state
@@ -248,6 +303,7 @@ Public website components check auth state via `useAuth()` hook:
 - `role` (string) - User role: "patient" | "doctor" | "admin"
 - `phoneNumber` (string, optional) - Phone number
 - `onboardingCompleted` (boolean) - Onboarding status
+- `emailVerified` (boolean) - Firebase Auth email verification status (synchronized from Firebase Auth, not stored in Firestore)
 - `createdAt` (timestamp) - Account creation date
 - `updatedAt` (timestamp) - Last update date
 
@@ -682,7 +738,22 @@ Public website components check auth state via `useAuth()` hook:
 - **Main Features**: Registration form with role selection
 - **Data Dependencies**: Firebase Auth, Firestore
 - **Related Firestore Collections**: users
-- **Business Logic**: Firebase Auth signup, user document creation
+- **Business Logic**: Firebase Auth signup, user document creation, verification email sent, redirect to verify-email
+
+#### `/auth/verify-email`
+- **Purpose**: Email verification screen
+- **Accessible Role**: Authenticated users (public route, accessible without verification)
+- **Main Features**: Email display, verification status refresh, resend verification email, sign out
+- **Data Dependencies**: Firebase Auth
+- **Related Firestore Collections**: None (uses Firebase Auth only)
+- **Business Logic**:
+  - Displays user's email address
+  - "I've verified my email" button reloads Firebase Auth user state via `reloadUser()`
+  - "Resend verification email" button triggers `sendVerificationEmail()`
+  - "Sign out" button logs out user
+  - Auto-redirects to dashboard when `emailVerified: true`
+  - Premium, calm, wellness-oriented UI
+  - Mobile-responsive (320px minimum)
 
 ### PATIENT ROUTES
 

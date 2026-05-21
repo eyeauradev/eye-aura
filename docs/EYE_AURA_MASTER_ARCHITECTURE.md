@@ -1849,6 +1849,262 @@ useEffect(() => {
 
 Middleware only checks for cookie presence — it cannot verify roles due to Edge Runtime limitations.
 
+## Email Verification
+
+Email verification is **mandatory** for all email/password sign-ups. Google Sign-In accounts are automatically verified by Firebase.
+
+### Verification Flow
+
+```
+Patient signs up with email/password
+  │
+  ├─ 1. Firebase Auth creates user account (emailVerified: false)
+  │
+  ├─ 2. Server-side API creates Firestore user document via Admin SDK
+  │     (bypasses client-side security rules, more reliable)
+  │
+  ├─ 3. Verification email sent via Firebase Auth (sendEmailVerification)
+  │     with actionCodeSettings (URL for redirect after verification)
+  │
+  └─ 4. User redirected to /auth/verify-email
+          │
+          ├─ User sees: "Please verify your email to continue"
+          ├─ Email address displayed
+          ├─ "I've verified my email" button → reloads Firebase Auth user
+          ├─ "Resend verification email" button (60-second cooldown)
+          └─ "Sign out" button
+
+User clicks verification link in email
+  │
+  ├─ 5. Firebase Auth marks emailVerified: true
+  │
+  └─ 6. User returns to /auth/verify-email
+          │
+          ├─ Clicks "I've verified my email"
+          ├─ reloadUser() refreshes Firebase Auth state
+          ├─ emailVerified now true
+          └─ Redirects to /patient/dashboard
+```
+
+### Verification Enforcement
+
+Unverified users (`emailVerified: false`) **cannot access**:
+- `/patient/*` routes
+- `/doctor/*` routes
+- `/admin/*` routes
+- `/booking/*` routes
+- Payment flows
+- Booking request creation
+- Support ticket creation
+
+Enforcement happens at two levels:
+
+**1. Page Layout Level (Client-Side)**
+```typescript
+// /app/patient/layout.tsx, /app/doctor/layout.tsx, /app/admin/layout.tsx
+useEffect(() => {
+  if (!loading && user && !user.emailVerified) {
+    router.push("/auth/verify-email");
+  }
+}, [user, loading, router]);
+```
+
+**2. Login/Signup Redirects**
+- `/auth/signup` → after signup, redirect to `/auth/verify-email`
+- `/auth/login` → if emailVerified: false, redirect to `/auth/verify-email`
+- Google Sign-In → auto-verified, redirect directly to dashboard
+
+### Verification Page UI (`/auth/verify-email`)
+
+The verification screen is designed to be calm, premium, and wellness-oriented:
+
+**Visual Elements:**
+- Eye Aura logo with soft gradient background
+- Mail icon in a circular container
+- User's email displayed prominently
+- Subtle success/error states
+- Clean typography with proper spacing
+
+**User Actions:**
+- "I've verified my email" → reloads Firebase Auth state via `reloadUser()`
+- "Resend verification email" → triggers `sendVerificationEmail()`
+- "Sign out" → logs out and redirects to login
+
+**UX Philosophy:**
+- Reassuring, not alarming
+- Clear instructions
+- No technical jargon
+- Mobile-responsive (320px minimum)
+- Calm color palette (teal, warm neutrals)
+
+### Auth Context Extensions
+
+`useAuth()` now exposes:
+
+```typescript
+{
+  // ... existing methods
+  sendVerificationEmail(): Promise<void>  // Triggers Firebase Auth email verification with actionCodeSettings
+  reloadUser(): Promise<UserProfile>       // Reloads Firebase Auth user (refreshes emailVerified)
+}
+```
+
+**actionCodeSettings Configuration:**
+```typescript
+const actionCodeSettings = {
+  url: typeof window !== 'undefined'
+    ? `${window.location.origin}/auth/verify-email`
+    : 'http://localhost:3000/auth/verify-email',
+  handleCodeInApp: false,
+};
+await sendEmailVerification(user, actionCodeSettings);
+```
+
+This ensures the verification link redirects to the correct URL after verification.
+
+### UserProfile Type Extension
+
+```typescript
+interface UserProfile {
+  // ... existing fields
+  emailVerified: boolean;  // Firebase Auth email verification status
+}
+```
+
+### Server-Side User Document Creation
+
+To avoid Firestore security rule issues during signup, user documents are created via a server-side API route using Firebase Admin SDK:
+
+**API Route:** `/api/auth/create-user-document`
+
+```typescript
+// services/auth/auth.service.ts
+const response = await fetch("/api/auth/create-user-document", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    uid: userCredential.user.uid,
+    email: credentials.email,
+    displayName: credentials.displayName,
+    role: "patient",
+  }),
+});
+```
+
+**Why Server-Side:**
+- Firebase Admin SDK bypasses Firestore security rules
+- No dependency on client-side auth token propagation timing
+- More reliable than client-side Firestore writes
+- Prevents "Missing or insufficient permissions" errors
+
+### Server-Side Verification Check
+
+`lib/auth-server.ts` now includes `emailVerified` from Firebase Auth token:
+
+```typescript
+const profile: UserProfile = {
+  // ... existing fields
+  emailVerified: decodedToken.emailVerified || false,
+};
+```
+
+### Forgot Password Flow
+
+Users can reset their password via `/auth/forgot-password`:
+
+**Flow:**
+1. User navigates to `/auth/forgot-password`
+2. Enters email address
+3. Firebase Auth sends password reset email
+4. User clicks reset link in email
+5. User is redirected to Firebase password reset page
+6. User sets new password
+7. User can sign in with new password
+
+**Implementation:**
+```typescript
+// services/auth/auth.service.ts
+async resetPassword(email: string): Promise<void> {
+  await sendPasswordResetEmail(this.auth, email);
+}
+```
+
+**Forgot Password Page:**
+- Premium, calm UI matching Eye Aura aesthetic
+- Email input form
+- Success state showing email confirmation
+- Link back to login page
+- Mobile-responsive (320px minimum)
+
+**Login Page Integration:**
+- "Forgot your password?" link below sign-in form
+- Links to `/auth/forgot-password`
+
+### Google Sign-In Exception
+
+Google OAuth accounts are automatically marked as `emailVerified: true` by Firebase Auth. No verification screen shown for Google users.
+
+### Security Rationale
+
+Email verification prevents:
+- Temporary/disposable email addresses
+- Spam account creation
+- Unauthorized access to protected features
+- Payment fraud (unverified users cannot make payments)
+
+### Verification Status Persistence
+
+`emailVerified` is stored in Firebase Auth (source of truth). It is NOT stored in Firestore. The client-side `UserProfile.emailVerified` is synchronized from Firebase Auth on every auth state change.
+
+### Multi-Tab Behavior
+
+If user verifies email in another tab:
+- `onAuthStateChanged` fires in all tabs
+- Auth context updates with new `emailVerified: true`
+- Verification page detects change and redirects to dashboard
+
+### Resend Verification Cooldown
+
+To prevent abuse, the resend verification button has a 60-second cooldown:
+
+```typescript
+const [cooldown, setCooldown] = useState(0);
+
+useEffect(() => {
+  if (cooldown > 0) {
+    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }
+}, [cooldown]);
+
+const handleResend = async () => {
+  if (cooldown > 0) return;
+  // ... send verification email
+  setCooldown(60); // Start cooldown
+};
+```
+
+Button shows countdown timer during cooldown period.
+
+### Auth-Loading States
+
+Protected route layouts (patient, doctor, admin) show loading spinners to prevent dashboard flash before redirect:
+
+```typescript
+if (loading) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F0EDE8]">
+      <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+    </div>
+  );
+}
+```
+
+This prevents:
+- Auth flicker
+- Dashboard flash before redirect
+- Stale auth rendering
+
 <!-- SECTION:15 -->
 # 15. ENVIRONMENT VARIABLES
 

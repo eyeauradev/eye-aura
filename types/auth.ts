@@ -14,6 +14,7 @@ export interface UserProfile {
   isActive: boolean;
   isSuspended: boolean;
   onboardingCompleted: boolean; // Computed from role-specific onboarding
+  emailVerified: boolean; // Firebase Auth email verification status
 }
 
 export interface AuthState {

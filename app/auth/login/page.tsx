@@ -24,10 +24,18 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     try {
-      await signInWithEmail(formData);
-      router.push("/patient/dashboard");
+      const user = await signInWithEmail(formData);
+      console.log("[LoginPage] Sign-in successful, email verified:", user.emailVerified);
+
+      if (user.emailVerified) {
+        console.log("[LoginPage] Email verified, redirecting to dashboard");
+        router.push("/patient/dashboard");
+      } else {
+        console.log("[LoginPage] Email not verified, redirecting to verify-email");
+        router.push("/auth/verify-email");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     }
@@ -158,6 +166,12 @@ export default function LoginPage() {
                 Google
               </Button>
             </form>
+
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              <Link href="/auth/forgot-password" className="font-medium text-primary hover:underline">
+                Forgot your password?
+              </Link>
+            </p>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Don't have an account?{" "}

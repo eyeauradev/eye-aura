@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { Home, Calendar, FileText, MessageSquare, User, LogOut, Bell } from "lucide-react";
+import { Home, Calendar, FileText, MessageSquare, User, LogOut, Bell, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -16,12 +17,31 @@ const navItems = [
 
 export default function PatientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const router = useRouter();
+  const { user, signOut, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user && !user.emailVerified) {
+      router.push("/auth/verify-email");
+    }
+  }, [user, loading, router]);
 
   const handleSignOut = async () => {
     await signOut();
     window.location.href = "/auth/login";
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F0EDE8]">
+        <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (user && !user.emailVerified) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#F0EDE8]">

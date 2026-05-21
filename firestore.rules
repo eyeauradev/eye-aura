@@ -49,7 +49,7 @@ service cloud.firestore {
       
       // Create: Only allow creating patient users through client-side signup
       // Doctor users can only be created through server-side onboarding API
-      allow create: if signedIn() 
+      allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.email != null
         && isValidEmail(request.resource.data.email)

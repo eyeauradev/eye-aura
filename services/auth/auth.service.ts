@@ -8,6 +8,8 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   updateProfile,
+  sendEmailVerification,
+  reload,
 } from "firebase/auth";
 import {
   doc,
@@ -26,22 +28,22 @@ class AuthService {
   async signInWithEmail(credentials: LoginCredentials): Promise<UserProfile> {
     try {
       console.log("[AuthService] Starting email sign-in for:", credentials.email);
-      
+
       const userCredential = await signInWithEmailAndPassword(
         this.auth,
         credentials.email,
         credentials.password
       );
-      
+
       console.log("[AuthService] Firebase Auth email sign-in successful:", userCredential.user.uid);
-      
+
       const userProfile = await this.getUserProfile(userCredential.user);
-      
+
       // Check if user document exists in Firestore
       const userDoc = await getDoc(doc(this.db, "users", userCredential.user.uid));
       if (!userDoc.exists()) {
         console.log("[AuthService] User document not found in Firestore, creating it now");
-        
+
         const newUserProfile: UserProfile = {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
@@ -53,13 +55,14 @@ class AuthService {
           onboardingCompleted: false,
           isActive: true,
           isSuspended: false,
+          emailVerified: userCredential.user.emailVerified || false,
         };
-        
+
         await this.createUserProfile(newUserProfile);
         console.log("[AuthService] Firestore document created for email sign-in user");
         return newUserProfile;
       }
-      
+
       console.log("[AuthService] User document exists in Firestore");
       return userProfile;
     } catch (error) {
@@ -71,17 +74,17 @@ class AuthService {
   async signInWithGoogle(): Promise<UserProfile> {
     try {
       console.log("[AuthService] Starting Google sign-in");
-      
+
       const userCredential = await signInWithPopup(this.auth, googleAuthProvider);
       console.log("[AuthService] Firebase Auth Google sign-in successful:", userCredential.user.uid);
-      
+
       const userProfile = await this.getUserProfile(userCredential.user);
-      
+
       // Check if user document exists in Firestore
       const userDoc = await getDoc(doc(this.db, "users", userCredential.user.uid));
       if (!userDoc.exists()) {
         console.log("[AuthService] User document not found in Firestore, creating it now");
-        
+
         const newUserProfile: UserProfile = {
           id: userCredential.user.uid,
           email: userCredential.user.email || "",
@@ -93,13 +96,14 @@ class AuthService {
           onboardingCompleted: false,
           isActive: true,
           isSuspended: false,
+          emailVerified: userCredential.user.emailVerified || false, // Google accounts are auto-verified
         };
-        
+
         await this.createUserProfile(newUserProfile);
         console.log("[AuthService] Firestore document created for Google sign-in user");
         return newUserProfile;
       }
-      
+
       console.log("[AuthService] User document exists in Firestore");
       return userProfile;
     } catch (error) {
@@ -119,20 +123,40 @@ class AuthService {
   async signUp(credentials: SignupCredentials): Promise<UserProfile> {
     try {
       console.log("[AuthService] Starting email signup for:", credentials.email);
-      
+
       const userCredential = await createUserWithEmailAndPassword(
         this.auth,
         credentials.email,
         credentials.password
       );
-      
+
       console.log("[AuthService] Firebase Auth user created:", userCredential.user.uid);
 
       await updateProfile(userCredential.user, {
         displayName: credentials.displayName,
       });
-      
+
       console.log("[AuthService] Firebase Auth profile updated");
+
+      // Create user document via server-side API (uses Admin SDK, bypasses client-side security rules)
+      console.log("[AuthService] Creating user document via server API");
+      const response = await fetch("/api/auth/create-user-document", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: userCredential.user.uid,
+          email: credentials.email,
+          displayName: credentials.displayName,
+          role: "patient",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create user document");
+      }
+
+      console.log("[AuthService] User document created successfully via server API");
 
       const userProfile: UserProfile = {
         id: userCredential.user.uid,
@@ -144,11 +168,19 @@ class AuthService {
         onboardingCompleted: false,
         isActive: true,
         isSuspended: false,
+        emailVerified: userCredential.user.emailVerified || false,
       };
 
-      console.log("[AuthService] Attempting to create Firestore document for user:", userProfile.id);
-      await this.createUserProfile(userProfile);
-      console.log("[AuthService] Firestore document created successfully");
+      // Send verification email
+      console.log("[AuthService] Sending verification email");
+      const actionCodeSettings = {
+        url: typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/verify-email`
+          : 'http://localhost:3000/auth/verify-email',
+        handleCodeInApp: false,
+      };
+      await sendEmailVerification(userCredential.user, actionCodeSettings);
+      console.log("[AuthService] Verification email sent");
 
       return userProfile;
     } catch (error) {
@@ -173,6 +205,39 @@ class AuthService {
     }
   }
 
+  async sendVerificationEmail(): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error("No authenticated user");
+
+    try {
+      const actionCodeSettings = {
+        url: typeof window !== 'undefined'
+          ? `${window.location.origin}/auth/verify-email`
+          : 'http://localhost:3000/auth/verify-email',
+        handleCodeInApp: false,
+      };
+      await sendEmailVerification(user, actionCodeSettings);
+      console.log("[AuthService] Verification email sent");
+    } catch (error) {
+      console.error("[AuthService] Error sending verification email:", error);
+      throw this.handleError(error);
+    }
+  }
+
+  async reloadUser(): Promise<UserProfile> {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error("No authenticated user");
+
+    try {
+      await reload(user);
+      console.log("[AuthService] User reloaded, emailVerified:", user.emailVerified);
+      return await this.getUserProfile(user);
+    } catch (error) {
+      console.error("[AuthService] Error reloading user:", error);
+      throw this.handleError(error);
+    }
+  }
+
   async getCurrentUserProfile(): Promise<UserProfile | null> {
     const user = this.auth.currentUser;
     if (!user) return null;
@@ -182,7 +247,7 @@ class AuthService {
   private async getUserProfile(user: User): Promise<UserProfile> {
     try {
       const userDoc = await getDoc(doc(this.db, "users", user.uid));
-      
+
       if (userDoc.exists()) {
         const data = userDoc.data();
         return {
@@ -199,6 +264,7 @@ class AuthService {
           isActive: data.isActive ?? true,
           isSuspended: data.isSuspended ?? false,
           onboardingCompleted: data.onboarding?.patientCompleted || data.onboarding?.doctorCompleted || false,
+          emailVerified: user.emailVerified || false,
         };
       }
     } catch (error) {
@@ -220,6 +286,7 @@ class AuthService {
       isActive: true,
       isSuspended: false,
       onboardingCompleted: false,
+      emailVerified: user.emailVerified || false,
     };
 
     try {
