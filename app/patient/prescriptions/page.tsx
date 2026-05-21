@@ -22,13 +22,18 @@ export default function PatientPrescriptionsPage() {
         setLoading(true);
         
         const prescriptionData = await prescriptionsService.getByPatientId(user.id, 50);
-        
+
         // Enrich with doctor and appointment data
         const enrichedPrescriptions = await Promise.all(
           prescriptionData.map(async (prescription) => {
-            const doctor = await usersService.getById(prescription.doctorId);
-            const appointment = await appointmentsService.getById(prescription.appointmentId);
-            return { ...prescription, doctor, appointment };
+            try {
+              const doctor = await usersService.getById(prescription.doctorId);
+              const appointment = await appointmentsService.getById(prescription.appointmentId);
+              return { ...prescription, doctor, appointment };
+            } catch (err) {
+              console.error("Error enriching prescription:", prescription.id, err);
+              return { ...prescription, doctor: null, appointment: null };
+            }
           })
         );
 
@@ -128,7 +133,11 @@ export default function PatientPrescriptionsPage() {
                           View Details
                         </Button>
                       </Link>
-                      <Button variant="outline" className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex items-center gap-2"
+                        onClick={() => window.open(`/prescriptions/${prescription.id}/pdf`, "_blank")}
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                     </div>

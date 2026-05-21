@@ -208,23 +208,23 @@ export default function PrescriptionDetailPage() {
                       <div className="grid gap-2 text-sm">
                         <div>
                           <span className="text-muted-foreground">SPH: </span>
-                          <span className="text-primary">{prescription.rightEye?.sph || "-"}</span>
+                          <span className="text-primary">{prescription.rightEye?.sph ?? "-"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">CYL: </span>
-                          <span className="text-primary">{prescription.rightEye?.cyl || "-"}</span>
+                          <span className="text-primary">{prescription.rightEye?.cyl ?? "-"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">AXIS: </span>
-                          <span className="text-primary">{prescription.rightEye?.axis || "-"}</span>
+                          <span className="text-primary">{prescription.rightEye?.axis ?? "-"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">VA: </span>
-                          <span className="text-primary">{prescription.rightEye?.va || "-"}</span>
+                          <span className="text-primary">{prescription.rightEye?.va ?? "-"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">PD: </span>
-                          <span className="text-primary">{prescription.rightEye?.pd || "-"}</span>
+                          <span className="text-primary">{prescription.rightEye?.pd ?? "-"}</span>
                         </div>
                       </div>
                     </div>
@@ -233,23 +233,23 @@ export default function PrescriptionDetailPage() {
                       <div className="grid gap-2 text-sm">
                         <div>
                           <span className="text-muted-foreground">SPH: </span>
-                          <span className="text-primary">{prescription.leftEye?.sph || "-"}</span>
+                          <span className="text-primary">{prescription.leftEye?.sph ?? "-"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">CYL: </span>
-                          <span className="text-primary">{prescription.leftEye?.cyl || "-"}</span>
+                          <span className="text-primary">{prescription.leftEye?.cyl ?? "-"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">AXIS: </span>
-                          <span className="text-primary">{prescription.leftEye?.axis || "-"}</span>
+                          <span className="text-primary">{prescription.leftEye?.axis ?? "-"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">VA: </span>
-                          <span className="text-primary">{prescription.leftEye?.va || "-"}</span>
+                          <span className="text-primary">{prescription.leftEye?.va ?? "-"}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">PD: </span>
-                          <span className="text-primary">{prescription.leftEye?.pd || "-"}</span>
+                          <span className="text-primary">{prescription.leftEye?.pd ?? "-"}</span>
                         </div>
                       </div>
                     </div>
@@ -265,7 +265,7 @@ export default function PrescriptionDetailPage() {
                 </div>
 
                 {/* Medications */}
-                {prescription.medications && prescription.medications.length > 0 && (
+                {prescription.medications?.length > 0 && (
                   <div className="pb-6 border-b border-primary/10">
                     <p className="text-sm font-bold text-muted-foreground mb-4">Medications</p>
                     <div className="space-y-4">
@@ -304,7 +304,7 @@ export default function PrescriptionDetailPage() {
                 )}
 
                 {/* Eye Drops */}
-                {prescription.eyeDrops && prescription.eyeDrops.length > 0 && (
+                {prescription.eyeDrops?.length > 0 && (
                   <div className="pb-6 border-b border-primary/10">
                     <p className="text-sm font-bold text-muted-foreground mb-4">Eye Drops</p>
                     <div className="space-y-4">
@@ -338,7 +338,7 @@ export default function PrescriptionDetailPage() {
                 )}
 
                 {/* Recommendations */}
-                {prescription.recommendations && prescription.recommendations.length > 0 && (
+                {prescription.recommendations?.length > 0 && (
                   <div className="pb-6 border-b border-primary/10">
                     <p className="text-sm font-bold text-muted-foreground mb-3">Recommendations</p>
                     <ul className="space-y-2">
@@ -353,7 +353,7 @@ export default function PrescriptionDetailPage() {
                 )}
 
                 {/* Exercises */}
-                {prescription.exercises && prescription.exercises.length > 0 && (
+                {prescription.exercises?.length > 0 && (
                   <div className="pb-6 border-b border-primary/10">
                     <p className="text-sm font-bold text-muted-foreground mb-4">Eye Exercises</p>
                     <div className="space-y-4">
