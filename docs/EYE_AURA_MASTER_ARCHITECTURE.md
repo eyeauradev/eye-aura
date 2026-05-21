@@ -315,6 +315,21 @@ type UserRole = "patient" | "doctor" | "admin"
 - **Doctor**: `role: "doctor"` is only ever set server-side in `/api/doctor-onboarding/complete` via Firebase Admin SDK. Client Firestore writes cannot set this role due to security rules (`request.resource.data.role == "patient"` required on create).
 - **Admin**: No automated creation flow. Must be set directly in Firebase Console or by running a one-time Admin SDK script.
 
+## Role Override Rules
+
+Only one cross-role promotion is permitted:
+
+| Existing Role | Invited as Doctor | Outcome |
+|---|---|---|
+| `patient` | ✅ Allowed | Role upgraded to `doctor`; Auth password updated to the one entered in the invite form; `onboarding.doctorCompleted` set to `true` |
+| `doctor` | ✅ Allowed | No role change; onboarding fields updated if incomplete |
+| `admin` | ❌ Blocked | Rejected at both the admin invite form (pre-check) and the onboarding API. Error returned. |
+| Other / unknown | ❌ Blocked | Rejected by onboarding API |
+
+**Enforcement is double-layered:**
+1. **Admin invite form** (`/admin/doctors/invite`) — calls `usersService.getByEmail()` before creating the invite. If the email belongs to an `admin`, the form displays an error and no invite document is created.
+2. **Onboarding API** (`/api/doctor-onboarding/complete`) — the server-side Admin SDK handler checks `userData.role` and enforces the same rules, providing a final authoritative gate regardless of what the client sends.
+
 ## Onboarding State
 
 Each user has an `onboarding` sub-object in their Firestore document:

@@ -81,34 +81,54 @@ export async function POST(request: NextRequest) {
 
       if (userDoc.exists) {
         const userData = userDoc.data()!;
+        const existingRole: string = userData.role;
 
-        if (userData.role !== "doctor") {
+        // Admin accounts are immutable — block unconditionally
+        if (existingRole === "admin") {
           return NextResponse.json(
-            { error: "This email is already registered with a different account type" },
+            { error: "Admin accounts cannot be converted via a doctor invite" },
             { status: 400 }
           );
         }
 
-        if (userData.onboarding?.doctorCompleted) {
-          // Already onboarded — mark invite complete and let client sign in
-          await adminDb.collection("doctor_invites").doc(inviteId).update({
-            status: "completed",
-            completedAt: FieldValue.serverTimestamp(),
-            createdUserId: userId,
+        if (existingRole === "doctor") {
+          if (userData.onboarding?.doctorCompleted) {
+            // Already onboarded — mark invite complete and let client sign in
+            await adminDb.collection("doctor_invites").doc(inviteId).update({
+              status: "completed",
+              completedAt: FieldValue.serverTimestamp(),
+              createdUserId: userId,
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+            return NextResponse.json({ success: true, email });
+          }
+          // Doctor exists but onboarding incomplete — update profile only
+          await adminDb.collection("users").doc(userId).update({
+            displayName,
+            ...(phoneNumber && { phoneNumber }),
+            "onboarding.doctorCompleted": true,
             updatedAt: FieldValue.serverTimestamp(),
           });
-          return NextResponse.json({ success: true, email });
+        } else if (existingRole === "patient") {
+          // Patient → Doctor upgrade: allowed
+          // Update Auth password to the one they entered for their new doctor account
+          await adminAuth.updateUser(userId, { displayName, password });
+          await adminDb.collection("users").doc(userId).update({
+            role: "doctor",
+            displayName,
+            ...(phoneNumber && { phoneNumber }),
+            "onboarding.doctorCompleted": true,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        } else {
+          // Unknown/unsupported role — block
+          return NextResponse.json(
+            { error: "This email is already registered with an incompatible account type" },
+            { status: 400 }
+          );
         }
-
-        // Exists but onboarding incomplete — update profile
-        await adminDb.collection("users").doc(userId).update({
-          displayName,
-          ...(phoneNumber && { phoneNumber }),
-          "onboarding.doctorCompleted": true,
-          updatedAt: FieldValue.serverTimestamp(),
-        });
       } else {
-        // Auth user exists but no Firestore doc — create it
+        // Auth user exists but no Firestore doc — create it as doctor
         await adminDb.collection("users").doc(userId).set({
           id: userId,
           email,

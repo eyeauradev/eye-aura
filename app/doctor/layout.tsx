@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
@@ -51,9 +52,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         <div className="mx-auto max-w-7xl px-3 py-3 sm:px-5 sm:py-4">
           <div className="flex items-center justify-between">
             <Link href="/doctor/dashboard" className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#0F4F4B] to-[#1A6B66] flex items-center justify-center">
-                <span className="text-white font-bold text-lg">EA</span>
-              </div>
+              <Image src="/eye.png" alt="Eye Aura" width={40} height={40} className="h-10 w-10 object-contain" priority />
               <span className="font-display text-xl text-primary hidden sm:block">Eye Aura</span>
             </Link>
             

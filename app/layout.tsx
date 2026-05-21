@@ -11,6 +11,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://eyeaura.com"),
+  icons: {
+    icon: "/eye.png",
+    shortcut: "/eye.png",
+    apple: "/eye.png",
+  },
   title: {
     default: "Eye Aura | Vision Care Anywhere",
     template: "%s | Eye Aura",

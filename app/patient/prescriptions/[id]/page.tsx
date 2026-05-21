@@ -59,8 +59,7 @@ export default function PrescriptionDetailPage() {
   };
 
   const handleDownload = () => {
-    // In production, this would generate a PDF
-    alert("PDF download would be generated here");
+    router.push(`/prescriptions/${prescription?.id}/pdf`);
   };
 
   if (loading) {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { doctorInvitesService } from "@/services/firestore";
+import { doctorInvitesService, usersService } from "@/services/firestore";
 import { sendDoctorInviteEmail } from "@/services/email/email.service";
 import { Mail, User, Calendar, Clock, ArrowLeft, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,14 @@ export default function AdminDoctorInvitePage() {
 
       if (!user) {
         setError("You must be logged in to invite doctors");
+        return;
+      }
+
+      // Pre-check: block invite if email belongs to an admin account
+      const existingUser = await usersService.getByEmail(formData.email);
+      if (existingUser?.role === "admin") {
+        setError("Cannot send a doctor invite to an admin account");
+        setLoading(false);
         return;
       }
 

@@ -60,11 +60,11 @@ function Header({ user }: { user: any }) {
       >
         <Link href="#" className="flex items-center gap-3 rounded-full pr-3">
           <Image
-            src="/eye-aura-logo.png"
+            src="/eye.png"
             alt="Eye Aura"
             width={56}
             height={56}
-            className="h-11 w-11 rounded-full object-cover"
+            className="h-11 w-11 rounded-full object-contain"
             priority
           />
           <span className="hidden text-sm font-bold uppercase tracking-[0.22em] text-primary sm:inline">
@@ -448,9 +448,9 @@ function Footer() {
           <Image
             src="/eye-aura-logo.png"
             alt="Eye Aura"
-            width={92}
-            height={92}
-            className="h-20 w-20 rounded-full object-cover"
+            width={180}
+            height={180}
+            className="w-44 h-auto object-contain"
           />
           <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">
             Premium digital eye wellness for modern living. Calm, accessible,

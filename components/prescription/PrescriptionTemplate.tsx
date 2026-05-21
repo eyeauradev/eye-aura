@@ -73,46 +73,24 @@ export default function PrescriptionTemplate(props: PrescriptionTemplateProps) {
       <div style={{ display: "flex", alignItems: "center", marginBottom: "3.5mm", paddingBottom: "3mm", borderBottom: `1px solid ${BORDER_COLOR}` }}>
 
         {/* Logo + Branding */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
-          {/* Eye logo circle */}
-          <div style={{ position: "relative", width: "52px", height: "52px", flexShrink: 0 }}>
-            {/* Gold outer ring */}
-            <svg width="52" height="52" viewBox="0 0 52 52" fill="none" style={{ position: "absolute", top: 0, left: 0 }}>
-              <circle cx="26" cy="26" r="24" stroke={GOLD} strokeWidth="1.5" fill="none" />
-              {/* Gold sparkle */}
-              <path d="M26 2 L27 5 L30 4 L28 7 L31 8 L28 9 L29 12 L26 10 L23 12 L24 9 L21 8 L24 7 L22 4 L25 5 Z" fill={GOLD} opacity="0.9" />
-              {/* Leaf left */}
-              <ellipse cx="14" cy="34" rx="5" ry="10" transform="rotate(35 14 34)" fill={GREEN} opacity="0.7" />
-              {/* Leaf right */}
-              <ellipse cx="38" cy="34" rx="5" ry="10" transform="rotate(-35 38 34)" fill={GREEN} opacity="0.7" />
-              {/* Eye shape */}
-              <ellipse cx="26" cy="27" rx="11" ry="6" fill="white" />
-              <circle cx="26" cy="27" r="4.5" fill={GREEN} />
-              <circle cx="26" cy="27" r="2.5" fill="#0D2B1F" />
-              <circle cx="27.5" cy="25.5" r="1" fill="white" />
-            </svg>
-          </div>
-
-          {/* Text: EYE AURA / by Harshita / tagline */}
-          <div>
-            <div style={{ fontSize: "19pt", fontWeight: 900, color: GREEN, letterSpacing: "4px", lineHeight: 1, fontFamily: "'Lato', Arial, sans-serif" }}>
-              EYE AURA
-            </div>
-            <div style={{ fontSize: "10pt", color: GOLD, fontStyle: "italic", letterSpacing: "1px", lineHeight: 1.2, fontFamily: "Georgia, serif" }}>
-              by Harshita
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
-              <div style={{ height: "1px", width: "18px", background: GOLD }} />
-              <span style={{ fontSize: "5.5pt", letterSpacing: "2.5px", color: TEXT_MID, fontWeight: 700 }}>
-                PERSONALIZED VISION CARE
-              </span>
-              <div style={{ height: "1px", width: "18px", background: GOLD }} />
-            </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+          {/* Full Eye Aura logo */}
+          <img
+            src="/eye-aura-logo.png"
+            alt="Eye Aura"
+            style={{ height: "110px", width: "auto" }}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", width: "80%" }}>
+            <div style={{ height: "1px", flex: 1, background: GOLD }} />
+            <span style={{ fontSize: "5.5pt", letterSpacing: "2.5px", color: TEXT_MID, fontWeight: 700, whiteSpace: "nowrap" }}>
+              PERSONALIZED VISION CARE
+            </span>
+            <div style={{ height: "1px", flex: 1, background: GOLD }} />
           </div>
         </div>
 
         {/* Vertical divider */}
-        <div style={{ width: "1px", background: BORDER_COLOR, height: "42px", margin: "0 14px", alignSelf: "center" }} />
+        <div style={{ width: "1px", background: BORDER_COLOR, alignSelf: "stretch", margin: "0 14px" }} />
 
         {/* Contact info */}
         <div style={{ textAlign: "left", minWidth: "130px" }}>
