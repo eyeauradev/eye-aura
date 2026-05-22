@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { Save, Bell, CheckCircle } from "lucide-react";
+import { Save, Bell, CheckCircle, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 export default function PatientProfilePage() {
   const { user, updateUserProfile } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     displayName: "",
@@ -86,12 +87,17 @@ export default function PatientProfilePage() {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Profile Header */}
                     <div className="flex items-center gap-4 pb-6 border-b border-primary/10">
-                      {user.photoURL && (
+                      {user.photoURL && !imgError ? (
                         <img
                           src={user.photoURL}
                           alt="Profile"
+                          onError={() => setImgError(true)}
                           className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover ring-2 ring-[#0f4f4b]/10 shrink-0"
                         />
+                      ) : (
+                        <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-[#0f4f4b]/10 grid place-items-center shrink-0">
+                          <User className="h-8 w-8 sm:h-10 sm:w-10 text-[#0f4f4b]/40" />
+                        </div>
                       )}
                       <div className="min-w-0">
                         <p className="font-display text-lg sm:text-xl text-primary truncate">{user.displayName || "Your Name"}</p>
