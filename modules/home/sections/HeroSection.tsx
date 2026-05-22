@@ -20,15 +20,14 @@ const bullets = [
 
 export function HeroSection({ user }: { user: any }) {
   const ctaHref = user ? `/${user.role}/dashboard` : "/booking";
-  const ctaLabel = user ? "Go to Dashboard" : "Book Free Consultation";
+  const ctaLabel = user ? "Go to Dashboard" : "Book Consultation";
 
   return (
-    <section className="relative min-h-[85vh] overflow-hidden pb-12 pt-24 sm:pt-28 md:pt-32 lg:min-h-screen lg:pb-16">
+    <section className="relative overflow-hidden pb-16 pt-24 sm:pb-20 sm:pt-28 md:pt-32 lg:pb-28 lg:pt-36">
       {/* Background blobs */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full bg-[#0f4f4b]/8 blur-[100px]" />
-        <div className="absolute -right-20 top-1/4 h-[500px] w-[500px] rounded-full bg-[#b5964d]/10 blur-[90px]" />
-        <div className="absolute bottom-0 left-1/3 h-[300px] w-[500px] rounded-full bg-[#1a9e98]/6 blur-[80px]" />
+        <div className="absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full bg-[#0f4f4b]/5 blur-[120px]" />
+        <div className="absolute -right-20 top-1/4 h-[400px] w-[400px] rounded-full bg-[#b5964d]/8 blur-[100px]" />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
@@ -104,7 +103,7 @@ export function HeroSection({ user }: { user: any }) {
               initial={{ opacity: 0, y: 30, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="relative w-full max-w-[320px] overflow-hidden rounded-[2rem] shadow-[0_32px 80px_rgba(15,79,75,0.22)] sm:max-w-[400px]"
+              className="relative w-full max-w-[320px] overflow-hidden rounded-[2rem] shadow-[0_32px_80px_rgba(15,79,75,0.22)] sm:max-w-[400px]"
             >
               <Image
                 src="/doctor_1.png"

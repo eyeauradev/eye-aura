@@ -19,6 +19,7 @@ export default function PatientAppointmentsPage() {
   const [upcomingAppointments, setUpcomingAppointments] = useState<(AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
   const [pastAppointments, setPastAppointments] = useState<(AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
   const [bookingRequests, setBookingRequests] = useState<(BookingRequestDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
+  const [rejectedRequests, setRejectedRequests] = useState<(BookingRequestDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
   const [filter, setFilter] = useState<"all" | "upcoming" | "past" | "requests">("all");
 
   useEffect(() => {
@@ -73,7 +74,9 @@ export default function PatientAppointmentsPage() {
             };
           })
         );
-        setBookingRequests(requestsWithDetails);
+        // Accepted → moved to appointments; rejected → separate section
+        setBookingRequests(requestsWithDetails.filter(r => r.status !== "accepted" && r.status !== "rejected"));
+        setRejectedRequests(requestsWithDetails.filter(r => r.status === "rejected"));
       } catch (error) {
         console.error("Error loading appointments:", error);
       } finally {
@@ -116,64 +119,56 @@ export default function PatientAppointmentsPage() {
 
   const BookingRequestCard = ({ request }: { request: BookingRequestDocument & { service?: ServiceDocument; doctor?: UserDocument } }) => {
     return (
-      <Card className="border-amber-200 bg-amber-50 transition hover:-translate-y-1 hover:shadow-lg">
-        <CardContent className="p-3 sm:p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h3 className="font-display text-xl text-primary mb-1">{request.service?.title || "Service"}</h3>
-              <p className="text-sm text-muted-foreground">with {request.doctor?.displayName || "Doctor"}</p>
+      <Card className="border-primary/10 bg-white overflow-hidden transition hover:-translate-y-1 hover:shadow-lg">
+        <div className="h-1 w-full bg-gradient-to-r from-[#b5964d] to-[#d4b978]" />
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-[#0f4f4b] leading-snug line-clamp-2 text-sm mb-0.5">{request.service?.title || "Consultation"}</p>
+              <p className="text-xs text-muted-foreground truncate">with {request.doctor?.displayName || "Doctor"}</p>
             </div>
-            <Badge className={statusConfig[request.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
+            <Badge className={`shrink-0 text-[10px] px-2 py-0.5 ${statusConfig[request.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}`}>
               {statusConfig[request.status as keyof typeof statusConfig]?.label || request.status}
             </Badge>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 mb-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4 text-secondary" />
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-[#1a9e98]" />
               <span>{new Date(request.requestedTime).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4 text-secondary" />
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-[#1a9e98]" />
               <span>{new Date(request.requestedTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
             </div>
           </div>
 
           {request.status === "reschedule_requested" && request.proposedTime && (
-            <div className="flex items-center gap-2 text-sm text-amber-700 mb-4 p-3 bg-amber-100 rounded-lg">
-              <AlertCircle className="h-4 w-4" />
-              <span>
-                Doctor proposed: {new Date(request.proposedTime).toLocaleString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+            <div className="flex items-center gap-2 text-xs text-amber-700 mb-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span className="line-clamp-2">Doctor proposed: {new Date(request.proposedTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
             </div>
           )}
 
           {request.rejectionReason && (
-            <div className="flex items-start gap-2 text-sm text-red-600 mb-4 p-3 bg-red-50 rounded-lg">
-              <XCircle className="h-4 w-4 mt-0.5" />
-              <span>Reason: {request.rejectionReason}</span>
+            <div className="flex items-start gap-2 text-xs text-red-600 mb-3 p-2.5 bg-red-50 rounded-xl border border-red-100">
+              <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span className="line-clamp-2">{request.rejectionReason}</span>
             </div>
           )}
 
           {request.rescheduleReason && (
-            <div className="flex items-start gap-2 text-sm text-orange-600 mb-4 p-3 bg-orange-50 rounded-lg">
-              <AlertCircle className="h-4 w-4 mt-0.5" />
-              <span>Reason: {request.rescheduleReason}</span>
+            <div className="flex items-start gap-2 text-xs text-orange-600 mb-3 p-2.5 bg-orange-50 rounded-xl border border-orange-100">
+              <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span className="line-clamp-2">{request.rescheduleReason}</span>
             </div>
           )}
 
-          <div className="flex items-center gap-3">
-            <Link href={`/patient/requests/${request.id}`} className="flex-1">
-              <Button variant="outline" className="w-full">
-                View Details
-              </Button>
-            </Link>
-          </div>
+          <Link href={`/patient/requests/${request.id}`}>
+            <Button variant="outline" className="w-full h-8 text-xs rounded-xl">
+              View Details
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     );
@@ -184,38 +179,39 @@ export default function PatientAppointmentsPage() {
     const canJoin = appointment.status === "confirmed" && new Date(appointment.scheduledFor) <= new Date(new Date().getTime() + 15 * 60000) && new Date(appointment.scheduledFor) > new Date(new Date().getTime() - (appointment.service?.duration || 30) * 60000);
 
     return (
-      <Card className="border-primary/10 transition hover:-translate-y-1 hover:shadow-lg">
-        <CardContent className="p-3 sm:p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h3 className="font-display text-xl text-primary mb-1">{appointment.service?.title}</h3>
-              <p className="text-sm text-muted-foreground">with {appointment.doctor?.displayName || "Doctor"}</p>
+      <Card className="border-primary/10 bg-white overflow-hidden transition hover:-translate-y-1 hover:shadow-lg">
+        <div className={`h-1 w-full bg-gradient-to-r ${isUpcoming ? "from-[#0f4f4b] to-[#1a9e98]" : "from-gray-200 to-gray-300"}`} />
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-[#0f4f4b] leading-snug line-clamp-2 text-sm mb-0.5">{appointment.service?.title || "Consultation"}</p>
+              <p className="text-xs text-muted-foreground truncate">with {appointment.doctor?.displayName || "Doctor"}</p>
             </div>
-            <Badge className={statusConfig[appointment.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
+            <Badge className={`shrink-0 text-[10px] px-2 py-0.5 ${statusConfig[appointment.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}`}>
               {statusConfig[appointment.status as keyof typeof statusConfig]?.label || appointment.status}
             </Badge>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 mb-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4 text-secondary" />
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-4">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-[#1a9e98]" />
               <span>{appointment.scheduledFor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4 text-secondary" />
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-[#1a9e98]" />
               <span>{appointment.scheduledFor.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex gap-2">
             <Link href={`/patient/appointments/${appointment.id}`} className="flex-1">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full h-8 text-xs rounded-xl">
                 View Details
               </Button>
             </Link>
             {canJoin && (
-              <Button className="flex items-center gap-2">
-                <Video className="h-4 w-4" />
+              <Button className="flex items-center gap-1.5 h-8 text-xs rounded-xl px-3">
+                <Video className="h-3.5 w-3.5" />
                 Join
               </Button>
             )}
@@ -314,21 +310,34 @@ export default function PatientAppointmentsPage() {
 
           {/* Booking Requests */}
           {showRequests && (
-            <div className="mb-12">
-              <h2 className="font-display text-2xl text-primary mb-6">Booking Requests</h2>
-              {bookingRequests.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {bookingRequests.map((request) => (
-                    <BookingRequestCard key={request.id} request={request} />
-                  ))}
+            <div className="mb-12 space-y-8">
+              <div>
+                <h2 className="font-display text-2xl text-primary mb-6">Booking Requests</h2>
+                {bookingRequests.length > 0 ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {bookingRequests.map((request) => (
+                      <BookingRequestCard key={request.id} request={request} />
+                    ))}
+                  </div>
+                ) : (
+                  <Card className="border-primary/10 bg-primary/5">
+                    <CardContent className="p-4 sm:p-8 text-center">
+                      <Clock className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
+                      <p className="text-base text-muted-foreground">No pending requests</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {rejectedRequests.length > 0 && (
+                <div>
+                  <h2 className="font-display text-2xl text-primary mb-6">Rejected Requests</h2>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {rejectedRequests.map((request) => (
+                      <BookingRequestCard key={request.id} request={request} />
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                <Card className="border-primary/10 bg-primary/5">
-                  <CardContent className="p-4 sm:p-8 text-center">
-                    <Clock className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
-                    <p className="text-base text-muted-foreground">No booking requests</p>
-                  </CardContent>
-                </Card>
               )}
             </div>
           )}

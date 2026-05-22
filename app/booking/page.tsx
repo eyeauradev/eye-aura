@@ -57,6 +57,13 @@ export default function BookingPage() {
     loadServicesWithDoctors();
   }, []);
 
+  // Redirect if not authenticated — must be in useEffect, not during render
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [authLoading, user, router]);
+
   const loadServicesWithDoctors = async () => {
     try {
       const allServices = await servicesService.getAll();
@@ -75,12 +82,6 @@ export default function BookingPage() {
       console.error("Failed to load services:", error);
     }
   };
-
-  // Redirect if not authenticated
-  if (!authLoading && !user) {
-    router.push("/auth/login");
-    return null;
-  }
 
   const handleServiceSelect = (service: ServiceDocument) => {
     setState({ ...state, service, doctor: null });

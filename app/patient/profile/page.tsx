@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { authService } from "@/services/auth/auth.service";
-import { User, Mail, Phone, Calendar, Save, Camera, Bell, CheckCircle } from "lucide-react";
+import { Save, Bell, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 
 export default function PatientProfilePage() {
   const { user, updateUserProfile } = useAuth();
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
@@ -86,31 +84,19 @@ export default function PatientProfilePage() {
                 </CardHeader>
                 <CardContent className="p-3 sm:p-6">
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Profile Image */}
-                    <div className="flex items-center gap-3 sm:gap-6 pb-6 border-b border-primary/10">
-                      <div className="relative shrink-0">
-                        {user.photoURL ? (
-                          <img
-                            src={user.photoURL}
-                            alt="Profile"
-                            className="h-16 w-16 sm:h-24 sm:w-24 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-16 w-16 sm:h-24 sm:w-24 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-8 w-8 sm:h-12 sm:w-12 text-primary" />
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-secondary text-white shadow-lg hover:bg-secondary/90 transition"
-                        >
-                          <Camera className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                    {/* Profile Header */}
+                    <div className="flex items-center gap-4 pb-6 border-b border-primary/10">
+                      {user.photoURL && (
+                        <img
+                          src={user.photoURL}
+                          alt="Profile"
+                          className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl object-cover ring-2 ring-[#0f4f4b]/10 shrink-0"
+                        />
+                      )}
                       <div className="min-w-0">
                         <p className="font-display text-lg sm:text-xl text-primary truncate">{user.displayName || "Your Name"}</p>
                         <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-                        <Badge className="mt-1 capitalize">{user.role}</Badge>
+                        <Badge className="mt-1.5 capitalize">{user.role}</Badge>
                       </div>
                     </div>
 

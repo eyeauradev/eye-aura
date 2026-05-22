@@ -44,27 +44,38 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
     return null;
   }
 
+  const firstName = user?.displayName?.split(" ")[0] || "Patient";
+  const initials = user?.displayName
+    ? user.displayName.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()
+    : "P";
+
   return (
     <div className="min-h-screen bg-[#F0EDE8]">
       {/* Header */}
-      <header className="border-b border-primary/10 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="mx-auto max-w-7xl px-3 py-3 sm:px-5 sm:py-4">
+      <header className="border-b border-[#0f4f4b]/8 bg-white/70 backdrop-blur-md sticky top-0 z-50">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-3.5">
           <div className="flex items-center justify-between">
-            <Link href="/patient/dashboard" className="flex items-center gap-2">
-              <Image src="/eye.png" alt="Eye Aura" width={40} height={40} className="h-10 w-10 object-contain" priority />
-              <span className="font-display text-xl text-primary hidden sm:block">Eye Aura</span>
+            <Link href="/patient/dashboard" className="flex items-center gap-2.5">
+              <Image src="/eye.png" alt="Eye Aura" width={36} height={36} className="h-9 w-9 object-contain" priority />
+              <div className="hidden sm:block">
+                <span className="font-display text-lg text-[#0f4f4b] leading-none block">Eye Aura</span>
+                <span className="text-[10px] text-[#0f4f4b]/40 leading-none">by Harshita</span>
+              </div>
             </Link>
-            
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground hidden sm:block">
-                {user?.displayName || "Welcome"}
-              </span>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-full bg-[#0f4f4b] grid place-items-center">
+                  <span className="text-[11px] font-bold text-white">{initials}</span>
+                </div>
+                <span className="text-sm font-medium text-[#0f4f4b]/70">{firstName}</span>
+              </div>
               <Button
                 variant="outline"
                 onClick={handleSignOut}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 h-8 text-xs rounded-xl px-3 border-[#0f4f4b]/15 text-[#0f4f4b]/60 hover:text-[#0f4f4b]"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
@@ -72,62 +83,65 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-5 sm:py-8">
-        <div className="flex gap-8">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
+        <div className="flex gap-7">
           {/* Sidebar Navigation */}
-          <aside className="w-64 flex-shrink-0 hidden lg:block">
-            <nav className="sticky top-24 space-y-2">
+          <aside className="w-56 flex-shrink-0 hidden lg:block">
+            <nav className="sticky top-24 space-y-1">
+              <p className="px-3 mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0f4f4b]/35">Patient Portal</p>
               {navItems.filter(item => !item.isCenter).map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition text-sm ${
                       isActive
-                        ? "bg-[#0F4F4B] text-white"
-                        : "text-muted-foreground hover:bg-white/50 hover:text-primary"
+                        ? "bg-[#0F4F4B] text-white font-medium shadow-sm"
+                        : "text-[#0f4f4b]/55 hover:bg-white/60 hover:text-[#0f4f4b]"
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span>{item.label}</span>
                   </Link>
                 );
               })}
-              <Link
-                href="/"
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl transition text-muted-foreground hover:bg-white/50 hover:text-primary"
-              >
-                <Home className="h-5 w-5" />
-                <span className="font-medium">Public Home</span>
-              </Link>
+              <div className="pt-3 mt-3 border-t border-[#0f4f4b]/8">
+                <Link
+                  href="/"
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition text-sm text-[#0f4f4b]/40 hover:bg-white/60 hover:text-[#0f4f4b]"
+                >
+                  <Home className="h-4 w-4 shrink-0" />
+                  <span>Public Home</span>
+                </Link>
+              </div>
             </nav>
           </aside>
 
           {/* Mobile Navigation */}
-          <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-primary/10 z-50">
-            <div className="flex items-end py-2">
+          <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/85 backdrop-blur-lg border-t border-[#0f4f4b]/8 z-50">
+            <div className="flex items-end py-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const isCenter = item.isCenter;
-                
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`flex-1 flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl transition ${
                       isCenter
-                        ? "bg-[#0F4F4B] text-white -mt-5 mx-1 shadow-lg pb-2"
+                        ? "bg-[#0F4F4B] text-white -mt-5 mx-1 shadow-[0_4px_16px_rgba(15,79,75,0.35)] pb-2 rounded-2xl"
                         : isActive
                           ? "text-[#0F4F4B]"
-                          : "text-muted-foreground"
+                          : "text-[#0f4f4b]/40"
                     }`}
                   >
                     <Icon className={`${isCenter ? "h-6 w-6" : "h-5 w-5"}`} />
-                    <span className="text-[10px] font-medium leading-tight text-center">{item.label}</span>
+                    <span className="text-[9px] font-medium leading-tight text-center">{item.label}</span>
                   </Link>
                 );
               })}
@@ -135,7 +149,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
           </nav>
 
           {/* Main Content */}
-          <main className="flex-1 min-w-0 pb-20 lg:pb-0">
+          <main className="flex-1 min-w-0 pb-24 lg:pb-0">
             {children}
           </main>
         </div>

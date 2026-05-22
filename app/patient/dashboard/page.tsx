@@ -68,7 +68,7 @@ export default function PatientDashboard() {
 
         // Load booking requests — only non-accepted ones (accepted become confirmed appointments)
         const requests = await bookingRequestsService.getByPatientId(user.id);
-        const activeRequests = requests.filter(r => r.status !== "accepted");
+        const activeRequests = requests.filter(r => r.status !== "accepted" && r.status !== "rejected");
         const enrichedRequests = await Promise.all(
           activeRequests.slice(0, 5).map(async (req) => {
             const service = await servicesService.getById(req.serviceId);
@@ -205,78 +205,41 @@ export default function PatientDashboard() {
             <div className="lg:col-span-2 space-y-6">
               {/* Booking Requests */}
               {bookingRequests.length > 0 && (
-                <Card className="border-amber-200 bg-amber-50">
+                <Card className="border-primary/10">
                   <CardHeader className="flex items-center justify-between p-3 sm:p-6">
                     <div className="flex items-center gap-3">
-                      <CardTitle className="flex items-center gap-2">
-                        <Bell className="h-5 w-5 text-amber-600" />
-                        Booking Requests
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Bell className="h-5 w-5 text-[#b5964d]" />
+                        Pending Requests
                       </CardTitle>
-                      <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+                      <Badge className="bg-[#b5964d]/10 text-[#b5964d] border-[#b5964d]/20 text-xs">
                         {bookingRequests.length}
                       </Badge>
                     </div>
-                    <Link href="/patient/requests">
-                      <Button variant="ghost" className="flex items-center gap-2">
+                    <Link href="/patient/appointments">
+                      <Button variant="ghost" className="flex items-center gap-1 text-xs h-8 px-2">
                         View All
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-3 w-3" />
                       </Button>
                     </Link>
                   </CardHeader>
-                  <CardContent className="p-3 sm:p-6">
-                    <div className="space-y-3">
+                  <CardContent className="p-3 sm:p-6 pt-0">
+                    <div className="space-y-2">
                       {bookingRequests.slice(0, 3).map((request) => (
                         <div
                           key={request.id}
-                          className="flex items-start gap-4 p-4 rounded-2xl bg-white/50 border border-amber-200"
+                          className="flex items-center gap-3 p-3 rounded-xl bg-[#f5f2ec] border border-primary/8"
                         >
-                          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-600">
-                            {getRequestStatusIcon(request.status)}
-                          </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="min-w-0">
-                                <p className="font-bold text-primary truncate">{request.service?.title || "Consultation"}</p>
-                                <p className="text-sm text-muted-foreground">with {request.doctor?.displayName || "Doctor"}</p>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                  <Clock className="h-3.5 w-3.5" />
-                                  <span>{new Date(request.requestedTime).toLocaleString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground/70 mt-1">Req #{request.id.slice(-6)}</p>
-                              </div>
-                              <Badge className={statusConfig[request.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
-                                {statusConfig[request.status as keyof typeof statusConfig]?.label || request.status}
-                              </Badge>
+                            <p className="font-semibold text-[#0f4f4b] text-sm truncate">{request.service?.title || "Consultation"}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                              <Clock className="h-3 w-3" />
+                              <span>{new Date(request.requestedTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                             </div>
-                            {request.status === "reschedule_requested" && request.proposedTime && (
-                              <div className="flex items-center gap-2 text-sm text-amber-700 mt-2">
-                                <AlertCircle className="h-4 w-4" />
-                                <span>
-                                  Doctor proposed: {new Date(request.proposedTime).toLocaleString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                              </div>
-                            )}
-                            {request.rejectionReason && (
-                              <p className="text-sm text-red-600 mt-2">
-                                Reason: {request.rejectionReason}
-                              </p>
-                            )}
-                            {request.rescheduleReason && (
-                              <p className="text-sm text-orange-600 mt-2">
-                                Reason: {request.rescheduleReason}
-                              </p>
-                            )}
                           </div>
+                          <Badge className={`shrink-0 text-[10px] px-2 py-0.5 ${statusConfig[request.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800"}`}>
+                            {statusConfig[request.status as keyof typeof statusConfig]?.label || request.status}
+                          </Badge>
                         </div>
                       ))}
                     </div>
@@ -360,7 +323,7 @@ export default function PatientDashboard() {
                           You don't have any upcoming appointments
                         </p>
                         <Link href="/booking">
-                          <Button>Request Your First Consultation</Button>
+                          <Button>Book a Consultation</Button>
                         </Link>
                       </CardContent>
                     </Card>

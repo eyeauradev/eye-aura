@@ -64,7 +64,7 @@ export function NavBar({ user }: { user: any }) {
                 >Sign In</Link>
                 <Link href="/booking"
                   className="rounded-xl bg-[#0f4f4b] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0a3a36]"
-                >Book Free Consult</Link>
+                >Book Consultation</Link>
               </>
             )}
           </div>
@@ -110,7 +110,7 @@ export function NavBar({ user }: { user: any }) {
             <div className="flex flex-col gap-3 px-8 pb-12">
               <Link href="/booking" onClick={() => setOpen(false)}
                 className="flex h-14 items-center justify-center rounded-2xl bg-[#1a9e98] text-base font-semibold text-white"
-              >Book Free Consultation</Link>
+              >Book Consultation</Link>
               <Link href="/auth/login" onClick={() => setOpen(false)}
                 className="flex h-14 items-center justify-center rounded-2xl border border-white/20 text-base font-medium text-white/70"
               >Sign In</Link>
