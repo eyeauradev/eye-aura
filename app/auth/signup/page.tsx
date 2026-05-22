@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { EA, eaError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +38,7 @@ export default function SignupPage() {
       console.log("[SignupPage] Redirecting to /auth/verify-email");
       router.push("/auth/verify-email");
     } catch (err: any) {
-      console.error("[SignupPage] Signup error:", err);
+      eaError(EA.AUTH_002, err);
 
       // Handle specific Firebase errors with user-friendly messages
       if (err.code === 'auth/email-already-in-use') {
@@ -65,8 +66,7 @@ export default function SignupPage() {
       console.log("[SignupPage] Redirecting to /patient/dashboard");
       router.push("/patient/dashboard");
     } catch (err: any) {
-      console.error("[SignupPage] Google sign-in error:", err);
-      setError(err.message || "Failed to sign up with Google");
+      setError(eaError(EA.AUTH_002, err));
     }
   };
 

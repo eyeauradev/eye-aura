@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { prescriptionsService, usersService, appointmentsService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { FileText, Calendar, User, ArrowRight, Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +32,7 @@ export default function PatientPrescriptionsPage() {
               const appointment = await appointmentsService.getById(prescription.appointmentId);
               return { ...prescription, doctor, appointment };
             } catch (err) {
-              console.error("Error enriching prescription:", prescription.id, err);
+              eaError(EA.PRE_001, err);
               return { ...prescription, doctor: null, appointment: null };
             }
           })
@@ -39,7 +40,7 @@ export default function PatientPrescriptionsPage() {
 
         setPrescriptions(enrichedPrescriptions);
       } catch (error) {
-        console.error("Error loading prescriptions:", error);
+        eaError(EA.PRE_001, error);
       } finally {
         setLoading(false);
       }

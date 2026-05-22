@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
+import { EA, eaError } from "@/lib/errors";
 import type { BookingRequestDocument } from "@/types/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ export default function RequestSubmittedPage({ params }: { params: Promise<{ id:
         const requestData = await bookingRequestsService.getById(requestId);
         setRequest(requestData);
       } catch (error) {
-        console.error("Failed to load request:", error);
+        eaError(EA.BKG_003, error);
       } finally {
         setLoading(false);
       }

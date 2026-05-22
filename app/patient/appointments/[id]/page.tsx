@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { bookingService } from "@/services/booking/booking.service";
 import { Calendar, Clock, FileText, Video, ArrowLeft, ArrowRight, Calendar as CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,7 @@ export default function AppointmentDetailPage() {
         const doctorData = await usersService.getById(appointmentData.doctorId);
         setDoctor(doctorData);
       } catch (error) {
-        console.error("Error loading appointment:", error);
+        eaError(EA.APT_002, error);
       } finally {
         setLoading(false);
       }
@@ -63,7 +64,7 @@ export default function AppointmentDetailPage() {
       await bookingService.cancelBooking(appointment.id, cancellationReason);
       router.push("/patient/appointments");
     } catch (err: any) {
-      setError(err.message || "Failed to cancel appointment");
+      setError(eaError(EA.APT_003, err));
     } finally {
       setCancelling(false);
     }
@@ -75,7 +76,7 @@ export default function AppointmentDetailPage() {
 
   const isUpcoming = appointment && new Date(appointment.scheduledFor) > new Date();
   const canCancel = isUpcoming && appointment.status !== "cancelled" && appointment.status !== "cancellation_requested";
-  const canReschedule = isUpcoming && appointment.status === "pending" || appointment.status === "confirmed";
+  const canReschedule = !!appointment && isUpcoming && (appointment.status === "pending" || appointment.status === "confirmed");
   const canJoin = appointment.status === "confirmed" && new Date(appointment.scheduledFor) <= new Date(new Date().getTime() + 15 * 60000) && new Date(appointment.scheduledFor) > new Date(new Date().getTime() - service?.duration * 60000);
 
   const statusConfig = {

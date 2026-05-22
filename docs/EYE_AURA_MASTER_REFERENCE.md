@@ -2115,9 +2115,192 @@ This document must be updated whenever:
 - Type definitions change
 - Role logic changes
 
-**LAST UPDATED**: 2026-05-20
-**CURRENT PHASE**: Phase 8 Complete - Doctor Invitation Architecture Refactor Complete
-**NEXT PHASE**: Phase 9 - Payments & Automation
+**LAST UPDATED**: 2026-05-22
+**CURRENT PHASE**: Phase 9 In Progress — Payments Complete, UI Polish & Error Hardening
+**LAST COMMIT AT UPDATE**: `1059ef2` (profile image fallback fix)
+**SESSION CHANGES**: `(uncommitted as of 2026-05-22 20:34 IST)` — hero gap, button alignment, TypeError fix, EA error codes, nav cleanup, tech section copy
+
+---
+
+#### 2026-05-21 — Email Verification Flow (commit `90ff27c`)
+
+**Added**
+- Complete email verification gate: unverified users (`emailVerified: false`) cannot access `/patient/*`, `/doctor/*`, `/admin/*`, `/booking/*`
+- `/auth/verify-email` page — premium calm UI with "I've verified my email" button, resend cooldown (60s), sign out option
+- `reloadUser()` method in auth context to refresh Firebase Auth state without full sign-out
+- `sendVerificationEmail()` method with 60-second resend cooldown
+- Auto-redirect to dashboard when `emailVerified` becomes `true`
+- Email verification enforcement in patient, doctor, admin layouts (client-side)
+
+**Changed**
+- Signup flow: after account creation, user is redirected to `/auth/verify-email` (not dashboard)
+- Google Sign-In accounts bypass verification (auto-verified)
+- Login flow: if `emailVerified: false` → redirect to `/auth/verify-email`
+
+**Fixed**
+- Unverified users could previously access protected routes; now blocked at layout level
+- Verification page works correctly for both email/password and Google auth paths
+
+**Technical**
+- `/auth/verify-email` is a public route (does not require verified session)
+- Mobile-responsive down to 320px
+- No technical jargon shown to users
+
+---
+
+#### 2026-05-21 — Doctor Invite Flow UX Fix (commit `cfead01`)
+
+**Fixed**
+- Doctor invite acceptance page (`/invite/[token]`): email field is now read-only (pre-filled from invite, cannot be changed)
+- Verification email is sent automatically after doctor onboarding completes
+- Doctor role override prevented: invite flow no longer allows role field to be changed by the client
+
+**Changed**
+- Onboarding form email input switched from editable to `readOnly` with pre-filled value from invite document
+- Post-onboarding: Firebase verification email triggered via `sendEmailVerification()` before redirect
+
+---
+
+#### 2026-05-21 — Rebrand: New Logo + Doctor Invite Role Override Fix (commit `e0a4a68`)
+
+**Changed**
+- Eye Aura logo updated across NavBar, auth pages, and doctor invite flow with new branded asset
+- Doctor invite role override hardened: server-side `/api/doctor-onboarding/complete` now rejects any client attempt to set a role other than `"doctor"`
+- NavBar updated with new logo image component
+
+**Fixed**
+- Edge case where a client could submit a modified role during onboarding; server now enforces `role = "doctor"` unconditionally for invite-based signups
+
+---
+
+#### 2026-05-21 — Landing Page Full Redesign (commit `7f673b3`)
+
+**Added**
+- Modular homepage architecture: each section is now a standalone component in `/modules/home/sections/`
+  - `NavBar.tsx` — Sticky transparent→frosted nav with mobile hamburger
+  - `HeroSection.tsx` — Animated hero with doctor photo, bullet points, dual CTAs, social proof
+  - `FounderStory.tsx` — Founder quote layout with portrait and clinic backstory cards
+  - `ProblemSection.tsx` — Problem/solution framing
+  - `HowItWorks.tsx` — Step-by-step booking process
+  - `ServicesSection.tsx` — Dynamic services from Firestore
+  - `GenerationsSection.tsx` — Age group targeting cards
+  - `WhyEyeAura.tsx` — Differentiators vs traditional clinics
+  - `TechnologySection.tsx` — 4-card platform technology grid (dark background)
+  - `TestimonialsSection.tsx` — Patient testimonials
+  - `FinalCTA.tsx` — Auth-aware final call to action
+  - `FooterSection.tsx` — Footer with links and branding
+- `LandingPage` wrapper component in `/modules/home/landing-page.tsx`
+- Auth-aware CTAs: if logged in → role dashboard; if not → `/booking`
+- `ServicesSection` fetches live services from Firestore with doctor count
+
+**Changed**
+- Landing page (`app/page.tsx`) now delegates to `LandingPage` component
+- Removed Pricing section from homepage
+- NavBar "Book Free Consult" → "Book Consultation" (removed "Free" wording)
+- Color palette: warm neutrals `#f7f3ee` background, teal `#0f4f4b` primary
+
+**Technical**
+- `framer-motion` used for scroll-triggered `whileInView` animations on section entries
+- All sections are `"use client"` components with motion
+
+---
+
+#### 2026-05-21 — Prescription Download Fix (commit `ba3ccd3`)
+
+**Fixed**
+- Prescription download button on patient prescription detail page (`/patient/prescriptions/[id]`) was routing incorrectly — now correctly navigates to `/prescriptions/[id]/pdf`
+- Client-side errors in prescription detail page suppressed (guard added for null prescription before rendering)
+
+**Technical**
+- `handleDownload` function updated from broken route to `/prescriptions/${prescription?.id}/pdf`
+
+---
+
+#### 2026-05-22 — Profile: Remove Image Upload (commit `e5ef2ca`)
+
+**Removed**
+- Image upload button and `Camera` icon from patient profile page (`/patient/profile`)
+- Upload-related state (`fileInputRef`, upload handler) removed
+- `authService` import removed (was only used for upload)
+
+**Changed**
+- Profile image section now shows Google photo (`user.photoURL`) if available
+- If no `photoURL` exists, no image is shown (clean empty state)
+
+**Fixed**
+- Broken camera upload UI removed — feature was never functional
+
+---
+
+#### 2026-05-22 — Profile: Image Fallback with Error Handling (commit `1059ef2`)
+
+**Added**
+- `imgError` state on patient profile page to track image load failure
+- `onError` handler on `<img>` tag: if Google photo URL fails to load, `imgError` is set to `true`
+- Fallback `User` icon (lucide-react) rendered inside a teal-tinted rounded container when `imgError === true` or `user.photoURL` is absent
+
+**Changed**
+- Profile image logic: `user.photoURL && !imgError` → show `<img>`; else → show `<User>` icon placeholder
+- Fallback is always shown — no broken image states
+
+---
+
+#### 2026-05-22 — Current Session (uncommitted)
+
+**Fixed**
+- `AppointmentDetailPage` (`/patient/appointments/[id]`): runtime TypeError crash when viewing completed appointments — root cause was operator precedence bug in `canReschedule`:
+  ```ts
+  // BEFORE (crashes when appointment is null/completed):
+  const canReschedule = isUpcoming && appointment.status === "pending" || appointment.status === "confirmed";
+  // AFTER:
+  const canReschedule = !!appointment && isUpcoming && (appointment.status === "pending" || appointment.status === "confirmed");
+  ```
+- Book Appointment empty-state button in `/patient/appointments` was left-aligned — fixed by adding `inline-flex` to the `<Link>` wrapper so `text-center` on the parent correctly centers it
+- Hero section had excessive bottom padding creating large gap before "Our Story" section — reduced `pb-16/pb-28` to `pb-6/pb-10`
+
+**Added**
+- `lib/errors.ts` — centralised EA error code system with format `EA-[DOMAIN]-[NUMBER]`:
+  - `EA-AUTH-001..007`: Authentication errors
+  - `EA-PAT-001..003`: Patient module
+  - `EA-APT-001..005`: Appointment errors
+  - `EA-BKG-001..005`: Booking flow
+  - `EA-PRE-001..005`: Prescriptions
+  - `EA-PAY-001..003`: Payments
+  - `EA-SVC-001..003`: Services
+  - `EA-SUP-001..004`: Support tickets
+  - `EA-DOC-001..006`: Doctor module
+  - `EA-ADM-001..006`: Admin module
+  - `EA-API-001..004`: API routes
+  - `EA-GEN-001..003`: General/unknown
+  - `eaError(code, error)` helper: logs full error internally, returns safe user-facing message — users never see Firebase internals
+  - `eaMessage(code)` helper: returns formatted user message string
+- EA error codes applied to all patient and booking pages (replacing raw `console.error` and `alert()` calls):
+  - `patient/prescriptions` → `EA-PRE-001`
+  - `patient/prescriptions/[id]` → `EA-PRE-002`
+  - `patient/profile` → `EA-PAT-003` (alert replaced with inline error UI)
+  - `patient/dashboard` → `EA-PAT-001`
+  - `patient/appointments` → `EA-APT-001`
+  - `patient/appointments/[id]` → `EA-APT-002`, `EA-APT-003`
+  - `patient/requests` → `EA-BKG-001`
+  - `patient/support` → `EA-SUP-001`, `EA-SUP-002`
+  - `patient/support/[id]` → `EA-SUP-003`, `EA-SUP-004`
+  - `patient/notifications` → `EA-GEN-001`
+  - `booking/page` → `EA-BKG-001`
+  - `booking/confirmation/[id]` → `EA-BKG-003`
+  - `booking/reschedule/[id]` → `EA-BKG-004`
+  - `booking/request-submitted/[id]` → `EA-BKG-003`
+  - `auth/signup` → `EA-AUTH-002` (Google sign-in error no longer leaks Firebase message)
+
+**Changed**
+- `NavBar.tsx`: Removed "Pricing" link (section no longer exists on homepage)
+- `TechnologySection.tsx`: Card 03 changed from "AI-Assisted Pre-Screening" → "Detailed Patient Intake Form" → **"Doctor-Reviewed Booking Approval"** (reflects real platform feature: request/approval booking system)
+- `patient/profile`: `alert()` for save errors replaced with inline red error banner showing EA code
+- Phase 9 status updated: Payments (Razorpay) complete, error hardening in progress
+
+**Technical**
+- `lib/errors.ts` is the single source of truth for all error codes — add new codes here only
+- Pattern: `eaError(EA.DOMAIN_NUM, error)` for catch blocks; return value used for user-facing state
+- `@theme` rule lint warning in `globals.css` is a known CSS-in-JS false positive, not a runtime error
 
 ---
 

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { prescriptionsService, usersService, appointmentsService, servicesService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { User, ArrowLeft, Download, Printer, CheckCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -43,7 +44,7 @@ export default function PrescriptionDetailPage() {
           setService(serviceData);
         }
       } catch (error) {
-        console.error("Error loading prescription:", error);
+        eaError(EA.PRE_002, error);
       } finally {
         setLoading(false);
       }

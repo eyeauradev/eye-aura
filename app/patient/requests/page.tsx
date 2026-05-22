@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
+import { EA, eaError } from "@/lib/errors";
 import { servicesService, usersService } from "@/services/firestore";
 import type { BookingRequestDocument, BookingRequestStatus, ServiceDocument, UserDocument } from "@/types/firestore";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default function PatientRequestsPage() {
       );
       setRequests(enriched);
     } catch (e) {
-      console.error("Error loading requests:", e);
+      eaError(EA.BKG_001, e);
     } finally {
       setLoading(false);
     }

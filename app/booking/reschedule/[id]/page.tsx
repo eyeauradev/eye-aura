@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, doctorSlotsService, usersService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { transactionService } from "@/services/booking/transaction.service";
 import { bookingService } from "@/services/booking/booking.service";
 import { Calendar, Clock, ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
@@ -66,7 +67,7 @@ export default function ReschedulePage() {
         const availableSlots = slots.filter((slot) => slot.id !== appointmentData.slotId);
         setAvailableSlots(availableSlots);
       } catch (error) {
-        console.error("Error loading appointment:", error);
+        eaError(EA.BKG_004, error);
       } finally {
         setLoading(false);
       }

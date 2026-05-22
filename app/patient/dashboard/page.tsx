@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import type { BookingRequestDocument, ServiceDocument, UserDocument } from "@/types/firestore";
 import { Calendar, Clock, FileText, Plus, Video, ArrowRight, Droplets, Sun, Eye as EyeIcon, Heart, User, Star, Bell, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
@@ -92,7 +93,7 @@ export default function PatientDashboard() {
         );
         setServicesWithDoctors(servicesWithDoctorsData);
       } catch (error) {
-        console.error("Error loading dashboard data:", error);
+        eaError(EA.PAT_001, error);
       } finally {
         setLoading(false);
       }

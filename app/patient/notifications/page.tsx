@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { notificationsService } from "@/services/notifications/notifications.service";
+import { EA, eaError } from "@/lib/errors";
 import { Bell, Calendar, FileText, MessageSquare, Check, X, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,7 +55,7 @@ export default function PatientNotificationsPage() {
         const unread = await notificationsService.getUnreadCount(user.id);
         setUnreadCount(unread);
       } catch (error) {
-        console.error("Error loading notifications:", error);
+        eaError(EA.GEN_001, error);
       } finally {
         setLoading(false);
       }

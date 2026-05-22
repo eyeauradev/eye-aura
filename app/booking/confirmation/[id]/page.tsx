@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { Calendar, Clock, FileText, CheckCircle, ArrowRight, Download, CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +40,7 @@ export default function BookingConfirmationPage() {
         const doctorData = await usersService.getById(appointmentData.doctorId);
         setDoctor(doctorData);
       } catch (error) {
-        console.error("Error loading appointment:", error);
+        eaError(EA.BKG_003, error);
       } finally {
         setLoading(false);
       }

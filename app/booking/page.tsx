@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { getFirebaseAuth } from "@/services/firebase/client";
 import { servicesService, usersService, doctorAvailabilityService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import type { ServiceDocument, UserDocument, DoctorAvailabilityDocument } from "@/types/firestore";
 import type { BookingState, BookingStep } from "@/types/booking";
 import { Button } from "@/components/ui/button";
@@ -79,7 +80,7 @@ export default function BookingPage() {
       setServices(allServices);
       setServicesWithDoctors(servicesWithDoctorsData);
     } catch (error) {
-      console.error("Failed to load services:", error);
+      eaError(EA.BKG_001, error);
     }
   };
 
@@ -96,7 +97,7 @@ export default function BookingPage() {
       const availability = await doctorAvailabilityService.getByDoctorId(doctor.id);
       setDoctorAvailability(availability);
     } catch (error) {
-      console.error("Failed to load doctor availability:", error);
+      eaError(EA.BKG_001, error);
     }
     
     setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import { EA, eaError } from "@/lib/errors";
 import { Save, Bell, CheckCircle, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ export default function PatientProfilePage() {
   const [saving, setSaving] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [formData, setFormData] = useState({
     displayName: "",
     phoneNumber: "",
@@ -48,8 +50,7 @@ export default function PatientProfilePage() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error("Error updating profile:", error);
-      alert("Failed to save profile. Please try again.");
+      setSaveError(eaError(EA.PAT_003, error));
     } finally {
       setSaving(false);
     }
@@ -164,6 +165,11 @@ export default function PatientProfilePage() {
                       <div className="flex items-center gap-2 p-4 rounded-2xl bg-green-50 text-green-700 border border-green-200">
                         <CheckCircle className="h-5 w-5" />
                         <span className="text-sm font-bold">Profile updated successfully</span>
+                      </div>
+                    )}
+                    {saveError && (
+                      <div className="flex items-center gap-2 p-4 rounded-2xl bg-red-50 text-red-700 border border-red-200">
+                        <span className="text-sm">{saveError}</span>
                       </div>
                     )}
 

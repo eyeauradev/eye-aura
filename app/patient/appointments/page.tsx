@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import type { AppointmentDocument, ServiceDocument, UserDocument } from "@/types/firestore";
 import type { BookingRequestDocument } from "@/types/firestore";
@@ -78,7 +79,7 @@ export default function PatientAppointmentsPage() {
         setBookingRequests(requestsWithDetails.filter(r => r.status !== "accepted" && r.status !== "rejected"));
         setRejectedRequests(requestsWithDetails.filter(r => r.status === "rejected"));
       } catch (error) {
-        console.error("Error loading appointments:", error);
+        eaError(EA.APT_001, error);
       } finally {
         setLoading(false);
       }
@@ -236,7 +237,7 @@ export default function PatientAppointmentsPage() {
             : "Your consultation history will appear here."}
         </p>
         {type === "upcoming" && (
-          <Link href="/booking">
+          <Link href="/booking" className="inline-flex">
             <Button size="lg" className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
               Book Appointment

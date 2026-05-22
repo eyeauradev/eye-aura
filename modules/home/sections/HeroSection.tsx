@@ -23,7 +23,7 @@ export function HeroSection({ user }: { user: any }) {
   const ctaLabel = user ? "Go to Dashboard" : "Book Consultation";
 
   return (
-    <section className="relative overflow-hidden pb-16 pt-24 sm:pb-20 sm:pt-28 md:pt-32 lg:pb-28 lg:pt-36">
+    <section className="relative overflow-hidden pb-6 pt-24 sm:pb-8 sm:pt-28 md:pt-32 lg:pb-10 lg:pt-36">
       {/* Background blobs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-40 -top-40 h-[600px] w-[600px] rounded-full bg-[#0f4f4b]/5 blur-[120px]" />

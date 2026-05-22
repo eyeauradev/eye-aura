@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BarChart2, Video, Cpu, FileText } from "lucide-react";
+import { BarChart2, Video, CalendarCheck, FileText } from "lucide-react";
 
 const techs = [
   {
@@ -17,9 +17,9 @@ const techs = [
     step: "02",
   },
   {
-    icon: Cpu,
-    title: "AI-Assisted Pre-Screening",
-    body: "Before your appointment, an AI intake form gathers symptoms, screen habits, and history to prepare your optometrist in advance.",
+    icon: CalendarCheck,
+    title: "Doctor-Reviewed Booking Approval",
+    body: "Every appointment request is personally reviewed and confirmed by your optometrist — ensuring the right time, right doctor, and right service for your visit.",
     step: "03",
   },
   {

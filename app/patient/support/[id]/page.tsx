@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { supportTicketsService, usersService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { MessageSquare, ArrowLeft, Send, User, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +56,7 @@ export default function SupportTicketDetailPage() {
           setAssignedTo(assignedToData);
         }
       } catch (error) {
-        console.error("Error loading ticket:", error);
+        eaError(EA.SUP_003, error);
       } finally {
         setLoading(false);
       }
@@ -85,7 +86,7 @@ export default function SupportTicketDetailPage() {
       const updatedTicket = await supportTicketsService.getById(ticket.id);
       setTicket(updatedTicket);
     } catch (error) {
-      console.error("Error sending message:", error);
+      eaError(EA.SUP_004, error);
     } finally {
       setSubmitting(false);
     }

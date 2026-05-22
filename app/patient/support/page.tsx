@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { supportTicketsService, usersService } from "@/services/firestore";
+import { EA, eaError } from "@/lib/errors";
 import { v4 as uuidv4 } from "uuid";
 import { MessageSquare, Plus, ArrowRight, Clock, CheckCircle, AlertCircle, HelpCircle, CreditCard, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ export default function PatientSupportPage() {
 
         setTickets(enrichedTickets);
       } catch (error) {
-        console.error("Error loading tickets:", error);
+        eaError(EA.SUP_001, error);
       } finally {
         setLoading(false);
       }
@@ -112,7 +113,7 @@ export default function PatientSupportPage() {
 
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error("Error creating ticket:", error);
+      eaError(EA.SUP_002, error);
     } finally {
       setSubmitting(false);
     }
