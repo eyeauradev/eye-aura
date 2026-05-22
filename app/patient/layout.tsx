@@ -87,37 +87,39 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         <div className="flex gap-7">
           {/* Sidebar Navigation */}
           <aside className="w-56 flex-shrink-0 hidden lg:block">
-            <nav className="sticky top-24 space-y-1">
-              <p className="px-3 mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0f4f4b]/35">Patient Portal</p>
-              {navItems.filter(item => !item.isCenter).map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            <div className="sticky top-24 rounded-2xl bg-white border border-[#0f4f4b]/10 shadow-sm overflow-hidden">
+              <nav className="p-3 space-y-0.5">
+                <p className="px-3 pt-1 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0f4f4b]/35">Patient Portal</p>
+                {navItems.filter(item => !item.isCenter).map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-                return (
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-sm ${
+                        isActive
+                          ? "bg-[#0F4F4B] text-white font-medium shadow-sm"
+                          : "text-[#0f4f4b]/55 hover:bg-[#0f4f4b]/6 hover:text-[#0f4f4b]"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+                <div className="pt-2 mt-2 border-t border-[#0f4f4b]/8">
                   <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition text-sm ${
-                      isActive
-                        ? "bg-[#0F4F4B] text-white font-medium shadow-sm"
-                        : "text-[#0f4f4b]/55 hover:bg-white/60 hover:text-[#0f4f4b]"
-                    }`}
+                    href="/"
+                    className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition text-sm text-[#0f4f4b]/40 hover:bg-[#0f4f4b]/6 hover:text-[#0f4f4b]"
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span>{item.label}</span>
+                    <Home className="h-4 w-4 shrink-0" />
+                    <span>Public Home</span>
                   </Link>
-                );
-              })}
-              <div className="pt-3 mt-3 border-t border-[#0f4f4b]/8">
-                <Link
-                  href="/"
-                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl transition text-sm text-[#0f4f4b]/40 hover:bg-white/60 hover:text-[#0f4f4b]"
-                >
-                  <Home className="h-4 w-4 shrink-0" />
-                  <span>Public Home</span>
-                </Link>
-              </div>
-            </nav>
+                </div>
+              </nav>
+            </div>
           </aside>
 
           {/* Mobile Navigation */}
