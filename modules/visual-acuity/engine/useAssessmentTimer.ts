@@ -34,6 +34,7 @@ export function useAssessmentTimer(
   const [state, setState] = useState<TimerState>("idle");
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasFiredRef = useRef(false); // Prevent multiple onComplete calls
   // Synchronous update — always holds the latest callback, no effect lag
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -57,8 +58,12 @@ export function useAssessmentTimer(
         if (r <= 1) {
           clearTimer();
           setState("done");
-          // Defer to avoid setState-during-render
-          setTimeout(() => onCompleteRef.current?.(), 0);
+          // Prevent multiple onComplete calls
+          if (!hasFiredRef.current) {
+            hasFiredRef.current = true;
+            // Defer to avoid setState-during-render
+            setTimeout(() => onCompleteRef.current?.(), 0);
+          }
           return 0;
         }
         return r - 1;
@@ -70,12 +75,14 @@ export function useAssessmentTimer(
 
   const start = useCallback(
     (overrideDuration?: number) => {
+      clearTimer(); // Clear any existing interval before starting
+      hasFiredRef.current = false; // Reset fire flag
       const d = overrideDuration ?? defaultDuration;
       setDuration(d);
       setRemaining(d);
       setState("running");
     },
-    [defaultDuration]
+    [defaultDuration, clearTimer]
   );
 
   const pause = useCallback(() => {

@@ -3,7 +3,8 @@
 import { Eye, RefreshCw, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { VA_DESCRIPTIONS, vaCategory } from "../snellen-data";
+import { VA_DESCRIPTIONS, vaCategory, VA_LEVEL } from "../snellen-data";
+import { NEAR_LEVEL } from "../near/near-vision-data";
 import type { AcuityTestResult, SnellenNotation } from "../types";
 
 interface ResultsStepProps {
@@ -33,6 +34,10 @@ function EyeCard({
   const Icon = config.icon;
   const description = notation ? VA_DESCRIPTIONS[notation as SnellenNotation] : null;
   const notationLabel = isFar ? "Snellen" : "Near Snellen";
+  const level = notation ? VA_LEVEL[notation as SnellenNotation] : null;
+
+  // For near vision, also show Jaeger equivalent
+  const jaegerEquivalent = !isFar && notation ? getJaegerEquivalent(notation as SnellenNotation) : null;
 
   return (
     <div className={`rounded-2xl border p-5 space-y-3 ${config.bg}`}>
@@ -46,9 +51,20 @@ function EyeCard({
 
       {notation ? (
         <>
-          <div className="flex items-baseline gap-2">
-            <span className={`text-4xl font-black ${config.color}`}>{notation}</span>
-            <span className="text-sm text-[#0f4f4b]/50">{notationLabel}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-baseline gap-2">
+              <span className={`text-4xl font-black ${config.color}`}>{notation}</span>
+              <span className="text-sm text-[#0f4f4b]/50">{notationLabel}</span>
+              {jaegerEquivalent && (
+                <span className="text-sm font-bold text-[#0f4f4b]/60">({jaegerEquivalent})</span>
+              )}
+            </div>
+            {level !== null && (
+              <div className="text-right">
+                <span className="text-xs text-[#0f4f4b]/40 block mb-0.5">Level</span>
+                <span className={`text-3xl font-black ${config.color} leading-none`}>{level}</span>
+              </div>
+            )}
           </div>
           {description && (
             <p className="text-xs text-[#0f4f4b]/60 leading-relaxed">{description}</p>
@@ -64,6 +80,22 @@ function EyeCard({
       </div>
     </div>
   );
+}
+
+// Helper to get Jaeger equivalent from Snellen notation for near vision
+function getJaegerEquivalent(snellen: SnellenNotation): string | null {
+  const mapping: Record<SnellenNotation, string> = {
+    "20/200": "J16",
+    "20/100": "J11",
+    "20/70":  "J9",
+    "20/50":  "J5",
+    "20/40":  "J3",
+    "20/30":  "J2",
+    "20/25":  "J1",
+    "20/20":  "J1+",
+    "20/15":  "—",
+  };
+  return mapping[snellen] || null;
 }
 
 export function ResultsStep({ result, onRetake }: ResultsStepProps) {

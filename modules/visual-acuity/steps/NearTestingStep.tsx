@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Eye, EyeOff, Pause, Play, AlertCircle, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SnellenRenderer } from "../SnellenRenderer";
-import { SNELLEN_LINES, getSessionLetters } from "../snellen-data";
+import { NEAR_VISION_LINES } from "../near/near-vision-data";
 import { useAssessmentTimer } from "../engine/useAssessmentTimer";
 import type { CalibrationData, Eye as EyeType, EyeAcuityResult, TimerDuration } from "../types";
 
@@ -23,11 +23,13 @@ const ARC_R = 36;
 const ARC_C = 2 * Math.PI * ARC_R;
 
 function buildSessionChart() {
-  return SNELLEN_LINES.map((line) => ({
-    notation: line.notation,
+  return NEAR_VISION_LINES.map((line) => ({
+    jaeger: line.jaeger,
+    snellen: line.snellen,
+    snellen6m: line.snellen6m,
     label: line.label,
-    denominator: line.denominator,
-    letters: getSessionLetters(line.letterCount),
+    exactHeightMm: line.exactHeightMm,
+    letters: line.letters,
   }));
 }
 
@@ -39,35 +41,50 @@ export function NearTestingStep({ calibration, timerDuration, onComplete }: Near
   const [rightBest, setRightBest] = useState<string | null>(null);
 
   const lineIndexRef = useRef(0);
-  const timerStartRef = useRef<((d?: number) => void) | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
-  const handleTimerComplete = useCallback(() => {
-    const current = lineIndexRef.current;
-    if (current >= chart.length - 1) {
-      setEyePhase("self_report");
-    } else {
-      const next = current + 1;
-      lineIndexRef.current = next;
-      setLineIndex(next);
-      timerStartRef.current?.(timerDuration);
-    }
-  }, [chart.length, timerDuration]);
-
-  const timer = useAssessmentTimer(timerDuration, handleTimerComplete);
-  timerStartRef.current = timer.start;
+  // Timer for countdown display only (line advancement handled by interval)
+  const timer = useAssessmentTimer(timerDuration);
 
   const handleEyeBegin = useCallback(() => {
     lineIndexRef.current = 0;
     setLineIndex(0);
+    startTimeRef.current = Date.now();
     setEyePhase("reading");
-    timer.start(timerDuration);
-  }, [timer, timerDuration]);
+    timer.start(timerDuration * chart.length); // Total duration for all lines
+
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // Advance line every timerDuration seconds
+    intervalRef.current = setInterval(() => {
+      const current = lineIndexRef.current;
+      if (current >= chart.length - 1) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        setEyePhase("self_report");
+      } else {
+        const next = current + 1;
+        lineIndexRef.current = next;
+        setLineIndex(next);
+      }
+    }, timerDuration * 1000);
+  }, [timer, timerDuration, chart.length]);
 
   const handlePause = useCallback(() => {
     if (timer.isPaused) timer.resume(); else timer.pause();
   }, [timer]);
 
   const handleSelfReport = useCallback((notation: string | null) => {
+    // Clear interval when switching eyes
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (currentEye === "right") {
       setRightBest(notation);
       lineIndexRef.current = 0;
@@ -82,6 +99,15 @@ export function NearTestingStep({ calibration, timerDuration, onComplete }: Near
       });
     }
   }, [currentEye, rightBest, timer, onComplete]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const currentLine = chart[Math.min(lineIndex, chart.length - 1)];
   const isRight = currentEye === "right";
@@ -155,14 +181,17 @@ export function NearTestingStep({ calibration, timerDuration, onComplete }: Near
         </div>
 
         <div className="space-y-2">
-          {chart.map((line) => (
+          {chart.map((line, i) => (
             <button
-              key={line.notation}
-              onClick={() => handleSelfReport(line.notation)}
+              key={line.snellen}
+              onClick={() => handleSelfReport(line.snellen)}
               className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white border border-[#0f4f4b]/12 hover:border-[#b5964d]/50 hover:bg-[#b5964d]/4 active:scale-[0.99] transition-all group"
             >
               <div className="flex items-center gap-4">
-                <span className="text-base font-black text-[#0f4f4b] min-w-[3rem]">{line.notation}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-black text-[#0f4f4b] min-w-[2rem]">{i + 1}</span>
+                  <span className="text-base font-black text-[#0f4f4b] min-w-[4rem]">{line.snellen}</span>
+                </div>
                 <span className="text-xs text-[#0f4f4b]/45">{line.label}</span>
               </div>
               <ChevronRight className="h-4 w-4 text-[#0f4f4b]/25 group-hover:text-[#b5964d]/70 transition-colors" />
@@ -186,17 +215,28 @@ export function NearTestingStep({ calibration, timerDuration, onComplete }: Near
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
+      {/* Always-visible level number and Snellen fraction */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-[#b5964d] flex items-center justify-center">
-            <Eye className="h-3.5 w-3.5 text-white" />
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-[#b5964d] flex items-center justify-center">
+            <Eye className="h-5 w-5 text-white" />
           </div>
-          <span className="text-sm font-bold text-[#0f4f4b] capitalize">{currentEye} eye</span>
-          <span className="text-xs text-[#0f4f4b]/40">Line {lineIndex + 1} of {chart.length}</span>
+          <div>
+            <span className="text-sm font-bold text-[#0f4f4b] capitalize">{currentEye} eye</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs text-[#0f4f4b]/40">Level</span>
+              <span className="text-4xl font-black text-[#0f4f4b] leading-none">{lineIndex + 1}</span>
+              <span className="text-xs text-[#0f4f4b]/40">/ {chart.length}</span>
+            </div>
+          </div>
         </div>
-        <span className="text-xs font-bold text-[#b5964d]/70 bg-[#b5964d]/8 px-3 py-1 rounded-full">
-          {currentLine.notation}
-        </span>
+        <div className="text-right">
+          <span className="text-xs text-[#0f4f4b]/40 block mb-0.5">Snellen</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-black text-[#0f4f4b] leading-none">{currentLine.snellen}</span>
+            <span className="text-lg font-bold text-[#0f4f4b]/60 leading-none">({currentLine.snellen6m})</span>
+          </div>
+        </div>
       </div>
 
       <div className="h-1.5 bg-[#b5964d]/15 rounded-full overflow-hidden">
@@ -216,8 +256,7 @@ export function NearTestingStep({ calibration, timerDuration, onComplete }: Near
           <SnellenRenderer
             key={`${currentEye}-${lineIndex}`}
             letters={currentLine.letters}
-            denominator={currentLine.denominator}
-            testingDistanceM={NEAR_DISTANCE_M}
+            exactHeightMm={currentLine.exactHeightMm}
             calibration={calibration}
             animate
           />

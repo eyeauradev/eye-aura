@@ -1,13 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import { letterHeightMm, mmToCssPx } from "./snellen-data";
+import { mmToCssPx } from "./snellen-data";
 import type { CalibrationData } from "./types";
 
 interface SnellenRendererProps {
   letters: string[];
-  denominator: number;
-  testingDistanceM: number;
+  exactHeightMm: number;
   calibration: CalibrationData;
   /** Animate in on mount */
   animate?: boolean;
@@ -17,7 +16,7 @@ interface SnellenRendererProps {
  * SVG-based Snellen optotype renderer.
  *
  * Physical accuracy:
- *   - letter height computed from Snellen formula (5 arcmin at testing distance)
+ *   - letter height provided as exactHeightMm (from chart specification)
  *   - pxPerMm from user calibration → maps mm directly to CSS pixels
  *   - Each glyph rendered with font-size = computed CSS px height
  *   - Inter-letter gap = one letter width (≈ letter height, 1:1 Sloan proportions)
@@ -26,26 +25,24 @@ interface SnellenRendererProps {
  */
 export function SnellenRenderer({
   letters,
-  denominator,
-  testingDistanceM,
+  exactHeightMm,
   calibration,
   animate = true,
 }: SnellenRendererProps) {
   const { pxPerMm } = calibration;
 
-  // Proportional scale-up: the hardest Snellen line (6/5, denominator=5) must be
-  // at least MIN_READABLE_PX tall so all lines remain distinguishable on screen.
-  // All lines are multiplied by the same factor, preserving their correct size ratios.
-  // At 3 m (far) the factor is always 1 — no distortion for the far test.
+  // Proportional scale-up: the smallest line (20/15 = 3.27mm) must be at least
+  // MIN_READABLE_PX so all lines remain distinguishable on screen.
+  // All lines are multiplied by the same factor, preserving correct size ratios.
   const MIN_READABLE_PX = 8;
   const scaleFactor = useMemo(() => {
-    const smallestPx = mmToCssPx(letterHeightMm(5, testingDistanceM), pxPerMm);
+    const smallestPx = mmToCssPx(3.27, pxPerMm);
     return smallestPx < MIN_READABLE_PX ? MIN_READABLE_PX / smallestPx : 1;
-  }, [testingDistanceM, pxPerMm]);
+  }, [pxPerMm]);
 
   const heightPx = useMemo(
-    () => mmToCssPx(letterHeightMm(denominator, testingDistanceM), pxPerMm) * scaleFactor,
-    [denominator, testingDistanceM, pxPerMm, scaleFactor]
+    () => mmToCssPx(exactHeightMm, pxPerMm) * scaleFactor,
+    [exactHeightMm, pxPerMm, scaleFactor]
   );
 
   const letterWidth = heightPx * 0.85;   // Sloan ~0.85 aspect ratio
@@ -113,7 +110,7 @@ export function SnellenRenderer({
       {/* Physical size indicator — dev/debug, hidden in production */}
       {process.env.NODE_ENV === "development" && (
         <span className="sr-only">
-          Letter height: {letterHeightMm(denominator, testingDistanceM).toFixed(2)} mm /{" "}
+          Letter height: {exactHeightMm.toFixed(2)} mm /{" "}
           {heightPx.toFixed(1)} px | Stroke: {strokeW.toFixed(1)} px
         </span>
       )}

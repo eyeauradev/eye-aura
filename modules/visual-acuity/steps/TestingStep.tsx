@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Eye, EyeOff, Pause, Play, AlertCircle, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SnellenRenderer } from "../SnellenRenderer";
@@ -24,9 +24,10 @@ const ARC_C = 2 * Math.PI * ARC_R;
 function buildSessionChart() {
   return SNELLEN_LINES.map((line) => ({
     notation: line.notation,
+    notation6m: line.notation6m,
     label: line.label,
-    denominator: line.denominator,
-    letters: getSessionLetters(line.letterCount),
+    exactHeightMm: line.exactHeightMm,
+    letters: line.letters,
   }));
 }
 
@@ -39,35 +40,50 @@ export function TestingStep({ calibration, timerDuration, onComplete }: TestingS
 
   // Ref keeps lineIndex fresh inside async timer callbacks
   const lineIndexRef = useRef(0);
-  const timerStartRef = useRef<((d?: number) => void) | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
-  const handleTimerComplete = useCallback(() => {
-    const current = lineIndexRef.current;
-    if (current >= chart.length - 1) {
-      setEyePhase("self_report");
-    } else {
-      const next = current + 1;
-      lineIndexRef.current = next;
-      setLineIndex(next);
-      timerStartRef.current?.(timerDuration);
-    }
-  }, [chart.length, timerDuration]);
-
-  const timer = useAssessmentTimer(timerDuration, handleTimerComplete);
-  timerStartRef.current = timer.start;
+  // Timer for countdown display only (line advancement handled by interval)
+  const timer = useAssessmentTimer(timerDuration);
 
   const handleEyeBegin = useCallback(() => {
     lineIndexRef.current = 0;
     setLineIndex(0);
+    startTimeRef.current = Date.now();
     setEyePhase("reading");
-    timer.start(timerDuration);
-  }, [timer, timerDuration]);
+    timer.start(timerDuration * chart.length); // Total duration for all lines
+
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // Advance line every timerDuration seconds
+    intervalRef.current = setInterval(() => {
+      const current = lineIndexRef.current;
+      if (current >= chart.length - 1) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        setEyePhase("self_report");
+      } else {
+        const next = current + 1;
+        lineIndexRef.current = next;
+        setLineIndex(next);
+      }
+    }, timerDuration * 1000);
+  }, [timer, timerDuration, chart.length]);
 
   const handlePause = useCallback(() => {
     if (timer.isPaused) timer.resume(); else timer.pause();
   }, [timer]);
 
   const handleSelfReport = useCallback((notation: string | null) => {
+    // Clear interval when switching eyes
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     if (currentEye === "right") {
       setRightBest(notation);
       lineIndexRef.current = 0;
@@ -82,6 +98,15 @@ export function TestingStep({ calibration, timerDuration, onComplete }: TestingS
       });
     }
   }, [currentEye, rightBest, timer, onComplete]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const currentLine = chart[Math.min(lineIndex, chart.length - 1)];
   const isRight = currentEye === "right";
@@ -155,7 +180,10 @@ export function TestingStep({ calibration, timerDuration, onComplete }: TestingS
               className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white border border-[#0f4f4b]/12 hover:border-[#0f4f4b]/35 hover:bg-[#0f4f4b]/3 active:scale-[0.99] transition-all group"
             >
               <div className="flex items-center gap-4">
-                <span className="text-base font-black text-[#0f4f4b] min-w-[3rem]">{line.notation}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-black text-[#0f4f4b] min-w-[2rem]">{i + 1}</span>
+                  <span className="text-base font-black text-[#0f4f4b] min-w-[4rem]">{line.notation}</span>
+                </div>
                 <span className="text-xs text-[#0f4f4b]/45">{line.label}</span>
               </div>
               <ChevronRight className="h-4 w-4 text-[#0f4f4b]/25 group-hover:text-[#0f4f4b]/55 transition-colors" />
@@ -179,17 +207,28 @@ export function TestingStep({ calibration, timerDuration, onComplete }: TestingS
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
+      {/* Always-visible level number and Snellen fraction */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${isRight ? "bg-[#0f4f4b]" : "bg-[#b5964d]"}`}>
-            <Eye className="h-3.5 w-3.5 text-white" />
+        <div className="flex items-center gap-3">
+          <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${isRight ? "bg-[#0f4f4b]" : "bg-[#b5964d]"}`}>
+            <Eye className="h-5 w-5 text-white" />
           </div>
-          <span className="text-sm font-bold text-[#0f4f4b] capitalize">{currentEye} eye</span>
-          <span className="text-xs text-[#0f4f4b]/40">Line {lineIndex + 1} of {chart.length}</span>
+          <div>
+            <span className="text-sm font-bold text-[#0f4f4b] capitalize">{currentEye} eye</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs text-[#0f4f4b]/40">Level</span>
+              <span className="text-4xl font-black text-[#0f4f4b] leading-none">{lineIndex + 1}</span>
+              <span className="text-xs text-[#0f4f4b]/40">/ {chart.length}</span>
+            </div>
+          </div>
         </div>
-        <span className="text-xs font-bold text-[#0f4f4b]/50 bg-[#0f4f4b]/6 px-3 py-1 rounded-full">
-          {currentLine.notation}
-        </span>
+        <div className="text-right">
+          <span className="text-xs text-[#0f4f4b]/40 block mb-0.5">Snellen</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-black text-[#0f4f4b] leading-none">{currentLine.notation}</span>
+            <span className="text-lg font-bold text-[#0f4f4b]/60 leading-none">({currentLine.notation6m})</span>
+          </div>
+        </div>
       </div>
 
       <div className="h-1.5 bg-[#0f4f4b]/8 rounded-full overflow-hidden">
@@ -209,8 +248,7 @@ export function TestingStep({ calibration, timerDuration, onComplete }: TestingS
           <SnellenRenderer
             key={`${currentEye}-${lineIndex}`}
             letters={currentLine.letters}
-            denominator={currentLine.denominator}
-            testingDistanceM={FAR_DISTANCE_M}
+            exactHeightMm={currentLine.exactHeightMm}
             calibration={calibration}
             animate
           />

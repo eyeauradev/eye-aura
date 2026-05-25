@@ -22,31 +22,45 @@ export type TestPhase =
 
 // ─── Snellen (far vision) ────────────────────────────────────────────────────
 export type SnellenNotation =
+  | "20/200"
+  | "20/100"
+  | "20/70"
+  | "20/50"
+  | "20/40"
+  | "20/30"
+  | "20/25"
+  | "20/20"
+  | "20/15";
+
+export type Snellen6mNotation =
   | "6/60"
-  | "6/36"
-  | "6/24"
-  | "6/18"
+  | "6/30"
+  | "6/21"
+  | "6/15"
   | "6/12"
   | "6/9"
+  | "6/7.5"
   | "6/6"
-  | "6/5";
+  | "6/4.5";
 
 export interface SnellenLine {
-  notation: SnellenNotation;
-  denominator: number;
-  letterCount: number;
+  notation: SnellenNotation;      // 20/xx format
+  notation6m: Snellen6mNotation;  // 6/xx equivalent
+  exactHeightMm: number;          // Exact letter height in mm
+  letters: string[];              // Fixed letters for this line
   label: string;
 }
 
-// ─── Near vision (Jaeger-equivalent N-point) ─────────────────────────────────
-export type NearNotation = "N24" | "N18" | "N12" | "N8" | "N6" | "N5" | "N4";
+// ─── Near vision (Jaeger notation) ─────────────────────────────────────────────
+export type JaegerNotation = "J16" | "J11" | "J9" | "J5" | "J3" | "J2" | "J1" | "J1+" | "—";
 
 export interface NearVisionLine {
-  notation: NearNotation;
-  /** Physical cap-height in mm at 40 cm viewing distance */
-  capHeightMm: number;
-  /** Reading content shown to the patient */
-  content: string;
+  jaeger: JaegerNotation;
+  snellen: SnellenNotation;      // 20/xx equivalent
+  snellen6m: Snellen6mNotation;  // 6/xx equivalent
+  exactHeightMm: number;         // Exact letter height in mm at 40 cm
+  pointSize: number;            // Times New Roman point size
+  letters: string[];            // Optotype letters for this line
   label: string;
 }
 
