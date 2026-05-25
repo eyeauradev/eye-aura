@@ -1,0 +1,151 @@
+"use client";
+
+import { Eye, RefreshCw, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { VA_DESCRIPTIONS, vaCategory } from "../snellen-data";
+import type { AcuityTestResult, SnellenNotation } from "../types";
+
+interface ResultsStepProps {
+  result: AcuityTestResult;
+  onRetake: () => void;
+}
+
+const CATEGORY_CONFIG = {
+  excellent: { icon: CheckCircle2, label: "Excellent",           color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200",      badge: "bg-emerald-100 text-emerald-800" },
+  normal:    { icon: CheckCircle2, label: "Normal",              color: "text-[#0f4f4b]",   bg: "bg-[#0f4f4b]/5 border-[#0f4f4b]/15",  badge: "bg-[#0f4f4b]/10 text-[#0f4f4b]" },
+  reduced:   { icon: AlertTriangle, label: "Below Normal",       color: "text-amber-700",   bg: "bg-amber-50 border-amber-200",          badge: "bg-amber-100 text-amber-800" },
+  poor:      { icon: XCircle,       label: "Significantly Reduced", color: "text-red-700",  bg: "bg-red-50 border-red-200",             badge: "bg-red-100 text-red-800" },
+  unknown:   { icon: AlertTriangle, label: "Incomplete",         color: "text-[#0f4f4b]/50", bg: "bg-[#0f4f4b]/5 border-[#0f4f4b]/10", badge: "bg-[#0f4f4b]/8 text-[#0f4f4b]/60" },
+};
+
+function EyeCard({
+  label,
+  notation,
+  isFar,
+}: {
+  label: string;
+  notation: string | null;
+  isFar: boolean;
+}) {
+  const cat = vaCategory(notation as SnellenNotation | null);
+  const config = CATEGORY_CONFIG[cat];
+  const Icon = config.icon;
+  const description = notation ? VA_DESCRIPTIONS[notation as SnellenNotation] : null;
+  const notationLabel = isFar ? "Snellen" : "Near Snellen";
+
+  return (
+    <div className={`rounded-2xl border p-5 space-y-3 ${config.bg}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Eye className="h-4 w-4 text-[#0f4f4b]" />
+          <span className="text-sm font-bold text-[#0f4f4b]">{label}</span>
+        </div>
+        <Badge className={`text-xs font-bold border-0 ${config.badge}`}>{config.label}</Badge>
+      </div>
+
+      {notation ? (
+        <>
+          <div className="flex items-baseline gap-2">
+            <span className={`text-4xl font-black ${config.color}`}>{notation}</span>
+            <span className="text-sm text-[#0f4f4b]/50">{notationLabel}</span>
+          </div>
+          {description && (
+            <p className="text-xs text-[#0f4f4b]/60 leading-relaxed">{description}</p>
+          )}
+        </>
+      ) : (
+        <p className="text-sm text-[#0f4f4b]/50 italic">No readable line recorded</p>
+      )}
+
+      <div className="flex items-center gap-1.5">
+        <Icon className={`h-3.5 w-3.5 ${config.color}`} />
+        <span className={`text-xs font-semibold ${config.color}`}>{config.label} visual acuity</span>
+      </div>
+    </div>
+  );
+}
+
+export function ResultsStep({ result, onRetake }: ResultsStepProps) {
+  const isFar = result.testType === "far";
+
+  const rightBest = result.rightEye.bestNotation;
+  const leftBest  = result.leftEye.bestNotation;
+
+  const duration = Math.round(result.durationSeconds);
+  const mins = Math.floor(duration / 60);
+  const secs = duration % 60;
+
+  const distanceLabel = isFar
+    ? `${result.testingDistance} metres`
+    : `${result.testingDistance} cm`;
+
+  return (
+    <div className="max-w-lg mx-auto space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-3">
+        <div className={`mx-auto h-16 w-16 rounded-2xl flex items-center justify-center shadow-lg ${isFar ? "bg-[#0f4f4b]" : "bg-[#b5964d]"}`}>
+          <Eye className="h-8 w-8 text-white" />
+        </div>
+        <h2 className="text-2xl font-black text-[#0f4f4b]">
+          {isFar ? "Far Vision" : "Near Vision"} Assessment Complete
+        </h2>
+        <p className="text-sm text-[#0f4f4b]/60">
+          Share these results with your doctor. Duration:{" "}
+          <strong className="text-[#0f4f4b]">{mins > 0 ? `${mins}m ` : ""}{secs}s</strong>
+        </p>
+      </div>
+
+      {/* Eye result cards */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <EyeCard label="Right Eye" notation={rightBest} isFar={isFar} />
+        <EyeCard label="Left Eye"  notation={leftBest}  isFar={isFar} />
+      </div>
+
+      {/* Session details */}
+      <div className="rounded-2xl bg-white/80 border border-[#0f4f4b]/12 p-5 space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[#0f4f4b]/40">
+          Session Details
+        </p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <span className="text-[#0f4f4b]/55">Test type</span>
+          <span className="font-bold text-[#0f4f4b] capitalize">{result.testType} vision</span>
+          <span className="text-[#0f4f4b]/55">Distance</span>
+          <span className="font-bold text-[#0f4f4b]">{distanceLabel}</span>
+          <span className="text-[#0f4f4b]/55">Timer per line</span>
+          <span className="font-bold text-[#0f4f4b]">{result.timerDuration} seconds</span>
+          <span className="text-[#0f4f4b]/55">Calibration</span>
+          <span className="font-bold text-[#0f4f4b]">{result.calibration.pxPerMm.toFixed(3)} px/mm</span>
+          <span className="text-[#0f4f4b]/55">Lines (R / L)</span>
+          <span className="font-bold text-[#0f4f4b]">
+            {result.rightEye.lineResults.length} / {result.leftEye.lineResults.length}
+          </span>
+          <span className="text-[#0f4f4b]/55">Completed at</span>
+          <span className="font-bold text-[#0f4f4b]">
+            {new Date(result.completedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="rounded-xl bg-[#b5964d]/6 border border-[#b5964d]/20 p-4">
+        <p className="text-xs font-bold text-[#b5964d] mb-1">Important Clinical Note</p>
+        <p className="text-xs text-[#0f4f4b]/60 leading-relaxed">
+          This digital assessment provides a clinical estimate to assist your doctor&apos;s
+          consultation. It does not replace a comprehensive in-person eye examination. Results
+          must be interpreted by a qualified optometrist or ophthalmologist.
+        </p>
+      </div>
+
+      <Button
+        onClick={onRetake}
+        variant="outline"
+        size="lg"
+        className="w-full h-14 rounded-2xl border-[#0f4f4b]/20 text-[#0f4f4b]"
+      >
+        <RefreshCw className="h-4 w-4 mr-2" />
+        Retake Assessment
+      </Button>
+    </div>
+  );
+}

@@ -5,13 +5,13 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { Home, Calendar, FileText, MessageSquare, User, LogOut, Bell, RefreshCw } from "lucide-react";
+import { Home, Calendar, FileText, User, LogOut, Bell, RefreshCw, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Dashboard", icon: Home },
   { href: "/patient/appointments", label: "Appointments", icon: Calendar },
-  { href: "/", label: "Home", icon: Home, isCenter: true },
+  { href: "/patient/assessment", label: "Assessments", icon: Eye, isCenter: true },
   { href: "/patient/prescriptions", label: "Prescriptions", icon: FileText },
   { href: "/patient/profile", label: "My Account", icon: User },
 ];
@@ -90,7 +90,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
             <div className="sticky top-24 rounded-2xl bg-white border border-[#0f4f4b]/10 shadow-sm overflow-hidden">
               <nav className="p-3 space-y-0.5">
                 <p className="px-3 pt-1 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#0f4f4b]/35">Patient Portal</p>
-                {navItems.filter(item => !item.isCenter).map((item) => {
+                {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
