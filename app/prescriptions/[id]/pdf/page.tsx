@@ -5,10 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { prescriptionsService, usersService } from "@/services/firestore";
 import { useAuth } from "@/contexts/auth-context";
 
-const G = "#1A3D2E";       // dark forest green
+const G = "#1a472b";       // dark forest green (exact brand)
 const GOLD = "#C4972A";    // gold/amber
-const LTGREEN = "#EBF5EE"; // light mint for section headers
-const BORDER = "#C8DDD4";  // muted green border
+const LTGREEN = "#f6f6ee"; // light cream-green section headers
+const BORDER = "#c8d4bc";  // muted green border
 
 const cell: React.CSSProperties = { border: `1px solid ${BORDER}`, padding: "3px 6px", fontSize: "8pt", color: G, textAlign: "center", minHeight: "22px" };
 const hCell: React.CSSProperties = { ...cell, background: G, color: "white", fontWeight: 700, fontSize: "7pt", letterSpacing: "0.3px", padding: "5px 6px" };
@@ -17,7 +17,7 @@ const dotLine: React.CSSProperties = { borderBottom: "1px dotted #b0b0b0", heigh
 function Row({ label, sph, cyl, axis, va, remarks }: any) {
   return (
     <tr>
-      <td style={{ ...cell, fontWeight: 700, textAlign: "left", background: "#f8fbf9" }}>{label}</td>
+      <td style={{ ...cell, fontWeight: 700, textAlign: "left", background: "#f4f4ea" }}>{label}</td>
       <td style={cell}>{sph || ""}</td>
       <td style={cell}>{cyl || ""}</td>
       <td style={cell}>{axis || ""}</td>
@@ -30,7 +30,7 @@ function Row({ label, sph, cyl, axis, va, remarks }: any) {
 function NearRow({ label, add, va, remarks }: any) {
   return (
     <tr>
-      <td style={{ ...cell, fontWeight: 700, textAlign: "left", background: "#f8fbf9" }}>{label}</td>
+      <td style={{ ...cell, fontWeight: 700, textAlign: "left", background: "#f4f4ea" }}>{label}</td>
       <td style={cell}>{add || ""}</td>
       <td style={cell}>{va || ""}</td>
       <td style={cell}>{remarks || ""}</td>
@@ -66,6 +66,17 @@ export default function PrescriptionPdfPage() {
   const [patient, setPatient] = useState<any>(null);
   const [doctor, setDoctor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [scale, setScale]   = useState(1);
+
+  useEffect(() => {
+    const update = () => {
+      const available = window.innerWidth - 40; // 20px pad each side
+      setScale(Math.min(1, available / 794));
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -101,7 +112,13 @@ export default function PrescriptionPdfPage() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:wght@700&display=swap');
+        @font-face {
+          font-family: 'Brittany Signature';
+          src: url('/fonts/BrittanySignature.ttf') format('truetype');
+          font-weight: normal;
+          font-style: normal;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
         @media print {
           .no-print { display: none !important; }
           body { margin: 0; padding: 0; background: white !important; }
@@ -109,7 +126,8 @@ export default function PrescriptionPdfPage() {
           html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .rx-page { box-shadow: none !important; }
         }
-        body { background: #E8E3DA; }
+        body { background: #faf7f0; }
+        @media print { .rx-page { zoom: 1 !important; } }
       `}} />
 
       <div className="no-print" style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, display: "flex", gap: 8 }}>
@@ -122,50 +140,17 @@ export default function PrescriptionPdfPage() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", padding: "40px 20px" }}>
-        <div className="rx-page" style={{ width: "210mm", background: "#FFFFFF", padding: "10mm 12mm 8mm", boxSizing: "border-box", boxShadow: "0 4px 24px rgba(0,0,0,0.18)", fontFamily: "Arial, sans-serif", color: G, fontSize: "8pt", position: "relative", overflow: "hidden" }}>
+        <div className="rx-page" style={{ width: 794, zoom: scale, background: "#fefdf9", padding: 0, boxSizing: "border-box", boxShadow: "0 4px 24px rgba(0,0,0,0.18)", fontFamily: "Arial, sans-serif", color: G, fontSize: "8pt", position: "relative", overflow: "hidden" }}>
 
-          {/* Corner leaf decoration — top-left */}
-          <svg style={{ position: "absolute", top: -4, left: -4, width: 110, height: 130, opacity: 0.55 }} viewBox="0 0 110 130" fill="none">
-            {/* main stem */}
-            <path d="M80 4 Q65 25 50 50 Q38 72 22 105" stroke="#3A7A55" strokeWidth="1.8" fill="none"/>
-            {/* leaves branching off stem */}
-            <path d="M80 4 C88 8 92 20 80 28 C72 20 70 8 80 4Z" fill="#3A7A55" opacity="0.9"/>
-            <path d="M72 14 C82 16 88 28 74 36 C66 26 64 16 72 14Z" fill="#4A8A62" opacity="0.8"/>
-            <path d="M62 26 C72 26 80 38 66 48 C56 38 54 26 62 26Z" fill="#3A7A55" opacity="0.75"/>
-            <path d="M50 42 C60 40 68 52 54 62 C44 52 42 40 50 42Z" fill="#4A8A62" opacity="0.65"/>
-            <path d="M38 60 C48 56 56 68 42 78 C32 68 30 56 38 60Z" fill="#3A7A55" opacity="0.55"/>
-            <path d="M26 80 C36 76 42 88 30 96 C20 88 20 76 26 80Z" fill="#4A8A62" opacity="0.45"/>
-          </svg>
+          {/* HEADER IMAGE — full bleed, exactly 794px wide */}
+          <img
+            src="/prescription_header.svg"
+            alt="Eye Aura Header"
+            style={{ display: "block", width: "100%", marginBottom: 0 }}
+          />
 
-          {/* HEADER */}
-          <div style={{ display: "flex", alignItems: "center", marginBottom: "4mm", paddingLeft: "14mm" }}>
-            {/* Logo full-width centered + tagline */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <img
-                src="/eye-aura-logo.png"
-                alt="Eye Aura"
-                style={{ height: 165, width: "auto" }}
-              />
-              <div style={{ display: "flex", alignItems: "center", gap: 6, width: "85%", marginTop: 1 }}>
-                <div style={{ flex: 1, height: 1, background: GOLD }}/>
-                <span style={{ fontSize: "6pt", letterSpacing: "3px", color: G, fontWeight: 700, whiteSpace: "nowrap" }}>PERSONALIZED VISION CARE</span>
-                <div style={{ flex: 1, height: 1, background: GOLD }}/>
-              </div>
-            </div>
-            {/* Vertical divider */}
-            <div style={{ width: 1, alignSelf: "stretch", background: "#C8C8C8", margin: "0 14px", flexShrink: 0 }}/>
-            {/* Contact info */}
-            <div style={{ fontSize: "8pt", color: G, lineHeight: 1.9, flexShrink: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 700 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill={G}><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.02-.24 11.47 11.47 0 003.58.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.02l-2.2 2.19z"/></svg>
-                7903357976
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 5 }}>
-                <svg style={{ marginTop: 2, flexShrink: 0 }} width="10" height="12" viewBox="0 0 24 24" fill={G}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>
-                <span>Online Consultation<br/>Your Vision, Our Care</span>
-              </div>
-            </div>
-          </div>
+          {/* BODY — all content below the header, with side padding */}
+          <div style={{ padding: "12px 45px 30px" }}>
 
           {/* PATIENT INFO */}
           <div style={{ border: `1.5px solid ${BORDER}`, borderRadius: 6, padding: "6px 12px 8px", marginBottom: "5mm", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 20px" }}>
@@ -299,7 +284,7 @@ export default function PrescriptionPdfPage() {
           </div>
 
           {/* BOTTOM ROW */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.4fr 0.8fr", gap: 8, marginBottom: "4mm" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 2.2fr", gap: 8, marginBottom: "4mm" }}>
             {/* Daily Eye Ritual */}
             <div style={{ background: LTGREEN, borderRadius: 6, padding: "8px 10px" }}>
               <div style={{ fontSize: "8pt", fontWeight: 700, letterSpacing: "1px", color: G, textAlign: "center", marginBottom: 7 }}>DAILY EYE RITUAL</div>
@@ -342,48 +327,53 @@ export default function PrescriptionPdfPage() {
                   </div>
                 ))}
               </div>
-              <div style={{ background: G, color: "white", borderRadius: 20, padding: "4px 6px", textAlign: "center", fontSize: "6.5pt", fontWeight: 600 }}>
+              <div style={{ background: "#1a472b", color: "white", borderRadius: 20, padding: "4px 6px", textAlign: "center", fontSize: "6.5pt", fontWeight: 600 }}>
                 Do this twice daily for relaxed vision
               </div>
             </div>
 
-            {/* Important Advice */}
-            <div style={{ padding: "4px 8px" }}>
-              <div style={{ fontSize: "8pt", fontWeight: 700, letterSpacing: "1px", color: G, marginBottom: 6, textAlign: "center" }}>IMPORTANT ADVICE</div>
-              {[
-                "Use your glasses as prescribed.",
-                "Follow 20-20-20 rule for screen use.",
-                "Maintain proper lighting while reading.",
-                "Stay hydrated and get adequate sleep.",
-              ].map((a, i) => (
-                <div key={i} style={{ display: "flex", gap: 5, fontSize: "7.5pt", color: G, marginBottom: 4 }}>
-                  <span>•</span><span>{a}</span>
-                </div>
-              ))}
-            </div>
+            {/* Important Advice + Review After — shared box */}
+            <div style={{ display: "flex", background: "#f8f6ea", border: `1px solid ${BORDER}`, borderRadius: 6, overflow: "hidden" }}>
 
-            {/* Review After */}
-            <div style={{ border: `1.5px solid ${BORDER}`, borderRadius: 6, padding: "8px 10px", textAlign: "center" }}>
-              <div style={{ fontSize: "7.5pt", fontWeight: 700, letterSpacing: "1px", color: G, marginBottom: 8 }}>REVIEW AFTER</div>
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                  <rect x="2" y="6" width="28" height="24" rx="3" stroke={G} strokeWidth="1.5" fill="none"/>
-                  <line x1="2" y1="13" x2="30" y2="13" stroke={G} strokeWidth="1"/>
-                  <line x1="9" y1="2" x2="9" y2="10" stroke={G} strokeWidth="2"/>
-                  <line x1="23" y1="2" x2="23" y2="10" stroke={G} strokeWidth="2"/>
-                  <circle cx="9" cy="19" r="1.5" fill={G}/><circle cx="16" cy="19" r="1.5" fill={G}/><circle cx="23" cy="19" r="1.5" fill={G}/>
-                  <circle cx="9" cy="25" r="1.5" fill={G}/><circle cx="16" cy="25" r="1.5" fill={G}/>
-                </svg>
+              {/* Important Advice */}
+              <div style={{ flex: 1, padding: "8px 12px", borderRight: `1px solid ${BORDER}` }}>
+                <div style={{ fontSize: "8pt", fontWeight: 700, letterSpacing: "1px", color: G, marginBottom: 6, textAlign: "center" }}>IMPORTANT ADVICE</div>
+                {[
+                  "Use your glasses as prescribed.",
+                  "Follow 20-20-20 rule for screen use.",
+                  "Maintain proper lighting while reading.",
+                  "Stay hydrated and get adequate sleep.",
+                ].map((a, i) => (
+                  <div key={i} style={{ display: "flex", gap: 5, fontSize: "7.5pt", color: G, marginBottom: 4 }}>
+                    <span>•</span><span>{a}</span>
+                  </div>
+                ))}
               </div>
-              <div style={{ borderBottom: "1px solid #ccc", paddingBottom: 2, fontSize: "8pt", fontWeight: prescription.reviewAfter ? 700 : 400, color: G, minHeight: 18 }}>
-                {prescription.reviewAfter || "\u00A0"}
+
+              {/* Review After */}
+              <div style={{ width: 110, flexShrink: 0, padding: "8px 10px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ fontSize: "7.5pt", fontWeight: 700, letterSpacing: "1px", color: G, marginBottom: 8 }}>REVIEW AFTER</div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect x="2" y="6" width="28" height="24" rx="3" stroke={G} strokeWidth="1.5" fill="none"/>
+                    <line x1="2" y1="13" x2="30" y2="13" stroke={G} strokeWidth="1"/>
+                    <line x1="9" y1="2" x2="9" y2="10" stroke={G} strokeWidth="2"/>
+                    <line x1="23" y1="2" x2="23" y2="10" stroke={G} strokeWidth="2"/>
+                    <circle cx="9" cy="19" r="1.5" fill={G}/><circle cx="16" cy="19" r="1.5" fill={G}/><circle cx="23" cy="19" r="1.5" fill={G}/>
+                    <circle cx="9" cy="25" r="1.5" fill={G}/><circle cx="16" cy="25" r="1.5" fill={G}/>
+                  </svg>
+                </div>
+                <div style={{ borderBottom: `1px solid ${BORDER}`, width: "80%", paddingBottom: 2, fontSize: "8pt", fontWeight: prescription.reviewAfter ? 700 : 400, color: G, minHeight: 18 }}>
+                  {prescription.reviewAfter || "\u00A0"}
+                </div>
               </div>
+
             </div>
           </div>
 
           {/* FOOTER */}
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: 2, paddingTop: 4, borderTop: `1px solid ${BORDER}` }}>
-            <div style={{ fontFamily: "'Dancing Script', cursive", fontSize: "13pt", color: G, fontStyle: "italic" }}>
+            <div style={{ fontFamily: "'Brittany Signature', 'Dancing Script', cursive", fontSize: "15pt", color: G }}>
               Your eyes deserve calm, not strain. ♡
             </div>
             <div style={{ textAlign: "center" }}>
@@ -401,6 +391,7 @@ export default function PrescriptionPdfPage() {
             </div>
           </div>
 
+          </div>{/* end body */}
         </div>
       </div>
     </>

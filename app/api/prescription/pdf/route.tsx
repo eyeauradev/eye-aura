@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{}> }
     const page = await browser.newPage();
 
     // Set viewport to A4
-    await page.setViewport({ width: 794, height: 1123 });
+    await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
 
     // Navigate to print page
     await page.goto(printUrl, { waitUntil: "domcontentloaded" });

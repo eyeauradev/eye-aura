@@ -18,13 +18,14 @@
 11. [Scheduling System](#11-scheduling-system)
 12. [Payment Architecture](#12-payment-architecture)
 13. [Prescription System](#13-prescription-system)
-14. [Authentication System](#14-authentication-system)
-15. [Environment Variables](#15-environment-variables)
-16. [Deployment](#16-deployment)
-17. [Known Limitations](#17-known-limitations)
-18. [Future Roadmap](#18-future-roadmap)
-19. [Engineering Rules](#19-engineering-rules)
-20. [Changelog](#20-changelog)
+14. [Visual Acuity Assessment System](#14-visual-acuity-assessment-system)
+15. [Authentication System](#15-authentication-system)
+16. [Environment Variables](#16-environment-variables)
+17. [Deployment](#17-deployment)
+18. [Known Limitations](#18-known-limitations)
+19. [Future Roadmap](#19-future-roadmap)
+20. [Engineering Rules](#20-engineering-rules)
+21. [Changelog](#21-changelog)
 
 ---
 
@@ -118,7 +119,8 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │   │   ├── /prescriptions/[id]/page.tsx
 │   │   ├── /profile/page.tsx
 │   │   ├── /notifications/page.tsx
-│   │   └── /support/page.tsx + /[id]/page.tsx
+│   │   ├── /support/page.tsx + /[id]/page.tsx
+│   │   └── /assessment/page.tsx + /visual-acuity/page.tsx
 │   ├── /doctor                             # Doctor module (role-guarded)
 │   │   ├── layout.tsx                      # Redirects if role != doctor
 │   │   ├── /dashboard/page.tsx
@@ -137,6 +139,7 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │   │   ├── /doctors/page.tsx + /invite/page.tsx + /[id]/page.tsx
 │   │   ├── /appointments/page.tsx + /[id]/page.tsx
 │   │   ├── /services/page.tsx + /create/page.tsx + /[id]/edit/page.tsx
+│   │   ├── /assessments/page.tsx            # Vision assessment assignment UI
 │   │   ├── /users/page.tsx
 │   │   ├── /support/page.tsx + /[id]/page.tsx
 │   │   ├── /analytics/page.tsx
@@ -149,6 +152,7 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │       ├── /doctor-onboarding/complete/route.ts  # Admin SDK: creates doctor Auth + Firestore doc
 │       ├── /doctor-invites/route.ts              # Invite management
 │       ├── /emails/doctor-invite/route.ts        # Sends invite email via Resend
+│       ├── /assessments/assign/route.ts          # Vision assessment assignment API
 │       └── /prescription/pdf/route.tsx           # Puppeteer: renders print page → PDF stream
 │
 ├── /components
@@ -162,6 +166,28 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │   │   └── AvailabilityPreview.tsx         # Read-only 7-day schedule summary
 │   └── /prescription
 │       └── PrescriptionTemplate.tsx        # Branded prescription HTML layout
+│
+├── /modules
+│   └── /visual-acuity                      # Visual acuity assessment module
+│       ├── AcuitySession.tsx               # Unified orchestrator for assessment flow
+│       ├── SnellenRenderer.tsx             # SVG optotype renderer with calibrated sizing
+│       ├── TestTypeSelector.tsx            # Far/Near/Both selection UI
+│       ├── DurationSelector.tsx            # Timer duration selection (2s/3s/4s)
+│       ├── types.ts                       # TestType, TimerDuration, AcuityTestResult, EyeAcuityResult
+│       ├── optotypes.ts                   # SVG path definitions for all 9 optotypes
+│       ├── snellen-data.ts                 # Far vision chart data + utility functions
+│       ├── /near
+│       │   └── near-vision-data.ts         # Near vision Jaeger chart data
+│       ├── /engine
+│       │   ├── useAssessmentTimer.ts       # Visual countdown timer hook
+│       │   └── useVisionProgression.ts     # Line progression with indexRef/failsRef
+│       └── /steps
+│           ├── WelcomeStep.tsx             # Assessment introduction
+│           ├── InstructionsStep.tsx        # Testing instructions
+│           ├── CalibrationStep.tsx         # Card calibration UI + pxPerMm calculation
+│           ├── TestingStep.tsx             # Far vision test (3m)
+│           ├── NearTestingStep.tsx         # Near vision test (40cm)
+│           └── ResultsStep.tsx             # Results display with level + notation
 │
 ├── /contexts
 │   └── auth-context.tsx                    # AuthProvider + useAuth() hook
@@ -185,6 +211,7 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │   │   ├── doctor-invites.service.ts       # CLIENT: reads only. All writes via Admin SDK.
 │   │   ├── prescriptions.service.ts
 │   │   ├── services.service.ts
+│   │   ├── vision-assessments.service.ts   # Vision assessment CRUD
 │   │   └── support-tickets.service.ts
 │   ├── /booking
 │   │   ├── booking.service.ts
@@ -234,11 +261,15 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 | `/booking` | Patient | Yes | 5-step booking wizard |
 | `/booking/confirmation/[id]` | Patient | Yes | After booking confirmed |
 | `/booking/request-submitted/[id]` | Patient | Yes | After request submitted |
+| `/patient/assessment` | Patient | Yes | Assessment dashboard (ready/completed/expired) |
+| `/patient/assessment/visual-acuity` | Patient | Yes | Visual acuity test UI (requires valid ?id=) |
 | `/patient/*` | Patient | Yes | Full patient module |
 | `/doctor/*` | Doctor | Yes | Full doctor module |
+| `/admin/assessments` | Admin | Yes | Vision assessment assignment UI |
 | `/admin/*` | Admin | Yes | Full admin module |
 | `/prescription/print/[id]` | Internal | No | Puppeteer render target — not linked in UI |
 | `/api/doctor-onboarding/complete` | Public (token-auth) | No | Uses invite token, not session |
+| `/api/assessments/assign` | Doctor/Admin | Yes | Vision assessment assignment API |
 | `/api/prescription/pdf` | Patient/Doctor | Implicit | Should be auth-gated (known gap) |
 | `/api/emails/doctor-invite` | Admin | Should check | Currently open — known gap |
 
@@ -608,6 +639,37 @@ interface SupportTicketDocument {
 
 ---
 
+## Collection: `vision_assessments`
+
+```typescript
+interface VisionAssessmentDocument {
+  id: string;
+  patientId: string;
+  doctorId?: string;
+  appointmentId?: string;
+  serviceId?: string;
+  assignedBy: string;           // UID of assigning user
+  assignedRole: "doctor" | "admin" | "system";
+  overrideUsed: boolean;        // true for admin bypass
+  assessmentTypes: VisionAssessmentType[];  // ["far"] | ["near"] | ["far","near"]
+  status: "assigned" | "in_progress" | "completed" | "expired";
+  autoAssigned: boolean;
+  resultFar?: { rightEye: string; leftEye: string; completedAt: Date };
+  resultNear?: { rightEye: string; leftEye: string; completedAt: Date };
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt?: Date;             // 7 days from createdAt
+}
+```
+
+**Assessment Types**: `far` (Snellen chart, 3m) | `near` (Jaeger chart, 40cm)
+
+**Security**: Read: own patient or assigned doctor or admin | Create: doctor (own doctorId) or admin SDK (API route) | Update: patient (status/result fields only) or doctor (own) or admin | Delete: admin only
+
+**Assignment Flow**: Doctors assign via `/doctor/appointments/[id]` → API creates document. Admins can override via `/admin/assessments`. Service automation can auto-assign on booking acceptance if configured.
+
+---
+
 ## Collection: `payments`
 
 ```typescript
@@ -646,6 +708,7 @@ Original slot-based model, superseded by `doctor_availability` + `booking_reques
 | `doctor_blocks` | **Yes** | — | Own doctor or admin |
 | `services` | **Yes** | — | Admin only |
 | `prescriptions` | No | Own patient/doctor | Doctor create/update; admin |
+| `vision_assessments` | No | Own patient/assigned doctor | Patient status/result; doctor own; admin all |
 | `support_tickets` | No | Own user | Own user create/update; admin |
 | `payments` | No | Own patient | Patient create; admin update |
 | `doctor_invites` | **Yes** | — | Admin (client); Admin SDK (server) |
@@ -662,6 +725,9 @@ Original slot-based model, superseded by `doctor_availability` + `booking_reques
 | `prescriptions` | `doctorId ASC, createdAt DESC` | Doctor prescriptions |
 | `booking_requests` | `doctorId ASC, status ASC, createdAt ASC` | Doctor pending queue |
 | `booking_requests` | `patientId ASC, createdAt DESC` | Patient's request history |
+| `vision_assessments` | `patientId ASC, createdAt DESC` | Patient assessment list |
+| `vision_assessments` | `doctorId ASC, createdAt DESC` | Doctor assessment list |
+| `vision_assessments` | `status ASC, createdAt DESC` | Assessment status filter |
 | `support_tickets` | `userId ASC, createdAt DESC` | User ticket list |
 | `doctor_availability` | `doctorId ASC, dayOfWeek ASC` | Schedule by day |
 | `doctor_blocks` | `doctorId ASC, start ASC` | Blocks for a period |
@@ -1710,16 +1776,27 @@ interface PrescriptionDocument {
      ├─ Admin SDK: verify prescription exists
      ├─ Compute printUrl = /prescription/print/{id}
      ├─ puppeteer.launch({ headless:true, args:["--no-sandbox","--disable-setuid-sandbox"] })
-     ├─ page.setViewport({ width:794, height:1123 }) // A4 pixel dimensions
+     ├─ page.setViewport({ width:794, height:1123, deviceScaleFactor:2 }) // A4 @ 2x resolution
      ├─ page.goto(printUrl, { waitUntil:"domcontentloaded" })
      │    → /prescription/print/{id} renders PrescriptionTemplate.tsx
      │    → Fetches prescription from Firestore client-side
+     │    → Renders SVG header (prescription_header.svg) at 794px width
      ├─ page.pdf({ format:"A4", printBackground:true, margin:{0,0,0,0} })
      ├─ browser.close()
      └─ Return NextResponse with Content-Type:application/pdf
 
 3. Browser downloads: eye-aura-prescription-{id}.pdf
 ```
+
+## Header SVG
+
+The prescription header is rendered as an SVG file (`/public/prescription_header.svg`) instead of a PNG. This provides:
+- Infinite scalability without quality loss
+- Smaller file size
+- Crisp rendering at any resolution
+- Full-bleed layout (794px width, 220px height)
+
+The SVG is rendered with `width: 100%` to fill the entire card width. The card has no side padding; all body content is wrapped in an inner div with `padding: 12px 45px 30px`.
 
 ## PrescriptionTemplate (`components/prescription/PrescriptionTemplate.tsx`)
 
@@ -1750,7 +1827,202 @@ Styled with Tailwind CSS. The layout uses the same CSS pipeline as the rest of t
 - Smaller storage costs (text vs PDF)
 
 <!-- SECTION:14 -->
-# 14. AUTHENTICATION SYSTEM
+# 14. VISUAL ACUITY ASSESSMENT SYSTEM
+
+## Philosophy
+
+Visual acuity assessments are **doctor-controlled, appointment-driven, and clinically calibrated**. Patients cannot self-start an assessment. All access is gated through an assigned `VisionAssessmentDocument` in the `vision_assessments` Firestore collection. The assessment engine uses SVG-based optotype rendering with physical calibration to ensure clinical accuracy.
+
+## Assessment Types
+
+| Type   | Description                    | Distance |
+|--------|--------------------------------|----------|
+| `far`  | Far Vision — Snellen chart     | 3 metres |
+| `near` | Near Vision — Jaeger chart     | 40 cm    |
+
+Assessments can be assigned individually or together (`["far", "near"]`).
+
+## Assignment Flow
+
+### Doctor Assignment
+- Doctor opens `/doctor/appointments/[id]`
+- Selects Far / Near / Both using toggle buttons
+- Clicks "Assign Assessment"
+- Frontend calls `POST /api/assessments/assign` with doctor's Firebase ID token
+- Server validates: token → doctor role → appointment ownership → patient match
+- `vision_assessments` document created with `assignedRole: "doctor"`, `autoAssigned: false`
+- Patient sees assessment on dashboard
+
+### Admin Override
+- Admin uses `/admin/assessments`
+- Searches for patient by name/email
+- Selects assessment type(s)
+- Calls `POST /api/assessments/assign` with `assignedRole: "admin"`, `overrideUsed: true`
+- No appointment linkage required
+- Stored with full audit metadata
+
+### Service Automation (Instant Trigger)
+- Trigger: Doctor accepts booking request via `/doctor/requests`
+- System checks `service.assessmentAutomation.enabled` AND `triggerMode === "instant"`
+- If true: `vision_assessments` document created with `assignedRole: "system"`, `autoAssigned: true`
+- Patient's dashboard shows assessment as "Ready"
+- Failure is non-fatal — acceptance proceeds regardless
+
+## Assessment Lifecycle
+
+```
+assigned  →  in_progress  →  completed
+    ↓
+  expired  (7 days after creation if not started)
+```
+
+| Status        | Set when                                           |
+|---------------|----------------------------------------------------|
+| `assigned`    | Created by doctor / admin / system                |
+| `in_progress` | Patient first opens the assessment URL             |
+| `completed`   | AcuitySession reports results                      |
+| `expired`     | 7 days pass without completion (cron/manual)       |
+
+## Clinical Calibration Engine
+
+### Card Calibration Flow
+
+1. Display an on-screen rectangle
+2. User resizes it (slider + ±1/5px buttons) to match a physical **ISO/IEC 7810 ID-1** card (85.60 × 53.98 mm)
+3. `pxPerMm = cardWidthPx / 85.60`
+
+This is the **only** valid pixel-per-mm reference. All rendering uses it.
+
+### CalibrationData type
+
+```typescript
+interface CalibrationData {
+  pxPerMm: number;       // CSS px per physical mm (the key value)
+  cardWidthPx: number;   // calibrated card width in CSS px
+  deviceWidth: number;   // window.innerWidth at calibration time
+  deviceHeight: number;  // window.innerHeight at calibration time
+  dpr: number;           // devicePixelRatio at calibration time
+  timestamp: number;     // Date.now() — stored for 24hr cache
+}
+```
+
+### Invalidation Rules
+
+Stored calibration is discarded when:
+- Age > 24 hours
+- `window.innerWidth` or `innerHeight` changed (orientation / resize)
+
+## SVG Text Rendering Engine
+
+### Architecture
+
+```
+rawCapPx   = exactHeightMm × pxPerMm
+capPx      = max(rawCapPx, MIN_CAP_PX)       // device floor only
+fontSize   = capPx / CAP_HEIGHT_RATIO         // = capPx / 0.711
+baselineY  = padV + capPx                     // alphabetic baseline position
+```
+
+Letters rendered as `<text>` inside an exact-dimension `<svg>`:
+
+```tsx
+<svg width={svgW} height={svgH}>                   // exact px — no browser scaling
+  <text x={center} y={baselineY} fontSize={fontSize}
+        fontFamily="'Helvetica Neue', 'Arial', sans-serif"
+        fontWeight="700">E</text>
+</svg>
+```
+
+### Cap Height Compensation
+
+SVG `fontSize` refers to the **em-square**, not the capital letter height.
+
+```
+Arial cap height = 1456 / 2048 UPM = 0.711 × font-size
+```
+
+Without correction: a 10px font produces ~7.1px capital letters.
+With correction: `fontSize = targetCapPx / 0.711` produces exactly `targetCapPx` capital height.
+
+### Font Selection
+
+`'Helvetica Neue', 'Arial', 'Liberation Sans', sans-serif` is used because:
+- Standard clinical Snellen charts use bold sans-serif letterforms
+- Arial/Helvetica cap height ratio (0.711) is consistent across browsers and OS
+- Real ophthalmic letter shapes: proper curved O, C, D — not geometric blocks
+- Available on all platforms without web font loading
+
+## Assessment Flow
+
+```
+type_select → instructions → calibration → duration_select → testing → results
+```
+
+### Testing phases per eye
+
+```
+eye_intro → reading (auto-advance by setInterval) → self_report
+```
+
+### Line advancement
+
+Lines advance using a **dedicated `setInterval`** firing every `timerDuration` seconds.
+`useAssessmentTimer` is used only for the visual countdown display.
+
+This separation prevents the double-firing bug that caused even-numbered lines to be skipped.
+
+### Self-report screen
+
+After all lines are shown, the user selects the **smallest line they could read clearly**.
+Buttons show: `Level N · 20/xx · label`.
+
+## Key Files
+
+| File                                   | Responsibility                              |
+|----------------------------------------|---------------------------------------------|
+| `modules/visual-acuity/AcuitySession.tsx` | Unified orchestrator for assessment flow    |
+| `modules/visual-acuity/SnellenRenderer.tsx` | SVG optotype renderer with calibrated sizing |
+| `modules/visual-acuity/TestTypeSelector.tsx` | Far/Near/Both selection UI                |
+| `modules/visual-acuity/DurationSelector.tsx` | Timer duration selection (2s/3s/4s)        |
+| `modules/visual-acuity/types.ts`        | TestType, TimerDuration, AcuityTestResult  |
+| `modules/visual-acuity/optotypes.ts`     | SVG path definitions for all 9 optotypes    |
+| `modules/visual-acuity/snellen-data.ts`  | Far vision chart data + utility functions   |
+| `modules/visual-acuity/near/near-vision-data.ts` | Near vision Jaeger chart data           |
+| `modules/visual-acuity/engine/useAssessmentTimer.ts` | Visual countdown timer hook       |
+| `modules/visual-acuity/engine/useVisionProgression.ts` | Line progression with indexRef/failsRef |
+| `modules/visual-acuity/steps/WelcomeStep.tsx` | Assessment introduction              |
+| `modules/visual-acuity/steps/InstructionsStep.tsx` | Testing instructions               |
+| `modules/visual-acuity/steps/CalibrationStep.tsx` | Card calibration UI + pxPerMm calculation |
+| `modules/visual-acuity/steps/TestingStep.tsx` | Far vision test (3m)                 |
+| `modules/visual-acuity/steps/NearTestingStep.tsx` | Near vision test (40cm)             |
+| `modules/visual-acuity/steps/ResultsStep.tsx` | Results display with level + notation |
+| `services/firestore/vision-assessments.service.ts` | Vision assessment CRUD            |
+| `app/api/assessments/assign/route.ts`   | Vision assessment assignment API          |
+| `app/patient/assessment/page.tsx`        | Patient assessment dashboard              |
+| `app/patient/assessment/visual-acuity/page.tsx` | Visual acuity test UI              |
+| `app/admin/assessments/page.tsx`         | Admin assessment assignment UI             |
+
+## Design Decisions
+
+- **NO per-line scoring**: All lines auto-advance by timer only (Pause is the only control during reading)
+- **Self-report after completion**: Patient selects smallest line they could read
+- **Snellen letter size formula**: H = denominator × (testingDistanceM / 6) × 1.454 mm (clinically accurate)
+- **SnellenRenderer min floor**: 10 CSS px to prevent sub-pixel collapse on near lines
+- **SVG fully responsive**: width:100%/height:auto + viewBox
+- **onComplete returns**: { right: EyeAcuityResult; left: EyeAcuityResult } — no LineResult arrays
+- **testingDistance**: far=3m, near=0.35m
+- **Doctor note footer**: On every active test screen
+- **timerStartRef pattern**: Used in both TestingStep and NearTestingStep to break circular dep
+
+## Minimum Device Requirements
+
+For reliable near vision testing (lines at 0.58–1.45 mm):
+- Screen PPI ≥ 150 (3.74 CSS px/mm at 100% zoom / no OS scaling)
+- Below this, near vision lines fall below 4–6 px and cannot be clinically distinguished
+- The debug panel flags clamped lines with `⚠ clamped`
+
+<!-- SECTION:15 -->
+# 16. AUTHENTICATION SYSTEM
 
 ## Auth Stack
 
@@ -2120,8 +2392,8 @@ This prevents:
 - Dashboard flash before redirect
 - Stale auth rendering
 
-<!-- SECTION:15 -->
-# 15. ENVIRONMENT VARIABLES
+<!-- SECTION:16 -->
+# 16. ENVIRONMENT VARIABLES
 
 ## Complete Variable Reference
 
@@ -2203,7 +2475,7 @@ RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
 5. Use `rzp_test_*` keys for development; switch to `rzp_live_*` for production
 
 <!-- SECTION:16 -->
-# 16. DEPLOYMENT ARCHITECTURE
+# 17. DEPLOYMENT ARCHITECTURE
 
 ## Deployment Target
 
@@ -2287,7 +2559,7 @@ Firestore security rules are deployed via Firebase CLI, NOT via the app. This se
 - Firebase Performance Monitoring for API latency (if integrated)
 
 <!-- SECTION:17 -->
-# 17. KNOWN LIMITATIONS & TECHNICAL DEBT
+# 18. KNOWN LIMITATIONS & TECHNICAL DEBT
 
 ## Known Bugs
 
@@ -2326,7 +2598,7 @@ Firestore security rules are deployed via Firebase CLI, NOT via the app. This se
 | No rate limiting on invite API | Abuse possible | Add rate limiting middleware |
 
 <!-- SECTION:18 -->
-# 18. FUTURE ROADMAP
+# 19. FUTURE ROADMAP
 
 ## Short Term (Next 1-2 months)
 
@@ -2366,7 +2638,7 @@ Firestore security rules are deployed via Firebase CLI, NOT via the app. This se
 - [ ] Firebase Storage (no file upload requirement currently)
 
 <!-- SECTION:19 -->
-# 19. ENGINEERING RULES
+# 20. ENGINEERING RULES
 
 ## Code Style
 
@@ -2446,9 +2718,63 @@ Firestore security rules are deployed via Firebase CLI, NOT via the app. This se
 - **Respect `prefers-reduced-motion`** — already in globals.css
 
 <!-- SECTION:20 -->
-# 20. CHANGELOG
+# 21. CHANGELOG
 
 This section tracks major architectural changes to the Eye Aura codebase.
+
+## 2026-05 (Visual Acuity Assessment Module)
+
+### Visual Acuity Assessment System
+- **Change**: Added complete visual acuity assessment module with clinically calibrated SVG optotype rendering
+- **New Module**: `/modules/visual-acuity/` — self-contained assessment engine
+- **Key Components**:
+  - `AcuitySession.tsx` — Unified orchestrator for assessment flow (type_select → instructions → calibration → duration_select → testing → results)
+  - `SnellenRenderer.tsx` — SVG optotype renderer with calibrated sizing (10px min floor, responsive SVG)
+  - `CalibrationStep.tsx` — Card calibration UI using ISO/IEC 7810 ID-1 card (85.60 × 53.98 mm) for pxPerMm calculation
+  - `TestingStep.tsx` — Far vision test (3m) with auto-advance by timer
+  - `NearTestingStep.tsx` — Near vision test (40cm) with Jaeger chart
+  - `ResultsStep.tsx` — Results display with level + notation
+- **Clinical Accuracy**:
+  - Snellen letter size formula: H = denominator × (testingDistanceM / 6) × 1.454 mm
+  - Cap height compensation: Arial cap height = 0.711 × font-size
+  - Calibration invalidation: Age > 24 hours or window resize/orientation change
+- **Assignment Flow**:
+  - Doctor assignment via `/doctor/appointments/[id]` → API creates `vision_assessments` document
+  - Admin override via `/admin/assessments` with `overrideUsed: true` for audit
+  - Service automation on booking acceptance if `service.assessmentAutomation.enabled` and `triggerMode === "instant"`
+- **New Firestore Collection**: `vision_assessments` with fields for patientId, doctorId, appointmentId, assessmentTypes, status, resultFar, resultNear
+- **New API Route**: `POST /api/assessments/assign` — Firebase ID token auth, doctor/admin roles only
+- **New Pages**:
+  - `/patient/assessment` — Patient assessment dashboard (ready/completed/expired)
+  - `/patient/assessment/visual-acuity` — Visual acuity test UI (requires valid ?id=)
+  - `/admin/assessments` — Admin assessment assignment UI
+- **Design Decisions**:
+  - NO per-line scoring — all lines auto-advance by timer only
+  - Self-report after completion — patient selects smallest line they could read
+  - SVG fully responsive — width:100%/height:auto + viewBox
+  - onComplete returns { right: EyeAcuityResult; left: EyeAcuityResult } — no LineResult arrays
+- **Files Changed**:
+  - `/modules/visual-acuity/*` — New module directory with 15+ files
+  - `/services/firestore/vision-assessments.service.ts` — New service
+  - `/app/api/assessments/assign/route.ts` — New API route
+  - `/app/patient/assessment/page.tsx` — New patient dashboard
+  - `/app/patient/assessment/visual-acuity/page.tsx` — New test UI
+  - `/app/admin/assessments/page.tsx` — New admin assignment UI
+  - `/types/firestore.ts` — Added VisionAssessmentDocument, VisionAssessmentType
+  - `/firestore.indexes.json` — Added vision_assessments composite indexes
+  - `/firestore.rules` — Added vision_assessments security rules
+- **Impact**: Patients can now complete clinically accurate visual acuity tests at home with doctor-controlled assignment
+
+### Prescription PDF SVG Header
+- **Change**: Replaced PNG header with SVG for infinite scalability and smaller file size
+- **File**: `/public/prescription_header.svg` — Full-bleed layout (794px width, 220px height)
+- **Rendering**: SVG rendered with `width: 100%` to fill entire card width
+- **Layout Change**: Card has no side padding; all body content wrapped in inner div with `padding: 12px 45px 30px`
+- **PDF Resolution**: Added `deviceScaleFactor: 2` to Puppeteer viewport for 2x resolution (sharper PDF)
+- **Files Changed**:
+  - `/app/api/prescription/pdf/route.tsx` — Added deviceScaleFactor: 2
+  - `/app/prescriptions/[id]/pdf/page.tsx` — Updated layout for SVG header, removed card side padding
+- **Impact**: Crisp header rendering at any resolution, smaller file size, full-bleed layout
 
 ## 2025-01 (Architecture Refactor)
 
