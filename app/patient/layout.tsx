@@ -5,8 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { Home, Calendar, FileText, User, LogOut, Bell, RefreshCw, Eye } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Home, Calendar, FileText, User, LogOut, RefreshCw, Eye } from "lucide-react";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Dashboard", icon: Home },
@@ -52,33 +51,45 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   return (
     <div className="min-h-screen bg-[#F0EDE8]">
       {/* Header */}
-      <header className="border-b border-[#0f4f4b]/8 bg-white/70 backdrop-blur-md sticky top-0 z-50">
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-3.5">
-          <div className="flex items-center justify-between">
-            <Link href="/patient/dashboard" className="flex items-center gap-2.5">
-              <Image src="/eye.png" alt="Eye Aura" width={36} height={36} className="h-9 w-9 object-contain" priority />
-              <div className="hidden sm:block">
-                <span className="font-display text-lg text-[#0f4f4b] leading-none block">Eye Aura</span>
-                <span className="text-[10px] text-[#0f4f4b]/40 leading-none">by Harshita</span>
-              </div>
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#0f4f4b]/10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex h-[52px] items-center justify-between gap-4">
+
+            {/* Logo */}
+            <Link href="/patient/dashboard" className="flex items-center gap-2.5 shrink-0">
+              <Image src="/eye.png" alt="Eye Aura" width={30} height={30} className="h-[30px] w-[30px] object-contain" priority />
+              <span className="font-display text-[17px] font-bold text-[#0f4f4b] tracking-tight hidden sm:block">
+                Eye Aura
+              </span>
             </Link>
 
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-full bg-[#0f4f4b] grid place-items-center">
-                  <span className="text-[11px] font-bold text-white">{initials}</span>
-                </div>
-                <span className="text-sm font-medium text-[#0f4f4b]/70">{firstName}</span>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleSignOut}
-                className="flex items-center gap-2 h-8 text-xs rounded-xl px-3 border-[#0f4f4b]/15 text-[#0f4f4b]/60 hover:text-[#0f4f4b]"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </Button>
+            {/* Centre badge */}
+            <div className="hidden md:flex items-center gap-1.5 rounded-full border border-[#0f4f4b]/12 bg-[#0f4f4b]/4 px-3 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#0f4f4b]/35 block" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0f4f4b]/45">Patient Portal</span>
             </div>
+
+            {/* Right: user + sign out */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* User pill */}
+              <div className="hidden sm:flex items-center gap-2 rounded-full bg-[#0f4f4b]/6 border border-[#0f4f4b]/10 pl-1 pr-3 py-1">
+                <div className="h-6 w-6 rounded-full bg-[#0f4f4b] grid place-items-center shrink-0">
+                  <span className="text-[10px] font-bold text-white leading-none">{initials}</span>
+                </div>
+                <span className="text-xs font-medium text-[#0f4f4b]/65 leading-none">{firstName}</span>
+              </div>
+
+              {/* Sign out */}
+              <button
+                onClick={handleSignOut}
+                title="Sign out"
+                className="flex items-center gap-1.5 h-8 px-2.5 rounded-full text-[#0f4f4b]/40 hover:text-[#0f4f4b]/80 hover:bg-[#0f4f4b]/6 transition-colors"
+              >
+                <LogOut className="h-[15px] w-[15px]" />
+                <span className="hidden sm:inline text-xs font-medium">Sign out</span>
+              </button>
+            </div>
+
           </div>
         </div>
       </header>

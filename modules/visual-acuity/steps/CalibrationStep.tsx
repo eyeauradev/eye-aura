@@ -5,10 +5,13 @@ import { CreditCard, CheckCircle2, RefreshCw, ZoomIn, ZoomOut, ArrowRight } from
 import { Button } from "@/components/ui/button";
 import type { CalibrationData } from "../types";
 
-// ISO/IEC 7810 ID-1 — standard credit/bank card
-const CARD_WIDTH_MM = 85.60;
-const CARD_HEIGHT_MM = 53.98;
-const ASPECT_RATIO = CARD_HEIGHT_MM / CARD_WIDTH_MM; // ≈ 0.631
+// ISO/IEC 7810 ID-1 -- standard credit/bank card
+const CARD_WIDTH_MM  = 85.60;   // long side
+const CARD_HEIGHT_MM = 53.98;   // short side
+const ASPECT_RATIO   = CARD_HEIGHT_MM / CARD_WIDTH_MM; // ~0.631
+
+// Switch to portrait calibration when viewport is narrower than this
+const PORTRAIT_BREAKPOINT_PX = 520;
 
 const CALIBRATION_KEY = "ea_acuity_calibration";
 const CALIBRATION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -27,11 +30,9 @@ function loadStoredCalibration(): CalibrationData | null {
     const age = Date.now() - data.timestamp;
     if (
       age > CALIBRATION_MAX_AGE_MS ||
-      data.deviceWidth !== window.innerWidth ||
+      data.deviceWidth  !== window.innerWidth ||
       data.deviceHeight !== window.innerHeight
-    ) {
-      return null;
-    }
+    ) return null;
     return data;
   } catch {
     return null;
@@ -42,53 +43,80 @@ function saveCalibration(data: CalibrationData): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(CALIBRATION_KEY, JSON.stringify(data));
-  } catch {
-    /* storage full — silently continue */
-  }
+  } catch { /* storage full -- silently continue */ }
 }
 
 export function CalibrationStep({ onCalibrated, existingCalibration }: CalibrationStepProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Safe initial width — half the viewport, at least 160px
-  const initialWidth = typeof window !== "undefined"
-    ? Math.max(160, Math.min(Math.floor(window.innerWidth * 0.55), 420))
-    : 280;
+  // portrait = true when the viewport is too narrow for landscape card
+  const [portrait, setPortrait] = useState(() =>
+    typeof window !== "undefined" && window.innerWidth < PORTRAIT_BREAKPOINT_PX
+  );
 
-  const [cardWidthPx, setCardWidthPx] = useState(initialWidth);
-  const [confirmed, setConfirmed] = useState(false);
-  const [stored, setStored] = useState<CalibrationData | null>(null);
+  // cardLongPx represents the LONG dimension of the card in CSS pixels.
+  // - Landscape: long side is the width  (85.60 mm)
+  // - Portrait:  long side is the height (85.60 mm)
+  // pxPerMm = cardLongPx / CARD_WIDTH_MM in BOTH cases.
+  const initialLong = () => {
+    if (typeof window === "undefined") return 280;
+    if (window.innerWidth < PORTRAIT_BREAKPOINT_PX) {
+      // Start at 60% of viewport height — card usually needs ~55–65% on a typical phone
+      return Math.max(200, Math.min(Math.floor(window.innerHeight * 0.6), 600));
+    }
+    return Math.max(200, Math.min(Math.floor(window.innerWidth * 0.6), 420));
+  };
 
-  const cardHeightPx = Math.round(cardWidthPx * ASPECT_RATIO);
+  const [cardLongPx, setCardLongPx] = useState(initialLong);
+  const [confirmed, setConfirmed]   = useState(false);
+  const [stored, setStored]         = useState<CalibrationData | null>(null);
+
+  // Re-evaluate portrait on resize
+  useEffect(() => {
+    const onResize = () => {
+      setPortrait(window.innerWidth < PORTRAIT_BREAKPOINT_PX);
+      setConfirmed(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     const cal = existingCalibration ?? loadStoredCalibration();
     if (cal) {
       setStored(cal);
-      setCardWidthPx(Math.round(cal.cardWidthPx));
+      setCardLongPx(Math.round(cal.cardWidthPx)); // cardWidthPx always = longPx
     }
   }, [existingCalibration]);
 
-  const minWidth = 120;
-  const maxWidth =
-    typeof window !== "undefined" ? Math.min(window.innerWidth - 48, 560) : 480;
+  const minLong = 160;
+  const maxLong = portrait
+    ? Math.min((typeof window !== "undefined" ? window.innerHeight : 800), 720)
+    : Math.min((typeof window !== "undefined" ? window.innerWidth  : 800) - 48, 560);
 
   const adjust = useCallback((delta: number) => {
-    setCardWidthPx((w) => Math.max(minWidth, Math.min(maxWidth, w + delta)));
+    setCardLongPx((v) => Math.max(minLong, Math.min(maxLong, v + delta)));
     setConfirmed(false);
-  }, [maxWidth]);
+  }, [minLong, maxLong]);
+
+  // Computed short side
+  const cardShortPx = Math.round(cardLongPx * ASPECT_RATIO);
+
+  // Displayed element dimensions
+  const displayW = portrait ? cardShortPx  : cardLongPx;
+  const displayH = portrait ? cardLongPx   : cardShortPx;
+
+  const buildCalibrationData = (): CalibrationData => ({
+    pxPerMm:     cardLongPx / CARD_WIDTH_MM,
+    cardWidthPx: cardLongPx,                   // always long dimension = 85.60 mm
+    deviceWidth:  window.innerWidth,
+    deviceHeight: window.innerHeight,
+    dpr:          window.devicePixelRatio ?? 1,
+    timestamp:    Date.now(),
+  });
 
   const handleConfirm = () => {
-    const pxPerMm = cardWidthPx / CARD_WIDTH_MM;
-    const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1;
-    const data: CalibrationData = {
-      pxPerMm,
-      cardWidthPx,
-      deviceWidth: window.innerWidth,
-      deviceHeight: window.innerHeight,
-      dpr,
-      timestamp: Date.now(),
-    };
+    const data = buildCalibrationData();
     saveCalibration(data);
     setStored(data);
     setConfirmed(true);
@@ -99,16 +127,7 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
   };
 
   const handleProceed = () => {
-    const pxPerMm = cardWidthPx / CARD_WIDTH_MM;
-    const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1;
-    const data: CalibrationData = {
-      pxPerMm,
-      cardWidthPx,
-      deviceWidth: window.innerWidth,
-      deviceHeight: window.innerHeight,
-      dpr,
-      timestamp: Date.now(),
-    };
+    const data = buildCalibrationData();
     saveCalibration(data);
     onCalibrated(data);
   };
@@ -125,8 +144,9 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
         </div>
         <h2 className="text-2xl font-black text-[#0f4f4b]">Match your physical card</h2>
         <p className="text-sm text-[#0f4f4b]/60 max-w-xs mx-auto leading-relaxed">
-          Place any bank card, ID, or credit card next to the rectangle below.
-          Adjust until they are exactly the same size.
+          {portrait
+            ? "Hold your bank card vertically next to the rectangle. Adjust until they are exactly the same height."
+            : "Place any bank card, ID, or credit card next to the rectangle below. Adjust until they are exactly the same size."}
         </p>
       </div>
 
@@ -137,7 +157,7 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-[#0f4f4b]">Previous calibration found</p>
             <p className="text-xs text-[#0f4f4b]/55 mt-0.5">
-              {stored.pxPerMm.toFixed(3)} px/mm — saved within the last 24 hours
+              {stored.pxPerMm.toFixed(3)} px/mm - saved within the last 24 hours
             </p>
           </div>
           <Button
@@ -150,13 +170,13 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
         </div>
       )}
 
-      {/* Calibration card */}
+      {/* Calibration area */}
       <div
         ref={containerRef}
         className="flex flex-col items-center gap-6 rounded-3xl bg-white/90 border border-[#0f4f4b]/12 p-6"
       >
-        {/* The calibration rectangle */}
-        <div className="relative" style={{ width: cardWidthPx, height: cardHeightPx }}>
+        {/* Calibration rectangle */}
+        <div className="relative" style={{ width: displayW, height: displayH }}>
           <div
             className={`w-full h-full rounded-xl border-2 flex flex-col items-center justify-center transition-all ${
               confirmed
@@ -165,14 +185,19 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
             }`}
           >
             <CreditCard
-              className={`h-8 w-8 mb-2 ${confirmed ? "text-[#0f4f4b]" : "text-[#b5964d]/60"}`}
+              className={`mb-2 ${confirmed ? "text-[#0f4f4b]" : "text-[#b5964d]/60"} ${
+                portrait ? "h-6 w-6" : "h-8 w-8"
+              }`}
+              style={portrait ? { transform: "rotate(90deg)" } : undefined}
             />
             <p
-              className={`text-[10px] font-bold uppercase tracking-widest ${
+              className={`text-[10px] font-bold uppercase tracking-widest text-center ${
                 confirmed ? "text-[#0f4f4b]/70" : "text-[#b5964d]/70"
               }`}
             >
-              {CARD_WIDTH_MM}mm × {CARD_HEIGHT_MM}mm
+              {portrait
+                ? `${CARD_HEIGHT_MM}mm x ${CARD_WIDTH_MM}mm`
+                : `${CARD_WIDTH_MM}mm x ${CARD_HEIGHT_MM}mm`}
             </p>
           </div>
           {confirmed && (
@@ -185,19 +210,19 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
         {/* Slider */}
         <div className="w-full space-y-3">
           <div className="flex items-center justify-between text-xs text-[#0f4f4b]/50 font-medium">
-            <span>Narrower</span>
+            <span>{portrait ? "Shorter" : "Narrower"}</span>
             <span className="font-bold text-[#0f4f4b]">
-              {cardWidthPx}px wide
+              {cardLongPx}px {portrait ? "tall" : "wide"}
             </span>
-            <span>Wider</span>
+            <span>{portrait ? "Taller" : "Wider"}</span>
           </div>
           <input
             type="range"
-            min={minWidth}
-            max={maxWidth}
-            value={cardWidthPx}
+            min={minLong}
+            max={maxLong}
+            value={cardLongPx}
             onChange={(e) => {
-              setCardWidthPx(Number(e.target.value));
+              setCardLongPx(Number(e.target.value));
               setConfirmed(false);
             }}
             className="w-full accent-[#0f4f4b] h-2 rounded-full cursor-pointer"
@@ -210,13 +235,13 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
             onClick={() => adjust(-5)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
           >
-            <ZoomOut className="h-3.5 w-3.5" /> −5px
+            <ZoomOut className="h-3.5 w-3.5" /> -5px
           </button>
           <button
             onClick={() => adjust(-1)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
           >
-            −1px
+            -1px
           </button>
           <button
             onClick={() => adjust(1)}
@@ -232,7 +257,7 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
           </button>
         </div>
 
-        {/* Confirm match button */}
+        {/* Confirm match */}
         {!confirmed ? (
           <Button
             onClick={handleConfirm}
@@ -246,7 +271,7 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
           <div className="w-full flex items-center gap-2 p-3 rounded-xl bg-[#0f4f4b]/6 border border-[#0f4f4b]/15">
             <CheckCircle2 className="h-4 w-4 text-[#0f4f4b]" />
             <p className="text-sm font-bold text-[#0f4f4b]">
-              Calibrated — {(cardWidthPx / CARD_WIDTH_MM).toFixed(3)} px/mm
+              Calibrated - {(cardLongPx / CARD_WIDTH_MM).toFixed(3)} px/mm
             </p>
             <button
               onClick={() => setConfirmed(false)}
@@ -262,8 +287,10 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
       <div className="rounded-2xl bg-[#b5964d]/6 border border-[#b5964d]/20 p-4">
         <p className="text-xs font-bold text-[#b5964d] mb-1">ISO/IEC 7810 ID-1 Reference</p>
         <p className="text-xs text-[#0f4f4b]/60 leading-relaxed">
-          Standard bank card, driving licence, or ID card: 85.60 mm × 53.98 mm (3.370 × 2.125 in).
-          Any card of this standard may be used for calibration.
+          Standard bank card, driving licence, or ID card: 85.60 mm x 53.98 mm (3.370 x 2.125 in).
+          {portrait
+            ? " Hold it upright (portrait) to match the tall rectangle."
+            : " Any card of this standard may be used for calibration."}
         </p>
       </div>
 

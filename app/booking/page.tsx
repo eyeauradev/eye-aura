@@ -9,9 +9,7 @@ import { EA, eaError } from "@/lib/errors";
 import type { ServiceDocument, UserDocument, DoctorAvailabilityDocument } from "@/types/firestore";
 import type { BookingState, BookingStep } from "@/types/booking";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Calendar, Clock, Check, FileText, User, Star, ChevronLeft, ChevronRight, ShieldCheck, Loader2 } from "lucide-react";
+import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRight, ShieldCheck, Loader2, Stethoscope, Eye, Video, Glasses, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function loadRazorpayScript(): Promise<boolean> {
@@ -228,55 +226,50 @@ export default function BookingPage() {
   const currentStep = STEPS[state.currentStep];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+    <div className="min-h-screen bg-[#F5F2ED]">
       {/* Header */}
-      <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <h1 className="font-display text-3xl text-primary sm:text-4xl">Request Consultation</h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            Submit a booking request for doctor approval
-          </p>
-        </div>
-      </div>
-
-      {/* Progress Steps */}
-      <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
-        <div className="flex items-center justify-between overflow-x-auto pb-4">
-          {STEPS.map((step, index) => (
-            <div key={step.id} className="flex items-center min-w-fit">
-              <div className="flex flex-col items-center">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition ${
-                    index <= state.currentStep
-                      ? "border-secondary bg-secondary text-white"
-                      : "border-primary/20 bg-white text-muted-foreground"
-                  }`}
-                >
-                  {index < state.currentStep ? (
-                    <Check className="h-5 w-5" />
-                  ) : (
-                    <span className="text-sm font-bold">{index + 1}</span>
+      <div className="sticky top-0 z-30 border-b border-[#0f4f4b]/8 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto max-w-3xl px-5 sm:px-8">
+          <div className="py-4 flex items-center gap-6">
+            <div className="min-w-0">
+              <h1 className="font-display text-xl text-[#0f4f4b] leading-none">Book Consultation</h1>
+              <p className="text-xs text-[#0f4f4b]/45 mt-0.5">
+                {STEPS[state.currentStep]?.title} · Step {state.currentStep + 1} of {STEPS.length}
+              </p>
+            </div>
+            {/* Premium stepper */}
+            <div className="flex-1 flex items-center gap-0">
+              {STEPS.map((step, index) => (
+                <div key={step.id} className="flex items-center flex-1 last:flex-none">
+                  <div className="flex flex-col items-center gap-1 shrink-0">
+                    <div className={cn(
+                      "h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                      index < state.currentStep  && "bg-[#0f4f4b] text-white",
+                      index === state.currentStep && "bg-[#0f4f4b] text-white shadow-lg shadow-[#0f4f4b]/25 scale-110",
+                      index > state.currentStep  && "bg-[#0f4f4b]/8 text-[#0f4f4b]/35 border border-[#0f4f4b]/12"
+                    )}>
+                      {index < state.currentStep ? <Check className="h-3 w-3" /> : index + 1}
+                    </div>
+                    <span className={cn(
+                      "text-[9px] font-semibold hidden md:block tracking-wide uppercase",
+                      index <= state.currentStep ? "text-[#0f4f4b]/70" : "text-[#0f4f4b]/25"
+                    )}>{step.title.split(" ").slice(-1)[0]}</span>
+                  </div>
+                  {index < STEPS.length - 1 && (
+                    <div className={cn(
+                      "flex-1 h-px mx-1.5 transition-all duration-500",
+                      index < state.currentStep ? "bg-[#0f4f4b]" : "bg-[#0f4f4b]/12"
+                    )} />
                   )}
                 </div>
-                <div className="mt-2 text-center">
-                  <p className="text-xs font-bold text-primary">{step.title}</p>
-                  <p className="text-xs text-muted-foreground hidden sm:block">{step.description}</p>
-                </div>
-              </div>
-              {index < STEPS.length - 1 && (
-                <div
-                  className={`mx-4 h-px w-16 transition ${
-                    index < state.currentStep ? "bg-secondary" : "bg-primary/20"
-                  }`}
-                />
-              )}
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="mx-auto max-w-4xl px-5 pb-16 sm:px-8">
+      <div className="mx-auto max-w-3xl px-5 pb-20 pt-8 sm:px-8">
         {state.currentStep === 0 && (
           <ServiceSelectionStep
             servicesWithDoctors={servicesWithDoctors}
@@ -330,6 +323,13 @@ export default function BookingPage() {
   );
 }
 
+function serviceIcon(type: string) {
+  if (type.includes("acuity") || type.includes("vision")) return Eye;
+  if (type.includes("video") || type.includes("voice")) return Video;
+  if (type.includes("contact") || type.includes("lens")) return Glasses;
+  return Stethoscope;
+}
+
 function ServiceSelectionStep({
   servicesWithDoctors,
   onSelect,
@@ -342,51 +342,51 @@ function ServiceSelectionStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-2xl text-primary">Choose Your Service</h2>
-        <p className="mt-2 text-base text-muted-foreground">
-          Select the consultation type that fits your needs
-        </p>
+        <h2 className="font-display text-2xl text-[#0f4f4b]">Choose Your Service</h2>
+        <p className="mt-1.5 text-sm text-[#0f4f4b]/55">Select the consultation type that fits your needs</p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        {servicesWithDoctors.map((service) => (
-          <Card
-            key={service.id}
-            className={`cursor-pointer transition hover:-translate-y-1 hover:shadow-lg ${
-              selected?.id === service.id ? "border-secondary ring-2 ring-secondary/20" : ""
-            }`}
-            onClick={() => onSelect(service)}
-          >
-            <CardHeader className="p-3 sm:p-6">
-              <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-accent/35 text-primary">
-                <FileText className="h-6 w-6" />
-              </div>
-              <CardTitle className="text-xl">{service.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6">
-              <p className="text-base leading-7 text-muted-foreground">{service.description}</p>
-              <div className="mt-4 flex items-center justify-between">
-                <span className="font-display text-xl text-secondary">
-                  {service.currency} {service.price}
-                </span>
-                <Badge>{service.duration} min</Badge>
-              </div>
-              {service.doctors.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-primary/10">
-                  <p className="text-sm font-bold text-muted-foreground mb-2">Available with:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {service.doctors.map((doctor) => (
-                      <div key={doctor.id} className="flex items-center gap-2 text-sm text-primary">
-                        <User className="h-4 w-4" />
-                        <span>{doctor.displayName || "Doctor"}</span>
-                      </div>
-                    ))}
-                  </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {servicesWithDoctors.map((service) => {
+          const Icon = serviceIcon(service.type);
+          const active = selected?.id === service.id;
+          return (
+            <div
+              key={service.id}
+              onClick={() => onSelect(service)}
+              className={cn(
+                "group relative cursor-pointer rounded-2xl border bg-white p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
+                active
+                  ? "border-[#0f4f4b] shadow-sm shadow-[#0f4f4b]/10 ring-1 ring-[#0f4f4b]/20"
+                  : "border-[#0f4f4b]/12 hover:border-[#0f4f4b]/30"
+              )}
+            >
+              {active && (
+                <div className="absolute top-4 right-4 h-5 w-5 rounded-full bg-[#0f4f4b] flex items-center justify-center">
+                  <Check className="h-3 w-3 text-white" />
                 </div>
               )}
-            </CardContent>
-          </Card>
-        ))}
+              <div className="h-10 w-10 rounded-xl bg-[#0f4f4b]/8 flex items-center justify-center mb-4">
+                <Icon className="h-5 w-5 text-[#0f4f4b]" />
+              </div>
+              <h3 className="font-bold text-[#0f4f4b] text-base leading-tight mb-1.5">{service.title}</h3>
+              <p className="text-xs text-[#0f4f4b]/50 leading-relaxed line-clamp-2 mb-4">{service.description}</p>
+              <div className="flex items-center justify-between pt-3 border-t border-[#0f4f4b]/8">
+                <span className="font-display text-lg font-bold text-[#b5964d]">
+                  {service.currency} {service.price}
+                </span>
+                <span className="text-xs font-semibold text-[#0f4f4b]/50 bg-[#0f4f4b]/6 px-2.5 py-1 rounded-full">
+                  {service.duration} min
+                </span>
+              </div>
+              {service.doctors.length > 0 && (
+                <p className="text-[11px] text-[#0f4f4b]/40 mt-2">
+                  {service.doctors.length} doctor{service.doctors.length > 1 ? "s" : ""} available
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -405,63 +405,93 @@ function DoctorSelectionStep({
   selected: UserDocument | null;
   onBack: () => void;
 }) {
-  const serviceWithDoctors = servicesWithDoctors.find(s => s.id === service?.id);
+  const serviceWithDoctors = servicesWithDoctors.find((s) => s.id === service?.id);
   const doctors = serviceWithDoctors?.doctors || [];
+
+  const getInitial = (d: UserDocument) => {
+    const name = d.displayName || d.email || "D";
+    return name[0].toUpperCase();
+  };
+  const getName = (d: UserDocument) => {
+    if (!d.displayName || d.displayName === d.email) return d.email;
+    return d.displayName;
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-2xl text-primary">Choose Your Doctor</h2>
-          <p className="mt-2 text-base text-muted-foreground">
-            Select a doctor for your {service?.title}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl text-[#0f4f4b]">Choose Your Doctor</h2>
+          <p className="mt-1.5 text-sm text-[#0f4f4b]/55 truncate">
+            Select a specialist for <span className="font-semibold">{service?.title}</span>
           </p>
         </div>
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
+        <button
+          onClick={onBack}
+          className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b]/60 hover:text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-3 py-2 hover:border-[#0f4f4b]/40 transition-colors"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Back
+        </button>
       </div>
 
       {doctors.length === 0 ? (
-        <Card className="border-primary/10 bg-primary/5">
-          <CardContent className="p-4 sm:p-8 text-center">
-            <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-base text-muted-foreground mb-2">
-              No doctors available for this service yet
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Please contact support or try a different service
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-[#0f4f4b]/10 bg-white p-10 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-[#0f4f4b]/6 flex items-center justify-center mx-auto mb-4">
+            <User className="h-7 w-7 text-[#0f4f4b]/30" />
+          </div>
+          <p className="text-sm font-semibold text-[#0f4f4b]/60 mb-1">No doctors available yet</p>
+          <p className="text-xs text-[#0f4f4b]/40">Please try a different service or contact support</p>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {doctors.map((doctor) => (
-            <Card
-              key={doctor.id}
-              className={`cursor-pointer transition hover:-translate-y-1 hover:shadow-lg ${
-                selected?.id === doctor.id ? "border-secondary ring-2 ring-secondary/20" : ""
-              }`}
-              onClick={() => onSelect(doctor)}
-            >
-              <CardContent className="p-3 sm:p-6">
-                <div className="flex items-start gap-4">
-                  <div className="h-14 w-14 rounded-full bg-secondary/15 flex items-center justify-center text-secondary shrink-0">
-                    {doctor.displayName?.charAt(0).toUpperCase() || "D"}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {doctors.map((doctor) => {
+            const active = selected?.id === doctor.id;
+            return (
+              <div
+                key={doctor.id}
+                onClick={() => onSelect(doctor)}
+                className={cn(
+                  "group relative cursor-pointer rounded-2xl border bg-white p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
+                  active
+                    ? "border-[#0f4f4b] shadow-sm ring-1 ring-[#0f4f4b]/20"
+                    : "border-[#0f4f4b]/12 hover:border-[#0f4f4b]/30"
+                )}
+              >
+                <div className="flex items-center gap-3.5">
+                  {/* Avatar */}
+                  <div className={cn(
+                    "h-12 w-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0 transition-colors",
+                    active ? "bg-[#0f4f4b] text-white" : "bg-[#b5964d]/15 text-[#b5964d]"
+                  )}>
+                    {getInitial(doctor)}
                   </div>
+
+                  {/* Info — min-w-0 + truncate fixes long name overflow */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-primary text-lg">{doctor.displayName || "Doctor"}</h3>
-                    <p className="text-sm text-muted-foreground">{doctor.email}</p>
-                    <div className="mt-3 flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-secondary text-secondary" />
-                      <span className="text-sm font-bold text-primary">4.9</span>
-                      <span className="text-xs text-muted-foreground">(120 reviews)</span>
+                    <p className={cn(
+                      "text-sm font-bold truncate leading-tight",
+                      active ? "text-[#0f4f4b]" : "text-[#0f4f4b]"
+                    )}>
+                      {getName(doctor)}
+                    </p>
+                    <p className="text-xs text-[#0f4f4b]/45 truncate mt-0.5">{doctor.email}</p>
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <Star className="h-3 w-3 fill-[#b5964d] text-[#b5964d] shrink-0" />
+                      <span className="text-xs font-bold text-[#0f4f4b]/80">4.9</span>
+                      <span className="text-[11px] text-[#0f4f4b]/35">(120 reviews)</span>
                     </div>
                   </div>
+
+                  {/* Selected check */}
+                  {active && (
+                    <div className="h-6 w-6 rounded-full bg-[#0f4f4b] flex items-center justify-center shrink-0">
+                      <Check className="h-3.5 w-3.5 text-white" />
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -567,127 +597,122 @@ function TimeSelectionStep({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-2xl text-primary">Choose Your Time</h2>
-          <p className="mt-2 text-base text-muted-foreground">
-            Select a date, then pick a time slot
-          </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl text-[#0f4f4b]">Choose Your Time</h2>
+          <p className="mt-1.5 text-sm text-[#0f4f4b]/55">Select a date, then pick a time slot</p>
         </div>
-        <Button variant="outline" onClick={onBack}>Back</Button>
+        <button
+          onClick={onBack}
+          className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b]/60 hover:text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-3 py-2 hover:border-[#0f4f4b]/40 transition-colors"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Back
+        </button>
       </div>
 
       {/* Calendar */}
-      <Card className="border-primary/10">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={prevMonth} disabled={!canGoPrev} className="h-8 w-8 p-0">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="font-bold text-primary">
-              {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-            </span>
-            <Button variant="ghost" onClick={nextMonth} className="h-8 w-8 p-0">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+      <div className="rounded-2xl border border-[#0f4f4b]/12 bg-white p-5">
+        <div className="flex items-center justify-between mb-5">
+          <button
+            onClick={prevMonth}
+            disabled={!canGoPrev}
+            className="h-8 w-8 rounded-xl border border-[#0f4f4b]/15 flex items-center justify-center text-[#0f4f4b]/50 hover:text-[#0f4f4b] hover:border-[#0f4f4b]/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-bold text-[#0f4f4b]">
+            {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          </span>
+          <button
+            onClick={nextMonth}
+            className="h-8 w-8 rounded-xl border border-[#0f4f4b]/15 flex items-center justify-center text-[#0f4f4b]/50 hover:text-[#0f4f4b] hover:border-[#0f4f4b]/30 transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-7 mb-2">
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+            <div key={d} className="text-center text-[10px] font-bold text-[#0f4f4b]/35 py-1 tracking-wide">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {calendarDays.map((date, i) => {
+            if (!date) return <div key={i} />;
+            const past = isPast(date);
+            const avail = isAvailable(date);
+            const sel = isSelected(date);
+            const tod = isToday(date);
+            const disabled = past || !avail;
+            return (
+              <button
+                key={i}
+                disabled={disabled}
+                onClick={() => setSelectedDate(date)}
+                className={cn(
+                  "rounded-xl py-2 text-xs font-semibold transition-all focus:outline-none",
+                  sel && "bg-[#0f4f4b] text-white shadow-md shadow-[#0f4f4b]/20",
+                  !sel && avail && !past && "bg-[#0f4f4b]/8 text-[#0f4f4b] hover:bg-[#0f4f4b]/15 cursor-pointer",
+                  disabled && "text-[#0f4f4b]/20 cursor-not-allowed",
+                  tod && !sel && "ring-2 ring-[#b5964d]/60 ring-offset-1",
+                )}
+              >
+                {date.getDate()}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-4 mt-4 pt-3 border-t border-[#0f4f4b]/8">
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-sm bg-[#0f4f4b]/15" />
+            <span className="text-[11px] text-[#0f4f4b]/45">Available</span>
           </div>
-        </CardHeader>
-        <CardContent className="p-3 sm:p-6">
-          {/* Day headers */}
-          <div className="grid grid-cols-7 mb-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <div key={d} className="text-center text-xs font-bold text-muted-foreground py-1">{d}</div>
-            ))}
+          <div className="flex items-center gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-sm bg-[#b5964d]/40 ring-1 ring-[#b5964d]/40" />
+            <span className="text-[11px] text-[#0f4f4b]/45">Today</span>
           </div>
-          {/* Day cells */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((date, i) => {
-              if (!date) return <div key={i} />;
-              const past = isPast(date);
-              const avail = isAvailable(date);
-              const sel = isSelected(date);
-              const tod = isToday(date);
-              const disabled = past || !avail;
-
-              return (
-                <button
-                  key={i}
-                  disabled={disabled}
-                  onClick={() => setSelectedDate(date)}
-                  className={cn(
-                    "rounded-lg py-2 text-sm font-medium transition focus:outline-none",
-                    sel && "bg-secondary text-white",
-                    !sel && avail && !past && "bg-secondary/10 text-secondary hover:bg-secondary/25 cursor-pointer",
-                    disabled && "text-gray-300 cursor-not-allowed",
-                    tod && !sel && "ring-2 ring-secondary ring-offset-1",
-                  )}
-                >
-                  {date.getDate()}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-primary/10">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <div className="h-3 w-3 rounded bg-secondary/20" />
-              <span>Available</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <div className="h-3 w-3 rounded bg-gray-200" />
-              <span>Unavailable</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Time Slots */}
       {selectedDate && (
-        <div className="space-y-4">
-          <h3 className="font-bold text-primary">
-            Available times for{" "}
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-[#0f4f4b]/60 uppercase tracking-wider">
             {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-          </h3>
+          </p>
           {selectedSlots.length === 0 ? (
-            <Card className="border-primary/10 bg-primary/5">
-              <CardContent className="p-6 text-center text-muted-foreground text-sm">
-                No slots available for this day
-              </CardContent>
-            </Card>
+            <div className="rounded-2xl border border-[#0f4f4b]/10 bg-white p-8 text-center">
+              <p className="text-sm text-[#0f4f4b]/40">No time slots available for this day</p>
+            </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-4">
-              {selectedSlots.map((time, index) => (
-                <Card
-                  key={index}
-                  className={cn(
-                    "cursor-pointer transition hover:-translate-y-1 hover:shadow-md",
-                    selected?.getTime() === time.getTime()
-                      ? "border-secondary ring-2 ring-secondary/20 bg-secondary/5"
-                      : "border-primary/10"
-                  )}
-                  onClick={() => onSelect(time)}
-                >
-                  <CardContent className="p-4 flex items-center justify-center gap-2">
-                    <Clock className="h-4 w-4 text-secondary shrink-0" />
-                    <span className="font-bold text-primary text-sm">
-                      {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="grid gap-2 grid-cols-3 sm:grid-cols-4">
+              {selectedSlots.map((time, index) => {
+                const isActive = selected?.getTime() === time.getTime();
+                return (
+                  <button
+                    key={index}
+                    onClick={() => onSelect(time)}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 rounded-xl border py-3 text-xs font-bold transition-all hover:-translate-y-0.5 hover:shadow-sm",
+                      isActive
+                        ? "bg-[#0f4f4b] border-[#0f4f4b] text-white shadow-md shadow-[#0f4f4b]/20"
+                        : "bg-white border-[#0f4f4b]/15 text-[#0f4f4b] hover:border-[#0f4f4b]/40"
+                    )}
+                  >
+                    <Clock className="h-3 w-3 shrink-0" />
+                    {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
       {!selectedDate && (
-        <Card className="border-primary/10 bg-primary/5">
-          <CardContent className="p-6 text-center">
-            <Calendar className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Select a highlighted date to see available time slots</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-[#0f4f4b]/10 bg-white p-8 text-center">
+          <Calendar className="h-8 w-8 text-[#0f4f4b]/25 mx-auto mb-3" />
+          <p className="text-sm text-[#0f4f4b]/40">Select a highlighted date to see available slots</p>
+        </div>
       )}
     </div>
   );
@@ -706,40 +731,43 @@ function NotesStep({
 }) {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-2xl text-primary">Add Notes (Optional)</h2>
-          <p className="mt-2 text-base text-muted-foreground">
-            Share any concerns or context for your consultation
-          </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl text-[#0f4f4b]">Add Notes</h2>
+          <p className="mt-1.5 text-sm text-[#0f4f4b]/55">Share any concerns or context — optional but helpful</p>
         </div>
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
+        <button
+          onClick={onBack}
+          className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b]/60 hover:text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-3 py-2 hover:border-[#0f4f4b]/40 transition-colors"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Back
+        </button>
       </div>
 
-      <Card>
-        <CardContent className="p-3 sm:p-6">
-          <textarea
-            value={notes}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Describe your symptoms, concerns, or any questions you have..."
-            className="w-full h-40 rounded-2xl border border-primary/20 bg-white/70 p-4 text-base transition placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 focus-visible:border-secondary/50"
-            maxLength={500}
-          />
-          <p className="mt-2 text-xs text-muted-foreground text-right">
-            {notes.length}/500
-          </p>
-        </CardContent>
-      </Card>
+      <div className="rounded-2xl border border-[#0f4f4b]/12 bg-white p-5">
+        <textarea
+          value={notes}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Describe your symptoms, concerns, or questions for the doctor..."
+          className="w-full h-36 resize-none rounded-xl border border-[#0f4f4b]/15 bg-[#0f4f4b]/2 p-4 text-sm text-[#0f4f4b] placeholder:text-[#0f4f4b]/30 focus:outline-none focus:border-[#0f4f4b]/40 focus:ring-1 focus:ring-[#0f4f4b]/20 transition-all"
+          maxLength={500}
+        />
+        <p className="mt-2 text-[11px] text-[#0f4f4b]/35 text-right">{notes.length}/500</p>
+      </div>
 
-      <div className="flex justify-end gap-4">
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
-        <Button onClick={onNext} size="lg">
-          Continue <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b]/60 hover:text-[#0f4f4b] transition-colors"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Back
+        </button>
+        <button
+          onClick={onNext}
+          className="flex items-center gap-2 bg-[#0f4f4b] hover:bg-[#0a3a36] text-white text-sm font-bold px-6 py-3 rounded-2xl transition-colors shadow-sm shadow-[#0f4f4b]/20"
+        >
+          Continue <ArrowRight className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
@@ -764,114 +792,103 @@ function ConfirmationStep({
   loading: boolean;
   error: string | null;
 }) {
+  const doctorName = doctor?.displayName && doctor.displayName !== doctor.email
+    ? doctor.displayName
+    : doctor?.email ?? "Doctor";
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-2xl text-primary">Submit Booking Request</h2>
-          <p className="mt-2 text-base text-muted-foreground">
-            Review your details before submitting
-          </p>
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="font-display text-2xl text-[#0f4f4b]">Review & Pay</h2>
+          <p className="mt-1.5 text-sm text-[#0f4f4b]/55">Confirm your details before proceeding to payment</p>
         </div>
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
+        <button
+          onClick={onBack}
+          disabled={loading}
+          className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b]/60 hover:text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-3 py-2 hover:border-[#0f4f4b]/40 disabled:opacity-40 transition-colors"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Back
+        </button>
       </div>
 
-      <Card className="border-primary/10 bg-gradient-to-br from-white/50 to-white/30">
-        <CardHeader className="p-3 sm:p-6">
-          <CardTitle className="flex items-center gap-2">
-            <Check className="h-5 w-5 text-secondary" />
-            Request Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-xs font-bold text-muted-foreground mb-1">Service</p>
-              <p className="font-bold text-primary text-lg">{service?.title}</p>
-              <p className="text-sm text-muted-foreground mt-1">{service?.duration} minutes</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-xs font-bold text-muted-foreground mb-1">Doctor</p>
-              <p className="font-bold text-primary text-lg">{doctor?.displayName || "Doctor"}</p>
-              <p className="text-sm text-muted-foreground mt-1">{doctor?.email}</p>
-            </div>
+      {/* Summary card */}
+      <div className="rounded-2xl border border-[#0f4f4b]/12 bg-white overflow-hidden">
+        {/* Header bar */}
+        <div className="px-5 py-4 border-b border-[#0f4f4b]/8 flex items-center gap-2">
+          <div className="h-6 w-6 rounded-full bg-[#0f4f4b] flex items-center justify-center">
+            <Check className="h-3.5 w-3.5 text-white" />
           </div>
+          <span className="text-sm font-bold text-[#0f4f4b]">Booking Summary</span>
+        </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-xs font-bold text-muted-foreground mb-1">Requested Date</p>
-              <p className="font-bold text-primary text-lg">{selectedTime?.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-xs font-bold text-muted-foreground mb-1">Requested Time</p>
-              <p className="font-bold text-primary text-lg">
-                {selectedTime?.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-secondary/10 border border-secondary/20">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <p className="text-xs font-bold text-muted-foreground mb-1">Amount Due Now</p>
-                <p className="font-display text-3xl text-secondary">
-                  {service?.currency} {service?.price}
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-1.5">
-                <Badge className="bg-secondary text-white border-secondary">Secure Online Payment</Badge>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <ShieldCheck className="h-3 w-3 text-accent shrink-0" />
-                  <span>256-bit encrypted · Powered by Razorpay</span>
-                </div>
+        <div className="p-5 space-y-3">
+          {/* 4 summary rows */}
+          {[
+            { label: "Service",     value: service?.title,    sub: `${service?.duration} min session` },
+            { label: "Doctor",      value: doctorName,        sub: doctor?.email },
+            { label: "Date",        value: selectedTime?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }), sub: undefined },
+            { label: "Time",        value: selectedTime?.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }), sub: undefined },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="flex items-start justify-between gap-4 py-2.5 border-b border-[#0f4f4b]/6 last:border-0">
+              <span className="text-xs font-semibold text-[#0f4f4b]/45 uppercase tracking-wider shrink-0 w-16">{label}</span>
+              <div className="flex-1 min-w-0 text-right">
+                <p className="text-sm font-bold text-[#0f4f4b] truncate">{value}</p>
+                {sub && <p className="text-xs text-[#0f4f4b]/40 truncate mt-0.5">{sub}</p>}
               </div>
             </div>
-          </div>
+          ))}
 
           {notes && (
-            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-xs font-bold text-muted-foreground mb-2">Your Notes</p>
-              <p className="text-base text-primary">{notes}</p>
+            <div className="pt-1">
+              <p className="text-xs font-semibold text-[#0f4f4b]/45 uppercase tracking-wider mb-1.5">Notes</p>
+              <p className="text-sm text-[#0f4f4b]/70 leading-relaxed">{notes}</p>
             </div>
           )}
+        </div>
 
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
-            <p className="text-sm font-bold text-amber-800 mb-1">
-              What happens after payment?
-            </p>
-            <p className="text-xs text-amber-700">
-              Your booking request is sent to the doctor after payment is confirmed. The doctor will review and accept or propose a reschedule. You will not be charged again regardless of outcome.
-            </p>
+        {/* Payment strip */}
+        <div className="mx-5 mb-5 rounded-2xl bg-[#0f4f4b]/4 border border-[#0f4f4b]/10 px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-[#0f4f4b]/50 font-semibold mb-0.5">Amount Due</p>
+              <p className="font-display text-2xl font-bold text-[#b5964d]">
+                {service?.currency} {service?.price}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-[#0f4f4b]/45">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#0f4f4b]/40 shrink-0" />
+              <span>Secured by Razorpay</span>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {/* Info notice */}
+      <div className="flex gap-3 rounded-2xl bg-amber-50 border border-amber-200/80 px-4 py-3.5">
+        <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-700 leading-relaxed">
+          Your request is sent to the doctor after payment. They&apos;ll confirm or suggest a reschedule. No additional charge regardless of outcome.
+        </p>
+      </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-red-50 text-red-700 text-sm border border-red-200">
-          {error}
+        <div className="flex gap-2 rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /> {error}
         </div>
       )}
 
-      <div className="flex justify-end gap-4">
-        <Button variant="outline" onClick={onBack} disabled={loading} size="lg">
-          Back
-        </Button>
-        <Button onClick={onConfirm} size="lg" disabled={loading} className="min-w-[220px]">
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processing…
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" />
-              Pay {service?.currency} {service?.price} &amp; Book
-            </span>
-          )}
-        </Button>
-      </div>
+      <button
+        onClick={onConfirm}
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-2.5 bg-[#0f4f4b] hover:bg-[#0a3a36] disabled:opacity-60 text-white text-sm font-bold py-4 rounded-2xl transition-colors shadow-lg shadow-[#0f4f4b]/20"
+      >
+        {loading ? (
+          <><Loader2 className="h-4 w-4 animate-spin" /> Processing payment…</>
+        ) : (
+          <><ShieldCheck className="h-4 w-4" /> Pay {service?.currency} {service?.price} &amp; Submit Request</>
+        )}
+      </button>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import type {
   EyeAcuityResult,
 } from "./types";
 import { v4 as uuidv4 } from "uuid";
+import { visionAssessmentsService } from "@/services/firestore";
 
 const PHASE_LABELS: Record<TestPhase, string> = {
   type_select:     "Select Test",
@@ -37,9 +38,20 @@ const PHASE_ORDER: TestPhase[] = [
   "results",
 ];
 
-export function AcuitySession() {
-  const [phase, setPhase]             = useState<TestPhase>("type_select");
-  const [testType, setTestType]       = useState<TestType>("far");
+interface AcuitySessionProps {
+  assessmentId?: string;
+  assessmentTypes?: import("@/types/firestore").VisionAssessmentType[];
+  nextAssessmentHref?: string;   // shown in Results: "Start next assessment" button
+  nextAssessmentLabel?: string;
+}
+
+export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, nextAssessmentHref, nextAssessmentLabel }: AcuitySessionProps = {}) {
+  // If assessment types are pre-determined by assignment, skip type_select
+  const initialPhase: TestPhase = assessmentTypes?.length ? "instructions" : "type_select";
+  const initialType: TestType   = assessmentTypes?.includes("far") ? "far" : "near";
+
+  const [phase, setPhase]             = useState<TestPhase>(initialPhase);
+  const [testType, setTestType]       = useState<TestType>(initialType);
   const [timerDuration, setTimerDuration] = useState<TimerDuration>(5);
   const [calibration, setCalibration] = useState<CalibrationData | null>(null);
   const [result, setResult]           = useState<AcuityTestResult | null>(null);
@@ -52,7 +64,13 @@ export function AcuitySession() {
   }, [phase]);
 
   const currentIdx = PHASE_ORDER.indexOf(phase);
-  const canGoBack  = currentIdx > 0 && phase !== "testing" && phase !== "results";
+  // Don't allow back-to-type-select when the test type is fixed by a doctor assignment
+  const typeIsFixed = !!assessmentTypes?.length;
+  const canGoBack =
+    currentIdx > 0 &&
+    phase !== "testing" &&
+    phase !== "results" &&
+    !(typeIsFixed && PHASE_ORDER[currentIdx - 1] === "type_select");
 
   const goBack = () => {
     if (canGoBack) setPhase(PHASE_ORDER[currentIdx - 1]);
@@ -70,7 +88,7 @@ export function AcuitySession() {
 
   const handleDurationContinue = () => setPhase("testing");
 
-  const handleTestComplete = (eyeResults: { right: EyeAcuityResult; left: EyeAcuityResult }) => {
+  const handleTestComplete = async (eyeResults: { right: EyeAcuityResult; left: EyeAcuityResult }) => {
     if (!calibration) return;
     const completedAt = Date.now();
     const testResult: AcuityTestResult = {
@@ -87,6 +105,25 @@ export function AcuitySession() {
     };
     setResult(testResult);
     setPhase("results");
+
+    // Persist result to Firestore if this session is linked to an assessment
+    if (_assessmentId) {
+      try {
+        const resultPayload = {
+          rightEye: eyeResults.right.bestNotation ?? "—",
+          leftEye:  eyeResults.left.bestNotation  ?? "—",
+          completedAt: new Date(completedAt),
+        };
+        await visionAssessmentsService.update(
+          _assessmentId,
+          testType === "far"
+            ? { resultFar: resultPayload,  status: "completed" }
+            : { resultNear: resultPayload, status: "completed" }
+        );
+      } catch (err) {
+        console.error("[AcuitySession] failed to save result to Firestore:", err);
+      }
+    }
   };
 
   const handleRetake = () => {
@@ -190,7 +227,12 @@ export function AcuitySession() {
         )}
 
         {phase === "results" && result && (
-          <ResultsStep result={result} onRetake={handleRetake} />
+          <ResultsStep
+            result={result}
+            onRetake={handleRetake}
+            nextAssessmentHref={nextAssessmentHref}
+            nextAssessmentLabel={nextAssessmentLabel}
+          />
         )}
       </div>
     </div>

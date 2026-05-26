@@ -68,6 +68,18 @@ export type ServiceType =
   | "contact_lens_consultation"
   | "digital_eye_strain_guidance";
 
+// Vision Assessment Types
+export type VisionAssessmentType = "far" | "near";
+
+export type AssessmentTriggerMode = "instant" | "before_appointment";
+
+export interface ServiceAssessmentAutomation {
+  enabled: boolean;
+  assessmentTypes: VisionAssessmentType[];
+  triggerMode: AssessmentTriggerMode;
+  triggerMinutesBefore?: number;
+}
+
 export interface ServiceDocument {
   id: string;
   title: string;
@@ -79,8 +91,57 @@ export interface ServiceDocument {
   suitableFor: string[];
   doctorIds: string[]; // IDs of doctors who can provide this service
   isActive: boolean;
+  assessmentAutomation?: ServiceAssessmentAutomation;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Vision Assessments Collection
+export type VisionAssessmentStatus =
+  | "assigned"
+  | "in_progress"
+  | "completed"
+  | "expired";
+
+export type AssignedByRole = "doctor" | "admin" | "system";
+
+export interface VisionAssessmentDocument {
+  id: string;
+  patientId: string;
+  doctorId?: string;
+  appointmentId?: string;
+  serviceId?: string;
+  assignedBy: string;         // UID of the user who assigned
+  assignedRole: AssignedByRole;
+  overrideUsed: boolean;      // true when admin bypassed appointment requirement
+  assessmentTypes: VisionAssessmentType[];
+  status: VisionAssessmentStatus;
+  autoAssigned: boolean;
+  // Results (populated after patient completes)
+  resultFar?: {
+    rightEye: string;
+    leftEye: string;
+    completedAt: Date;
+  };
+  resultNear?: {
+    rightEye: string;
+    leftEye: string;
+    completedAt: Date;
+  };
+  // Doctor review (filled after patient completes)
+  doctorRemarks?: string;
+  doctorCorrectedFar?: {
+    rightEye: string;
+    leftEye: string;
+  };
+  doctorCorrectedNear?: {
+    rightEye: string;
+    leftEye: string;
+  };
+  reviewedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt?: Date;
 }
 
 // Doctor Slots Collection

@@ -241,6 +241,31 @@ service cloud.firestore {
       allow list: if isDoctor() || isPatient() || isAdmin();
     }
 
+    // Vision Assessments Collection
+    match /vision_assessments/{assessmentId} {
+      // Patient, assigned doctor, or admin can read
+      allow read: if signedIn() && (
+        request.auth.uid == resource.data.patientId
+        || request.auth.uid == resource.data.doctorId
+        || isAdmin()
+      );
+
+      // Doctors can create assessments linked to their own appointments
+      // Admin SDK API route handles admin + system creation
+      allow create: if isDoctor()
+        && request.resource.data.assignedRole == "doctor"
+        && request.resource.data.doctorId == request.auth.uid;
+
+      // Patient can write results + status; doctor can write review fields; admin unrestricted
+      allow update: if signedIn() && request.auth.uid == resource.data.patientId
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'updatedAt', 'resultFar', 'resultNear'])
+        || isDoctor() && resource.data.doctorId == request.auth.uid
+        || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
     // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;

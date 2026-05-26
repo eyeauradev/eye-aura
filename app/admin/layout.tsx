@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, UserPlus, LogOut, Menu, X, Home, CreditCard, RefreshCw } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, MessageSquare, Settings, BarChart3, UserPlus, LogOut, Menu, X, Home, CreditCard, RefreshCw, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/doctors", icon: UserPlus, label: "Doctors" },
     { href: "/admin/services", icon: Calendar, label: "Services" },
+    { href: "/admin/assessments", icon: Eye, label: "Assessments" },
     { href: "/admin/appointments", icon: Calendar, label: "Appointments" },
     { href: "/admin/users", icon: Users, label: "Users" },
     { href: "/admin/payments", icon: CreditCard, label: "Payments" },

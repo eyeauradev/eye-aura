@@ -8,6 +8,7 @@ import { doctorInvitesService } from "./doctor-invites.service";
 import { doctorAvailabilityService } from "./doctor-availability.service";
 import { doctorBlocksService } from "./doctor-blocks.service";
 import { paymentsService } from "./payments.service";
+import { visionAssessmentsService } from "./vision-assessments.service";
 
 export {
   usersService,
@@ -20,4 +21,5 @@ export {
   doctorAvailabilityService,
   doctorBlocksService,
   paymentsService,
+  visionAssessmentsService,
 };

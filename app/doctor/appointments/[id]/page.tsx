@@ -3,14 +3,25 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { appointmentsService, prescriptionsService, usersService } from "@/services/firestore";
-import type { AppointmentDocument, PrescriptionDocument, UserDocument } from "@/types/firestore";
-import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare } from "lucide-react";
+import { appointmentsService, prescriptionsService, usersService, visionAssessmentsService } from "@/services/firestore";
+import { getAuth } from "firebase/auth";
+import type { AppointmentDocument, PrescriptionDocument, UserDocument, VisionAssessmentDocument, VisionAssessmentType } from "@/types/firestore";
+import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare, Eye, BookOpen, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import Link from "next/link";
+
+const SNELLEN_OPTIONS = ["20/200","20/100","20/70","20/50","20/40","20/30","20/25","20/20","20/15"];
+
+type ReviewForm = {
+  remarks: string;
+  correctedFarR: string;
+  correctedFarL: string;
+  correctedNearR: string;
+  correctedNearL: string;
+};
 
 export default function DoctorAppointmentDetailPage() {
   const params = useParams();
@@ -22,6 +33,12 @@ export default function DoctorAppointmentDetailPage() {
   const [prescriptions, setPrescriptions] = useState<PrescriptionDocument[]>([]);
   const [updating, setUpdating] = useState(false);
   const [notes, setNotes] = useState("");
+  const [existingAssessments, setExistingAssessments] = useState<VisionAssessmentDocument[]>([]);
+  const [assigningTypes, setAssigningTypes] = useState<VisionAssessmentType[]>(["far", "near"]);
+  const [assigning, setAssigning] = useState(false);
+  const [assignSuccess, setAssignSuccess] = useState(false);
+  const [reviews, setReviews] = useState<Record<string, ReviewForm>>({});
+  const [savingReview, setSavingReview] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadAppointment() {
@@ -34,15 +51,29 @@ export default function DoctorAppointmentDetailPage() {
         
         if (apt) {
           setNotes(apt.notes || "");
-          // Load patient info
           const patientData = await usersService.getById(apt.patientId);
           setPatient(patientData);
-          // Load prescription for this appointment
           if (apt.prescriptionId) {
             const prescription = await prescriptionsService.getById(apt.prescriptionId);
-            if (prescription) {
-              setPrescriptions([prescription]);
-            }
+            if (prescription) setPrescriptions([prescription]);
+          }
+          try {
+            const existing = await visionAssessmentsService.getByAppointmentId(apt.id, user?.id);
+            setExistingAssessments(existing);
+            // Initialise review form state from saved values
+            const initReviews: Record<string, ReviewForm> = {};
+            existing.forEach((a) => {
+              initReviews[a.id] = {
+                remarks:        a.doctorRemarks              ?? "",
+                correctedFarR:  a.doctorCorrectedFar?.rightEye ?? "",
+                correctedFarL:  a.doctorCorrectedFar?.leftEye  ?? "",
+                correctedNearR: a.doctorCorrectedNear?.rightEye ?? "",
+                correctedNearL: a.doctorCorrectedNear?.leftEye  ?? "",
+              };
+            });
+            setReviews(initReviews);
+          } catch {
+            // Index may still be building — non-fatal, assessment list just stays empty
           }
         }
       } catch (error) {
@@ -53,7 +84,8 @@ export default function DoctorAppointmentDetailPage() {
     }
 
     loadAppointment();
-  }, [params.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, user?.id]);
 
   const handleUpdateStatus = async (status: "confirmed" | "completed" | "cancelled") => {
     if (!appointment) return;
@@ -91,6 +123,84 @@ export default function DoctorAppointmentDetailPage() {
     // Allow joining 15 minutes before
     return timeDiff < 15 * 60 * 1000 && timeDiff > -60 * 60 * 1000;
   };
+
+  const handleAssignAssessment = async () => {
+    if (!appointment || !user || assigningTypes.length === 0) return;
+    try {
+      setAssigning(true);
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/assessments/assign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          patientId:       appointment.patientId,
+          assessmentTypes: assigningTypes,
+          assignedRole:    "doctor",
+          doctorId:        user.id,
+          appointmentId:   appointment.id,
+          overrideUsed:    false,
+          autoAssigned:    false,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error ?? "Failed to assign assessment");
+        return;
+      }
+      setAssignSuccess(true);
+      // Refresh the existing assessments list — non-fatal if index is still building
+      try {
+        const updated = await visionAssessmentsService.getByAppointmentId(appointment.id, user?.id);
+        setExistingAssessments(updated);
+      } catch {
+        // Ignore — assignment already succeeded
+      }
+      setTimeout(() => setAssignSuccess(false), 3000);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to assign assessment");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const toggleType = (t: VisionAssessmentType) =>
+    setAssigningTypes((prev) =>
+      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+    );
+
+  const handleSaveReview = async (assessmentId: string) => {
+    const rev = reviews[assessmentId];
+    if (!rev) return;
+    try {
+      setSavingReview(assessmentId);
+      const updates: Partial<import("@/types/firestore").VisionAssessmentDocument> = {
+        reviewedAt: new Date(),
+        ...(rev.remarks && { doctorRemarks: rev.remarks }),
+        ...(rev.correctedFarR || rev.correctedFarL
+          ? { doctorCorrectedFar:  { rightEye: rev.correctedFarR || "—", leftEye: rev.correctedFarL || "—" } }
+          : {}),
+        ...(rev.correctedNearR || rev.correctedNearL
+          ? { doctorCorrectedNear: { rightEye: rev.correctedNearR || "—", leftEye: rev.correctedNearL || "—" } }
+          : {}),
+      };
+      await visionAssessmentsService.update(assessmentId, updates);
+      setExistingAssessments((prev) =>
+        prev.map((a) => (a.id === assessmentId ? { ...a, ...updates } : a))
+      );
+    } catch (err) {
+      console.error("Failed to save review:", err);
+      alert("Failed to save review. Please try again.");
+    } finally {
+      setSavingReview(null);
+    }
+  };
+
+  const setReview = (id: string, patch: Partial<ReviewForm>) =>
+    setReviews((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { remarks:"", correctedFarR:"", correctedFarL:"", correctedNearR:"", correctedNearL:"" }), ...patch } }));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -286,6 +396,229 @@ export default function DoctorAppointmentDetailPage() {
           </Card>
         </div>
       
+
+      {/* ─── Vision Assessments ─── */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-[#0f4f4b]/8 flex items-center justify-center">
+            <Eye className="h-4 w-4 text-[#0f4f4b]" />
+          </div>
+          <h2 className="font-display text-xl text-[#0f4f4b]">Vision Assessments</h2>
+        </div>
+
+        {/* Per-assessment review cards */}
+        {existingAssessments.map((a) => {
+          const rev     = reviews[a.id] ?? { remarks:"", correctedFarR:"", correctedFarL:"", correctedNearR:"", correctedNearL:"" };
+          const hasFar  = a.assessmentTypes.includes("far");
+          const hasNear = a.assessmentTypes.includes("near");
+          const done    = a.status === "completed";
+          return (
+            <Card key={a.id} className="border-[#0f4f4b]/12">
+              <CardContent className="p-4 sm:p-6 space-y-5">
+
+                {/* Header row */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-1.5">
+                    {hasFar  && <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#0f4f4b]/8 text-[#0f4f4b]">Far Vision</span>}
+                    {hasNear && <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#b5964d]/10 text-[#b5964d]">Near Vision</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#0f4f4b]/35">
+                      {new Date(a.createdAt).toLocaleDateString("en-IN", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}
+                    </span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                      done                       ? "bg-green-100 text-green-700" :
+                      a.status === "in_progress" ? "bg-blue-100 text-blue-700" :
+                      a.status === "expired"     ? "bg-gray-100 text-gray-500" :
+                      "bg-[#b5964d]/12 text-[#b5964d]"
+                    }`}>{a.status.replace("_", " ")}</span>
+                  </div>
+                </div>
+
+                {/* Patient-reported results */}
+                {done && (
+                  <div className="space-y-3">
+                    {a.resultFar && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#0f4f4b]/40 mb-2">Far Vision — Patient Reported</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(["rightEye", "leftEye"] as const).map((eye) => (
+                            <div key={eye} className="rounded-xl bg-[#0f4f4b]/4 border border-[#0f4f4b]/10 p-3">
+                              <p className="text-[10px] font-bold uppercase text-[#0f4f4b]/40 mb-0.5">{eye === "rightEye" ? "Right Eye" : "Left Eye"}</p>
+                              <p className="text-2xl font-black text-[#0f4f4b] leading-none">{a.resultFar![eye]}</p>
+                              {a.doctorCorrectedFar?.[eye] && (
+                                <p className="text-xs font-semibold text-[#b5964d] mt-1">Corrected → {a.doctorCorrectedFar[eye]}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {a.resultNear && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#b5964d]/60 mb-2">Near Vision — Patient Reported</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(["rightEye", "leftEye"] as const).map((eye) => (
+                            <div key={eye} className="rounded-xl bg-[#b5964d]/6 border border-[#b5964d]/12 p-3">
+                              <p className="text-[10px] font-bold uppercase text-[#b5964d]/50 mb-0.5">{eye === "rightEye" ? "Right Eye" : "Left Eye"}</p>
+                              <p className="text-2xl font-black text-[#b5964d] leading-none">{a.resultNear![eye]}</p>
+                              {a.doctorCorrectedNear?.[eye] && (
+                                <p className="text-xs font-semibold text-[#0f4f4b] mt-1">Corrected → {a.doctorCorrectedNear[eye]}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Status notice for non-completed */}
+                {!done && (
+                  <div className={`rounded-xl px-4 py-3 text-sm font-medium ${
+                    a.status === "in_progress" ? "bg-blue-50 border border-blue-200 text-blue-700" :
+                    a.status === "expired"     ? "bg-gray-50 border border-gray-200 text-gray-500" :
+                    "bg-[#b5964d]/6 border border-[#b5964d]/20 text-[#b5964d]"
+                  }`}>
+                    {a.status === "in_progress" ? "Patient is currently taking this assessment" :
+                     a.status === "expired"     ? "Expired without completion" :
+                     "Waiting for patient to start"}
+                  </div>
+                )}
+
+                {/* Doctor review */}
+                <div className="border-t border-[#0f4f4b]/8 pt-4 space-y-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#0f4f4b]/40">Doctor Review</p>
+
+                  <div>
+                    <label className="text-xs font-semibold text-[#0f4f4b]/60 block mb-1.5">Clinical Remarks</label>
+                    <textarea
+                      value={rev.remarks}
+                      onChange={(e) => setReview(a.id, { remarks: e.target.value })}
+                      placeholder="Add clinical remarks, observations, or notes…"
+                      rows={3}
+                      className="w-full p-3 text-sm border border-[#0f4f4b]/15 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0f4f4b]/15 resize-none"
+                    />
+                  </div>
+
+                  {/* Override selects — only when results exist */}
+                  {done && (
+                    <div className="space-y-3">
+                      {hasFar && a.resultFar && (
+                        <div>
+                          <p className="text-xs font-semibold text-[#0f4f4b]/60 mb-1.5">Override Far Vision</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {([["correctedFarR", "Right Eye"], ["correctedFarL", "Left Eye"]] as const).map(([field, label]) => (
+                              <div key={field}>
+                                <p className="text-[10px] text-[#0f4f4b]/40 mb-1">{label}</p>
+                                <select
+                                  value={rev[field]}
+                                  onChange={(e) => setReview(a.id, { [field]: e.target.value })}
+                                  className="w-full text-sm border border-[#0f4f4b]/15 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#0f4f4b]/15"
+                                >
+                                  <option value="">— no override —</option>
+                                  {SNELLEN_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {hasNear && a.resultNear && (
+                        <div>
+                          <p className="text-xs font-semibold text-[#0f4f4b]/60 mb-1.5">Override Near Vision</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {([["correctedNearR", "Right Eye"], ["correctedNearL", "Left Eye"]] as const).map(([field, label]) => (
+                              <div key={field}>
+                                <p className="text-[10px] text-[#0f4f4b]/40 mb-1">{label}</p>
+                                <select
+                                  value={rev[field]}
+                                  onChange={(e) => setReview(a.id, { [field]: e.target.value })}
+                                  className="w-full text-sm border border-[#0f4f4b]/15 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#0f4f4b]/15"
+                                >
+                                  <option value="">— no override —</option>
+                                  {SNELLEN_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3">
+                    {a.reviewedAt ? (
+                      <p className="text-xs text-[#0f4f4b]/35">
+                        Last reviewed {new Date(a.reviewedAt).toLocaleString("en-IN", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}
+                      </p>
+                    ) : <span />}
+                    <Button
+                      onClick={() => handleSaveReview(a.id)}
+                      disabled={savingReview === a.id}
+                      className="h-8 px-3 bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-xs"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                      {savingReview === a.id ? "Saving…" : "Save Review"}
+                    </Button>
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+          );
+        })}
+
+        {/* Assign new / additional */}
+        <Card className="border-[#0f4f4b]/12">
+          <CardHeader className="p-4 sm:p-6 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-xl bg-[#0f4f4b]/8 flex items-center justify-center">
+                <Zap className="h-4 w-4 text-[#0f4f4b]" />
+              </div>
+              <CardTitle className="text-base text-[#0f4f4b]">
+                {existingAssessments.length > 0 ? "Assign Additional Assessment" : "Assign Vision Assessment"}
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+            <div className="flex gap-2">
+              {([["far", Eye, "Far Vision", "3m Snellen"], ["near", BookOpen, "Near Vision", "40cm chart"]] as const).map(
+                ([type, Icon, label, sub]) => (
+                  <button
+                    key={type}
+                    onClick={() => toggleType(type)}
+                    className={`flex-1 flex flex-col items-center gap-1 rounded-xl border-2 p-3 transition-all ${
+                      assigningTypes.includes(type)
+                        ? "border-[#0f4f4b] bg-[#0f4f4b]/6"
+                        : "border-[#0f4f4b]/15 bg-white hover:border-[#0f4f4b]/30"
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 ${assigningTypes.includes(type) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/40"}`} />
+                    <span className={`text-xs font-bold ${assigningTypes.includes(type) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/50"}`}>{label}</span>
+                    <span className="text-[10px] text-[#0f4f4b]/40">{sub}</span>
+                  </button>
+                )
+              )}
+            </div>
+
+            {assignSuccess && (
+              <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
+                <CheckCircle2 className="h-4 w-4" /> Assessment assigned — patient will see it in their portal
+              </div>
+            )}
+
+            <Button
+              onClick={handleAssignAssessment}
+              disabled={assigning || assigningTypes.length === 0}
+              className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              {assigning ? "Assigning…" : `Assign ${assigningTypes.map((t) => t === "far" ? "Far" : "Near").join(" + ")} Assessment`}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Consultation Notes */}
       

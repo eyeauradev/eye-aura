@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { servicesService, usersService } from "@/services/firestore";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Eye, BookOpen, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import Link from "next/link";
-import type { ServiceDocument, UserDocument } from "@/types/firestore";
+import type { ServiceDocument, UserDocument, VisionAssessmentType, ServiceAssessmentAutomation } from "@/types/firestore";
 
 export default function AdminServiceEditPage() {
   const params = useParams();
@@ -25,6 +25,11 @@ export default function AdminServiceEditPage() {
   const [service, setService] = useState<ServiceDocument | null>(null);
   const [doctors, setDoctors] = useState<UserDocument[]>([]);
   const [selectedDoctorIds, setSelectedDoctorIds] = useState<string[]>([]);
+  const [automation, setAutomation] = useState<ServiceAssessmentAutomation>({
+    enabled: false,
+    assessmentTypes: ["far", "near"],
+    triggerMode: "instant",
+  });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -50,6 +55,9 @@ export default function AdminServiceEditPage() {
         setService(serviceData);
         setDoctors(doctorsData);
         setSelectedDoctorIds(serviceData?.doctorIds || []);
+        if (serviceData?.assessmentAutomation) {
+          setAutomation(serviceData.assessmentAutomation);
+        }
 
         if (!serviceData) return;
 
@@ -87,6 +95,7 @@ export default function AdminServiceEditPage() {
         duration: parseInt(formData.duration),
         suitableFor: formData.suitableFor,
         doctorIds: selectedDoctorIds,
+        assessmentAutomation: automation.enabled ? automation : undefined,
       });
       router.push(`/admin/services/${service.id}`);
     } catch (error) {
@@ -268,6 +277,74 @@ export default function AdminServiceEditPage() {
                   <p className="text-sm text-muted-foreground mt-3">
                     {selectedDoctorIds.length} doctor{selectedDoctorIds.length !== 1 ? "s" : ""} selected
                   </p>
+                )}
+              </div>
+
+              {/* Assessment Automation */}
+              <div className="rounded-2xl border border-[#0f4f4b]/12 bg-[#0f4f4b]/2 p-4 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-7 w-7 rounded-lg bg-[#0f4f4b]/10 flex items-center justify-center shrink-0">
+                      <Zap className="h-3.5 w-3.5 text-[#0f4f4b]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-[#0f4f4b]">Assessment Automation</p>
+                      <p className="text-xs text-[#0f4f4b]/50">Auto-assign vision tests when booking is confirmed</p>
+                    </div>
+                  </div>
+                  <div
+                    role="switch"
+                    aria-checked={automation.enabled}
+                    onClick={() => setAutomation((prev) => ({ ...prev, enabled: !prev.enabled }))}
+                    className={`relative h-6 w-11 rounded-full cursor-pointer shrink-0 transition-colors duration-200 ${
+                      automation.enabled ? "bg-[#0f4f4b]" : "bg-gray-200"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                        automation.enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {automation.enabled && (
+                  <div className="space-y-2 pt-1">
+                    <p className="text-xs font-semibold text-[#0f4f4b]/55">Which test(s) to assign automatically?</p>
+                    <div className="flex gap-2">
+                      {(["far", "near"] as VisionAssessmentType[]).map((t) => {
+                        const Icon = t === "far" ? Eye : BookOpen;
+                        const label = t === "far" ? "Far Vision" : "Near Vision";
+                        const active = automation.assessmentTypes.includes(t);
+                        return (
+                          <div
+                            key={t}
+                            role="checkbox"
+                            aria-checked={active}
+                            onClick={() =>
+                              setAutomation((prev) => ({
+                                ...prev,
+                                assessmentTypes: active
+                                  ? prev.assessmentTypes.filter((x) => x !== t)
+                                  : [...prev.assessmentTypes, t],
+                              }))
+                            }
+                            className={`flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer select-none transition-all ${
+                              active
+                                ? "bg-[#0f4f4b] text-white"
+                                : "bg-white border border-[#0f4f4b]/20 text-[#0f4f4b]/50 hover:border-[#0f4f4b]/40"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="text-xs font-semibold">{label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-[#0f4f4b]/40 pt-1">
+                      Assessment is assigned immediately when the doctor accepts the booking. Expires 1 hour after appointment time.
+                    </p>
+                  </div>
                 )}
               </div>
 

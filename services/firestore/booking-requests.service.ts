@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/services/firebase/client";
 import { appointmentConverter } from "./converters";
-import type { BookingRequestDocument, BookingRequestStatus } from "@/types/firestore";
+import type { BookingRequestDocument, BookingRequestStatus, VisionAssessmentDocument } from "@/types/firestore";
 import type { AppointmentDocument } from "@/types/firestore";
 import { doctorBlocksService } from "./doctor-blocks.service";
 import { servicesService } from "./index";
@@ -150,6 +150,35 @@ export class BookingRequestsService {
       end: endTime,
       reason: "Accepted booking request",
     });
+
+    // Assessment automation: if service has automation enabled, auto-assign vision assessments
+    if (service?.assessmentAutomation?.enabled) {
+      try {
+        const autoId = crypto.randomUUID();
+        const now = new Date();
+        const autoAssessment: VisionAssessmentDocument = {
+          id: autoId,
+          patientId: request.patientId,
+          doctorId: request.doctorId,
+          appointmentId,
+          serviceId: request.serviceId,
+          assignedBy: request.doctorId,
+          assignedRole: "system",
+          overrideUsed: false,
+          assessmentTypes: service.assessmentAutomation.assessmentTypes,
+          status: "assigned",
+          autoAssigned: true,
+          createdAt: now,
+          updatedAt: now,
+          expiresAt: new Date(new Date(request.requestedTime).getTime() + 60 * 60 * 1000),
+        };
+        const assessmentRef = doc(this.db, "vision_assessments", autoId);
+        await setDoc(assessmentRef, autoAssessment);
+      } catch (autoErr) {
+        // Non-fatal: log but don't block acceptance
+        console.warn("[acceptRequest] auto-assign failed:", autoErr);
+      }
+    }
 
     // Update the booking request to link to the appointment and set status to accepted
     return this.update(id, { 

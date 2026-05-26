@@ -18,6 +18,7 @@ import type {
   DoctorBlockDocument,
   BookingRequestDocument,
   PaymentDocument,
+  VisionAssessmentDocument,
 } from "@/types/firestore";
 
 // Timestamp converter helpers
@@ -131,6 +132,7 @@ export const serviceConverter = {
       suitableFor: data.suitableFor,
       isActive: data.isActive,
       doctorIds: data.doctorIds || [],
+      assessmentAutomation: data.assessmentAutomation ?? undefined,
       createdAt: fromTimestamp(data.createdAt),
       updatedAt: fromTimestamp(data.updatedAt),
     };
@@ -406,6 +408,60 @@ export const bookingRequestConverter = {
       createdAt: fromTimestamp(data.createdAt),
       updatedAt: fromTimestamp(data.updatedAt),
       appointmentId: data.appointmentId,
+    };
+  },
+};
+
+// VisionAssessment converter
+export const visionAssessmentConverter = {
+  toFirestore: (doc: VisionAssessmentDocument): DocumentData => {
+    const d: DocumentData = {
+      id: doc.id,
+      patientId: doc.patientId,
+      assignedBy: doc.assignedBy,
+      assignedRole: doc.assignedRole,
+      overrideUsed: doc.overrideUsed,
+      assessmentTypes: doc.assessmentTypes,
+      status: doc.status,
+      autoAssigned: doc.autoAssigned,
+      createdAt: toTimestamp(doc.createdAt),
+      updatedAt: toTimestamp(doc.updatedAt),
+    };
+    if (doc.doctorId)      d.doctorId      = doc.doctorId;
+    if (doc.appointmentId) d.appointmentId = doc.appointmentId;
+    if (doc.serviceId)     d.serviceId     = doc.serviceId;
+    if (doc.expiresAt)          d.expiresAt          = toTimestamp(doc.expiresAt);
+    if (doc.resultFar)          d.resultFar          = { ...doc.resultFar, completedAt: toTimestamp(doc.resultFar.completedAt) };
+    if (doc.resultNear)         d.resultNear         = { ...doc.resultNear, completedAt: toTimestamp(doc.resultNear.completedAt) };
+    if (doc.doctorRemarks)      d.doctorRemarks      = doc.doctorRemarks;
+    if (doc.doctorCorrectedFar) d.doctorCorrectedFar = doc.doctorCorrectedFar;
+    if (doc.doctorCorrectedNear) d.doctorCorrectedNear = doc.doctorCorrectedNear;
+    if (doc.reviewedAt)         d.reviewedAt         = toTimestamp(doc.reviewedAt);
+    return d;
+  },
+  fromFirestore: (snapshot: QueryDocumentSnapshot): VisionAssessmentDocument => {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      patientId: data.patientId,
+      doctorId: data.doctorId,
+      appointmentId: data.appointmentId,
+      serviceId: data.serviceId,
+      assignedBy: data.assignedBy,
+      assignedRole: data.assignedRole,
+      overrideUsed: data.overrideUsed ?? false,
+      assessmentTypes: data.assessmentTypes ?? [],
+      status: data.status,
+      autoAssigned: data.autoAssigned ?? false,
+      resultFar:  data.resultFar  ? { ...data.resultFar,  completedAt: fromTimestamp(data.resultFar.completedAt)  } : undefined,
+      resultNear: data.resultNear ? { ...data.resultNear, completedAt: fromTimestamp(data.resultNear.completedAt) } : undefined,
+      doctorRemarks:       data.doctorRemarks,
+      doctorCorrectedFar:  data.doctorCorrectedFar,
+      doctorCorrectedNear: data.doctorCorrectedNear,
+      reviewedAt:  data.reviewedAt  ? fromTimestamp(data.reviewedAt)  : undefined,
+      createdAt:   fromTimestamp(data.createdAt),
+      updatedAt:   fromTimestamp(data.updatedAt),
+      expiresAt:   data.expiresAt   ? fromTimestamp(data.expiresAt)   : undefined,
     };
   },
 };
