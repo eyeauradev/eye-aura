@@ -179,7 +179,8 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │       ├── /near
 │       │   └── near-vision-data.ts         # Near vision Jaeger chart data
 │       ├── /engine
-│       │   ├── useAssessmentTimer.ts       # Visual countdown timer hook
+│       │   ├── useLetterTimer.ts          # RAF-driven per-letter timer + advancement
+│       │   ├── useAssessmentProgress.ts   # Pure derivation of cross-eye global progress
 │       │   └── useVisionProgression.ts     # Line progression with indexRef/failsRef
 │       └── /steps
 │           ├── WelcomeStep.tsx             # Assessment introduction
@@ -1966,10 +1967,13 @@ eye_intro → reading (auto-advance by setInterval) → self_report
 
 ### Line advancement
 
-Lines advance using a **dedicated `setInterval`** firing every `timerDuration` seconds.
-`useAssessmentTimer` is used only for the visual countdown display.
-
-This separation prevents the double-firing bug that caused even-numbered lines to be skipped.
+Lines advance through a single, RAF-driven state machine in `useLetterTimer`.
+Each per-letter `requestAnimationFrame` tick computes the elapsed delta from
+`Date.now()` and dispatches a `TICK` action; on rollover the reducer
+increments `letterIndex` and resets `remainingMs`; on the final letter it
+transitions `status → "done"` and `onAllComplete` flips the shell into
+`self_report`. Pause / Resume / Visibility-Hide / Visibility-Show gate the
+same loop, so there are no parallel timers.
 
 ### Self-report screen
 
@@ -1988,7 +1992,9 @@ Buttons show: `Level N · 20/xx · label`.
 | `modules/visual-acuity/optotypes.ts`     | SVG path definitions for all 9 optotypes    |
 | `modules/visual-acuity/snellen-data.ts`  | Far vision chart data + utility functions   |
 | `modules/visual-acuity/near/near-vision-data.ts` | Near vision Jaeger chart data           |
-| `modules/visual-acuity/engine/useAssessmentTimer.ts` | Visual countdown timer hook       |
+| `modules/visual-acuity/engine/useLetterTimer.ts` | RAF-driven per-letter timer + advancement |
+| `modules/visual-acuity/engine/useAssessmentProgress.ts` | Pure derivation of cross-eye global progress |
+| `modules/visual-acuity/steps/TestingShell.tsx` | Shared eye-intro / reading / self-report shell |
 | `modules/visual-acuity/engine/useVisionProgression.ts` | Line progression with indexRef/failsRef |
 | `modules/visual-acuity/steps/WelcomeStep.tsx` | Assessment introduction              |
 | `modules/visual-acuity/steps/InstructionsStep.tsx` | Testing instructions               |

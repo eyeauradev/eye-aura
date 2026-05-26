@@ -142,12 +142,30 @@ export default function PrescriptionPdfPage() {
       <div style={{ display: "flex", justifyContent: "center", padding: "40px 20px" }}>
         <div className="rx-page" style={{ width: 794, zoom: scale, background: "#fefdf9", padding: 0, boxSizing: "border-box", boxShadow: "0 4px 24px rgba(0,0,0,0.18)", fontFamily: "Arial, sans-serif", color: G, fontSize: "8pt", position: "relative", overflow: "hidden" }}>
 
-          {/* HEADER IMAGE — full bleed, exactly 794px wide */}
-          <img
-            src="/prescription_header.svg"
-            alt="Eye Aura Header"
-            style={{ display: "block", width: "100%", marginBottom: 0 }}
-          />
+          {/* HEADER — SVG cropped to content band, 24px horizontal inset, flush top */}
+          <div style={{
+            padding: "26px 44px 0",
+            boxSizing: "border-box",
+          }}>
+            <div style={{
+              width: "100%",
+              height: "100px",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <img
+                src="/prescription_header.svg"
+                alt="Eye Aura Header"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  height: "auto",
+                }}
+              />
+            </div>
+          </div>
 
           {/* BODY — all content below the header, with side padding */}
           <div style={{ padding: "12px 45px 30px" }}>

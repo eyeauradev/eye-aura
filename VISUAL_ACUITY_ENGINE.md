@@ -173,10 +173,16 @@ eye_intro → reading (auto-advance by setInterval) → self_report
 
 ### Line advancement
 
-Lines advance using a **dedicated `setInterval`** firing every `timerDuration` seconds.
-`useAssessmentTimer` is used only for the visual countdown display.
-
-This separation prevents the double-firing bug that caused even-numbered lines to be skipped.
+Lines advance through a single, RAF-driven state machine in
+`useLetterTimer`. Each per-letter `requestAnimationFrame` tick computes the
+elapsed delta from `Date.now()` (mock-friendly under fake timers) and
+dispatches a `TICK` action; on rollover the reducer increments `letterIndex`
+and resets `remainingMs` to `durationMs`; on the final letter it transitions
+`status: "running" → "done"` and the `onAllComplete` effect flips the shell
+into `self_report`. Pause / Resume / Visibility-Hide / Visibility-Show all
+gate the same loop, so there are no parallel timers and pause cannot leak
+line advancement. Cross-eye global progress is derived purely from
+`(currentEye, letterIndex, totalLinesPerEye)` by `useAssessmentProgress`.
 
 ### Self-report screen
 
@@ -226,7 +232,9 @@ Shows:
 | `steps/TestingStep.tsx`                | Far vision test (3 m)                       |
 | `steps/NearTestingStep.tsx`            | Near vision test (40 cm)                    |
 | `steps/ResultsStep.tsx`                | Results display with level + notation       |
-| `engine/useAssessmentTimer.ts`         | Visual countdown timer hook                 |
+| `engine/useLetterTimer.ts`             | RAF-driven per-letter timer + advancement   |
+| `engine/useAssessmentProgress.ts`      | Pure derivation of cross-eye global progress |
+| `steps/TestingShell.tsx`               | Shared eye-intro / reading / self-report shell |
 | `AcuitySession.tsx`                    | Phase orchestrator                          |
 
 ---
