@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, prescriptionsService, usersService, visionAssessmentsService } from "@/services/firestore";
+import { transactionService } from "@/services/booking/transaction.service";
 import { getAuth } from "firebase/auth";
-import type { AppointmentDocument, PrescriptionDocument, UserDocument, VisionAssessmentDocument, VisionAssessmentType } from "@/types/firestore";
-import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare, Eye, BookOpen, Zap } from "lucide-react";
+import type { AppointmentDocument, PrescriptionDocument, UserDocument, VisionAssessmentDocument, VisionAssessmentType, RefundDecision } from "@/types/firestore";
+import { isRefundEligible } from "@/lib/refund-eligibility";
+import { useToast } from "@/components/ui/toast-provider";
+import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare, Eye, BookOpen, Zap, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +30,7 @@ export default function DoctorAppointmentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<AppointmentDocument | null>(null);
   const [patient, setPatient] = useState<UserDocument | null>(null);
@@ -39,6 +43,11 @@ export default function DoctorAppointmentDetailPage() {
   const [assignSuccess, setAssignSuccess] = useState(false);
   const [reviews, setReviews] = useState<Record<string, ReviewForm>>({});
   const [savingReview, setSavingReview] = useState<string | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showApprovalChoiceModal, setShowApprovalChoiceModal] = useState(false);
+  const [issuingRefund, setIssuingRefund] = useState(false);
+  const [refundError, setRefundError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadAppointment() {
@@ -115,6 +124,177 @@ export default function DoctorAppointmentDetailPage() {
     }
   };
 
+  const handleApproveCancellation = async () => {
+    if (!appointment || !user) return;
+
+    // If appointment has a paymentId or bookingRequestId (payment may be on the booking request), show the refund choice modal
+    if (appointment.paymentId || appointment.bookingRequestId) {
+      setShowApprovalChoiceModal(true);
+      return;
+    }
+
+    // No payment — approve directly without refund options
+    await approveWithDecision("no_refund");
+  };
+
+  const approveWithDecision = async (decision: "refund" | "no_refund") => {
+    if (!appointment || !user) return;
+
+    try {
+      setUpdating(true);
+      setShowApprovalChoiceModal(false);
+      const refundDecision: RefundDecision = {
+        decision,
+        decidedBy: user.id,
+        decidedByRole: "doctor",
+        decidedAt: new Date(),
+      };
+      const result = await transactionService.approveCancellationWithTransaction(
+        appointment.id,
+        { uid: user.id, role: "doctor" },
+        refundDecision
+      );
+
+      // If "Approve with Refund" was selected, call the Refund API
+      // paymentId may be on the appointment directly or on the booking request
+      let refundPaymentId = result.paymentId;
+      if (!refundPaymentId && result.bookingRequestId) {
+        // Look up paymentId from the booking request
+        try {
+          const { bookingRequestsService } = await import("@/services/firestore/booking-requests.service");
+          const bookingRequest = await bookingRequestsService.getById(result.bookingRequestId);
+          refundPaymentId = bookingRequest?.paymentId;
+        } catch (e) {
+          console.error("Error looking up booking request payment:", e);
+        }
+      }
+
+      if (decision === "refund" && refundPaymentId) {
+        try {
+          const idToken = await getAuth().currentUser?.getIdToken();
+          const res = await fetch("/api/payments/cancellation-refund", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              appointmentId: appointment.id,
+              paymentId: refundPaymentId,
+            }),
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            console.error("Refund API error:", errData);
+            toastError("Cancellation approved but refund failed. You can issue the refund later.");
+          }
+        } catch (refundErr) {
+          console.error("Refund API error:", refundErr);
+          toastError("Cancellation approved but refund failed. You can issue the refund later.");
+        }
+      } else if (decision === "refund" && !refundPaymentId) {
+        toastInfo("Cancellation approved. No payment found to refund.");
+      }
+
+      // Refresh appointment data
+      const updated = await appointmentsService.getById(appointment.id);
+      if (updated) setAppointment(updated);
+      toastSuccess("Cancellation approved successfully.");
+    } catch (error: any) {
+      console.error("Error approving cancellation:", error);
+      toastError(error?.message || "Failed to approve cancellation. Please try again.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleIssueRefund = async () => {
+    if (!appointment || !user) return;
+
+    try {
+      setIssuingRefund(true);
+      setRefundError(null);
+
+      // Find paymentId — may be on appointment directly or on the booking request
+      let refundPaymentId = appointment.paymentId;
+      if (!refundPaymentId && appointment.bookingRequestId) {
+        try {
+          const { bookingRequestsService } = await import("@/services/firestore/booking-requests.service");
+          const bookingRequest = await bookingRequestsService.getById(appointment.bookingRequestId);
+          refundPaymentId = bookingRequest?.paymentId;
+        } catch (e) {
+          console.error("Error looking up booking request payment:", e);
+        }
+      }
+
+      if (!refundPaymentId) {
+        setRefundError("No payment found to refund.");
+        return;
+      }
+
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/payments/cancellation-refund", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          appointmentId: appointment.id,
+          paymentId: refundPaymentId,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Refund failed" }));
+        if (res.status === 409) {
+          setRefundError("Refund already processed for this appointment.");
+        } else {
+          setRefundError(errData.error || "Failed to issue refund. Please try again.");
+        }
+        // Refresh appointment data to update UI state
+        const updated = await appointmentsService.getById(appointment.id);
+        if (updated) setAppointment(updated);
+        return;
+      }
+
+      // Refresh appointment data
+      const updated = await appointmentsService.getById(appointment.id);
+      if (updated) setAppointment(updated);
+      toastSuccess("Refund initiated successfully.");
+    } catch (error: any) {
+      console.error("Error issuing refund:", error);
+      setRefundError("Network error. Please try again.");
+    } finally {
+      setIssuingRefund(false);
+    }
+  };
+
+  const handleRejectCancellation = async () => {
+    if (!appointment || !user || !rejectionReason.trim()) return;
+
+    try {
+      setUpdating(true);
+      await transactionService.rejectCancellationWithTransaction(
+        appointment.id,
+        { uid: user.id, role: "doctor" },
+        rejectionReason.trim()
+      );
+
+      // Refresh appointment data
+      const updated = await appointmentsService.getById(appointment.id);
+      if (updated) setAppointment(updated);
+      setShowRejectModal(false);
+      setRejectionReason("");
+      toastSuccess("Cancellation request rejected.");
+    } catch (error: any) {
+      console.error("Error rejecting cancellation:", error);
+      toastError(error?.message || "Failed to reject cancellation. Please try again.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const canJoinConsultation = () => {
     if (!appointment) return false;
     const now = new Date();
@@ -147,7 +327,7 @@ export default function DoctorAppointmentDetailPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.error ?? "Failed to assign assessment");
+        toastError(err.error ?? "Failed to assign assessment");
         return;
       }
       setAssignSuccess(true);
@@ -161,7 +341,7 @@ export default function DoctorAppointmentDetailPage() {
       setTimeout(() => setAssignSuccess(false), 3000);
     } catch (err) {
       console.error(err);
-      alert("Failed to assign assessment");
+      toastError("Failed to assign assessment");
     } finally {
       setAssigning(false);
     }
@@ -193,7 +373,7 @@ export default function DoctorAppointmentDetailPage() {
       );
     } catch (err) {
       console.error("Failed to save review:", err);
-      alert("Failed to save review. Please try again.");
+      toastError("Failed to save review. Please try again.");
     } finally {
       setSavingReview(null);
     }
@@ -212,6 +392,8 @@ export default function DoctorAppointmentDetailPage() {
         return "bg-blue-100 text-blue-800 border-blue-200";
       case "cancelled":
         return "bg-red-100 text-red-800 border-red-200";
+      case "cancellation_requested":
+        return "bg-orange-100 text-orange-800 border-orange-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -384,6 +566,39 @@ export default function DoctorAppointmentDetailPage() {
                 </Button>
               )}
 
+              {appointment.status === "cancellation_requested" && (
+                <div className="space-y-3 border-t border-primary/10 pt-3">
+                  <div className="rounded-xl bg-orange-50 border border-orange-200 p-3">
+                    <p className="text-sm font-bold text-orange-800 mb-1">Cancellation Requested</p>
+                    <p className="text-xs text-orange-700">
+                      Reason: {appointment.cancellationReason}
+                    </p>
+                    {appointment.cancellationRequestedAt && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        Requested: {new Date(appointment.cancellationRequestedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    onClick={() => handleApproveCancellation()}
+                    disabled={updating}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    {updating ? "Approving..." : "Approve Cancellation"}
+                  </Button>
+                  <Button
+                    onClick={() => setShowRejectModal(true)}
+                    disabled={updating}
+                    variant="outline"
+                    className="w-full border-red-200 text-red-600 hover:bg-red-50"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Reject Cancellation
+                  </Button>
+                </div>
+              )}
+
               {appointment.status === "completed" && !appointment.prescriptionId && (
                 <Link href={`/doctor/prescriptions/create/${appointment.id}`} className="w-full">
                   <Button variant="outline" className="w-full">
@@ -392,6 +607,41 @@ export default function DoctorAppointmentDetailPage() {
                   </Button>
                 </Link>
               )}
+
+              {/* Post-approval Issue Refund section */}
+              {appointment.status === "cancelled" && (() => {
+                const eligibility = isRefundEligible(appointment, "doctor");
+                if (!eligibility.eligible) return null;
+
+                const daysSinceApproval = appointment.cancellationApprovedAt
+                  ? Math.floor((Date.now() - new Date(appointment.cancellationApprovedAt).getTime()) / (1000 * 60 * 60 * 24))
+                  : 0;
+                const remainingDays = Math.max(0, 7 - daysSinceApproval);
+
+                return (
+                  <div className="space-y-3 border-t border-primary/10 pt-3">
+                    <div className="rounded-xl bg-blue-50 border border-blue-200 p-3">
+                      <p className="text-sm font-bold text-blue-800 mb-1">Refund Available</p>
+                      <p className="text-xs text-blue-700">
+                        You have {remainingDays} day{remainingDays !== 1 ? "s" : ""} remaining to issue a refund for this appointment.
+                      </p>
+                    </div>
+                    {refundError && (
+                      <div className="rounded-xl bg-red-50 border border-red-200 p-3">
+                        <p className="text-xs text-red-700">{refundError}</p>
+                      </div>
+                    )}
+                    <Button
+                      onClick={handleIssueRefund}
+                      disabled={issuingRefund}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${issuingRefund ? "animate-spin" : ""}`} />
+                      {issuingRefund ? "Processing Refund..." : "Issue Refund"}
+                    </Button>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
@@ -733,6 +983,87 @@ export default function DoctorAppointmentDetailPage() {
           </CardContent>
         </Card>
       
+      {/* Rejection Reason Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-5 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl space-y-4">
+            <h3 className="font-display text-xl text-primary">Reject Cancellation</h3>
+            <p className="text-sm text-muted-foreground">
+              Please provide a reason for rejecting this cancellation request. The patient will be notified.
+            </p>
+            <div>
+              <label className="text-sm font-bold text-muted-foreground mb-2 block">
+                Rejection Reason
+              </label>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Explain why the cancellation request is being rejected..."
+                className="w-full h-24 rounded-2xl border border-primary/20 bg-white/70 p-4 text-base transition placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 focus-visible:border-secondary/50"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectionReason("");
+                }}
+                disabled={updating}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRejectCancellation}
+                disabled={updating || !rejectionReason.trim()}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                {updating ? "Rejecting..." : "Confirm Rejection"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approval Refund Choice Modal */}
+      {showApprovalChoiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-5 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl space-y-4">
+            <h3 className="font-display text-xl text-primary">Approve Cancellation</h3>
+            <p className="text-sm text-muted-foreground">
+              This appointment has a payment associated with it. Would you like to issue a refund to the patient?
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={() => approveWithDecision("refund")}
+                disabled={updating}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {updating ? "Processing..." : "Approve with Refund"}
+              </Button>
+              <Button
+                onClick={() => approveWithDecision("no_refund")}
+                disabled={updating}
+                variant="outline"
+                className="w-full border-orange-200 text-orange-700 hover:bg-orange-50"
+              >
+                <X className="h-4 w-4 mr-2" />
+                {updating ? "Processing..." : "Approve without Refund"}
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground"
+                onClick={() => setShowApprovalChoiceModal(false)}
+                disabled={updating}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

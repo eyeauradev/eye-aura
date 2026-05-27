@@ -53,13 +53,18 @@ export class BookingService {
     return appointmentsService.updateStatus(appointmentId, "confirmed");
   }
 
-  async cancelBooking(appointmentId: string, reason?: string): Promise<AppointmentDocument> {
-    // Use transaction service for atomic cancellation
-    await transactionService.cancelAppointmentWithTransaction(appointmentId, reason);
-    
+  async cancelBooking(appointmentId: string, reason: string): Promise<AppointmentDocument> {
+    // Validate reason is not empty/whitespace
+    if (!reason || !reason.trim()) {
+      throw new Error("Cancellation reason is required");
+    }
+
+    // Changed: now requests cancellation instead of directly cancelling
+    await transactionService.requestCancellationWithTransaction(appointmentId, reason);
+
     const updated = await appointmentsService.getById(appointmentId);
-    if (!updated) throw new Error("Appointment not found after cancellation");
-    
+    if (!updated) throw new Error("Appointment not found after cancellation request");
+
     return updated;
   }
 

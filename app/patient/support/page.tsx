@@ -7,11 +7,15 @@ import { supportTicketsService, usersService } from "@/services/firestore";
 import { EA, eaError } from "@/lib/errors";
 import { v4 as uuidv4 } from "uuid";
 import { MessageSquare, Plus, ArrowRight, Clock, CheckCircle, AlertCircle, HelpCircle, CreditCard, Calendar as CalendarIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  DashboardCard,
+  StatusBadge,
+  PremiumButton,
+  SectionHeader,
+  GlassPanel,
+} from "@/components/patient-portal";
 
 
 const categories = [
@@ -23,17 +27,24 @@ const categories = [
 ] as const;
 
 const priorities = [
-  { id: "low", label: "Low", color: "bg-gray-100 text-gray-800 border-gray-200" },
-  { id: "medium", label: "Medium", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-  { id: "high", label: "High", color: "bg-orange-100 text-orange-800 border-orange-200" },
-  { id: "urgent", label: "Urgent", color: "bg-red-100 text-red-800 border-red-200" },
+  { id: "low", label: "Low" },
+  { id: "medium", label: "Medium" },
+  { id: "high", label: "High" },
+  { id: "urgent", label: "Urgent" },
 ] as const;
 
-const statusConfig = {
-  open: { label: "Open", color: "bg-blue-100 text-blue-800 border-blue-200" },
-  in_progress: { label: "In Progress", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-  resolved: { label: "Resolved", color: "bg-green-100 text-green-800 border-green-200" },
-  closed: { label: "Closed", color: "bg-gray-100 text-gray-800 border-gray-200" },
+const statusVariantMap: Record<string, "pending" | "in_progress" | "confirmed" | "completed"> = {
+  open: "pending",
+  in_progress: "in_progress",
+  resolved: "confirmed",
+  closed: "completed",
+};
+
+const statusLabelMap: Record<string, string> = {
+  open: "Open",
+  in_progress: "In Progress",
+  resolved: "Resolved",
+  closed: "Closed",
 };
 
 export default function PatientSupportPage() {
@@ -121,7 +132,7 @@ export default function PatientSupportPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+      <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-secondary border-t-transparent mx-auto" />
           <p className="mt-4 text-base text-muted-foreground">Loading support tickets...</p>
@@ -131,190 +142,173 @@ export default function PatientSupportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-3xl text-primary sm:text-4xl">Support Center</h1>
-              <p className="mt-2 text-base text-muted-foreground">
-                Get help with your questions and concerns
-              </p>
-            </div>
-            {!showNewTicket && (
-              <Button size="lg" onClick={() => setShowNewTicket(true)} className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                New Ticket
-              </Button>
-            )}
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Support Center</h1>
+          <p className="mt-1 text-base text-muted-foreground">
+            Get help with your questions and concerns
+          </p>
         </div>
+        {!showNewTicket && (
+          <PremiumButton size="lg" onClick={() => setShowNewTicket(true)} icon={<Plus className="h-5 w-5" />}>
+            New Ticket
+          </PremiumButton>
+        )}
       </div>
 
-      
-        <div className="mx-auto max-w-6xl">
-          {success && (
-            <div className="mb-6 p-4 rounded-2xl bg-green-50 text-green-700 border border-green-200 flex items-center gap-3">
-              <CheckCircle className="h-5 w-5" />
-              <span className="text-sm font-bold">Support ticket created successfully</span>
-            </div>
-          )}
+      <div className="max-w-6xl">
+        {success && (
+          <div className="mb-6 p-4 rounded-2xl bg-primary/5 text-primary border border-primary/20 flex items-center gap-3">
+            <CheckCircle className="h-5 w-5" />
+            <span className="text-sm font-bold">Support ticket created successfully</span>
+          </div>
+        )}
 
-          {showNewTicket ? (
-            <Card className="border-primary/10 mb-6">
-              <CardHeader className="p-3 sm:p-6">
-                <CardTitle>Create New Support Ticket</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-6">
-                <form onSubmit={handleSubmitNewTicket} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      {categories.map((cat) => {
-                        const Icon = cat.icon;
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => setNewTicket({ ...newTicket, category: cat.id as any })}
-                            className={`p-4 rounded-2xl border-2 transition ${
-                              newTicket.category === cat.id
-                                ? "border-secondary bg-secondary/5"
-                                : "border-primary/10 bg-white/50 hover:bg-white"
-                            }`}
-                          >
-                            <Icon className="h-6 w-6 text-primary mx-auto mb-2" />
-                            <p className="text-sm font-bold text-primary">{cat.label}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{cat.description}</p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+        {showNewTicket ? (
+          <DashboardCard disableHover className="mb-6">
+            <SectionHeader title="Create New Support Ticket" className="mt-0 mb-6" />
+            <form onSubmit={handleSubmitNewTicket} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {categories.map((cat) => {
+                    const Icon = cat.icon;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setNewTicket({ ...newTicket, category: cat.id as any })}
+                        className={`p-4 rounded-2xl border-2 transition ${
+                          newTicket.category === cat.id
+                            ? "border-secondary bg-secondary/5"
+                            : "border-border/50 bg-card/50 hover:bg-card/80"
+                        }`}
+                      >
+                        <Icon className="h-6 w-6 text-primary mx-auto mb-2" />
+                        <p className="text-sm font-bold text-foreground">{cat.label}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{cat.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="priority">Priority</Label>
-                    <div className="flex gap-3">
-                      {priorities.map((prio) => (
-                        <button
-                          key={prio.id}
-                          type="button"
-                          onClick={() => setNewTicket({ ...newTicket, priority: prio.id as any })}
-                          className={`px-4 py-2 rounded-xl border-2 transition ${
-                            newTicket.priority === prio.id
-                              ? "border-secondary bg-secondary/5"
-                              : "border-primary/10 bg-white/50 hover:bg-white"
-                          }`}
-                        >
-                          <span className={`text-sm font-bold ${newTicket.priority === prio.id ? "text-primary" : "text-muted-foreground"}`}>
-                            {prio.label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      value={newTicket.subject}
-                      onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
-                      placeholder="Brief summary of your issue"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <textarea
-                      id="description"
-                      value={newTicket.description}
-                      onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-                      placeholder="Please provide detailed information about your issue..."
-                      className="w-full h-40 rounded-2xl border border-primary/20 bg-white/70 p-4 text-base transition placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 focus-visible:border-secondary/50"
-                      required
-                      maxLength={1000}
-                    />
-                    <p className="text-xs text-muted-foreground text-right">{newTicket.description.length}/1000</p>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <div className="flex gap-3">
+                  {priorities.map((prio) => (
+                    <button
+                      key={prio.id}
                       type="button"
-                      variant="outline"
-                      onClick={() => setShowNewTicket(false)}
-                      disabled={submitting}
+                      onClick={() => setNewTicket({ ...newTicket, priority: prio.id as any })}
+                      className={`px-4 py-2 rounded-xl border-2 transition ${
+                        newTicket.priority === prio.id
+                          ? "border-secondary bg-secondary/5"
+                          : "border-border/50 bg-card/50 hover:bg-card/80"
+                      }`}
                     >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={submitting}>
-                      {submitting ? "Submitting..." : "Submit Ticket"}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {tickets.length === 0 ? (
-                <Card className="border-primary/10 bg-primary/5">
-                  <CardContent className="p-12 text-center">
-                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
-                      <MessageSquare className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="font-display text-xl text-primary mb-2">No Support Tickets Yet</h3>
-                    <p className="text-base text-muted-foreground mb-6">
-                      Have a question or concern? Create a new support ticket and we'll help you out.
-                    </p>
-                    <Button size="lg" onClick={() => setShowNewTicket(true)} className="flex items-center gap-2">
-                      <Plus className="h-5 w-5" />
-                      Create New Ticket
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {tickets.map((ticket) => (
-                    <Card key={ticket.id} className="border-primary/10 transition hover:-translate-y-1 hover:shadow-lg">
-                      <CardContent className="p-3 sm:p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <h3 className="font-display text-lg text-primary mb-1">{ticket.subject}</h3>
-                            <p className="text-sm text-muted-foreground capitalize">{ticket.category}</p>
-                          </div>
-                          <Badge className={statusConfig[ticket.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
-                            {statusConfig[ticket.status as keyof typeof statusConfig]?.label || ticket.status}
-                          </Badge>
-                        </div>
-                        <p className="text-base text-muted-foreground mb-4 line-clamp-2">{ticket.description}</p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4" />
-                              <span>{new Date(ticket.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                            </div>
-                            <Badge className={priorities.find((p) => p.id === ticket.priority)?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
-                              {ticket.priority}
-                            </Badge>
-                          </div>
-                          <Link href={`/patient/support/${ticket.id}`}>
-                            <Button variant="outline" className="flex items-center gap-2">
-                              View Details
-                              <ArrowRight className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      <span className={`text-sm font-bold ${newTicket.priority === prio.id ? "text-foreground" : "text-muted-foreground"}`}>
+                        {prio.label}
+                      </span>
+                    </button>
                   ))}
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject</Label>
+                <Input
+                  id="subject"
+                  value={newTicket.subject}
+                  onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
+                  placeholder="Brief summary of your issue"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <textarea
+                  id="description"
+                  value={newTicket.description}
+                  onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
+                  placeholder="Please provide detailed information about your issue..."
+                  className="w-full h-40 rounded-2xl border border-border bg-card/70 p-4 text-base transition placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
+                  required
+                  maxLength={1000}
+                />
+                <p className="text-xs text-muted-foreground text-right">{newTicket.description.length}/1000</p>
+              </div>
+
+              <div className="flex gap-3">
+                <PremiumButton
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowNewTicket(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </PremiumButton>
+                <PremiumButton type="submit" disabled={submitting}>
+                  {submitting ? "Submitting..." : "Submit Ticket"}
+                </PremiumButton>
+              </div>
+            </form>
+          </DashboardCard>
+        ) : (
+          <>
+            {tickets.length === 0 ? (
+              <GlassPanel padding="lg" className="text-center">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                  <MessageSquare className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">No Support Tickets Yet</h3>
+                <p className="text-base text-muted-foreground mb-6">
+                  Have a question or concern? Create a new support ticket and we&apos;ll help you out.
+                </p>
+                <PremiumButton size="lg" onClick={() => setShowNewTicket(true)} icon={<Plus className="h-5 w-5" />}>
+                  Create New Ticket
+                </PremiumButton>
+              </GlassPanel>
+            ) : (
+              <div className="space-y-4">
+                {tickets.map((ticket, i) => (
+                  <DashboardCard key={ticket.id} staggerIndex={i}>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-foreground mb-1">{ticket.subject}</h3>
+                        <p className="text-sm text-muted-foreground capitalize">{ticket.category}</p>
+                      </div>
+                      <StatusBadge variant={statusVariantMap[ticket.status] || "pending"} size="sm">
+                        {statusLabelMap[ticket.status] || ticket.status}
+                      </StatusBadge>
+                    </div>
+                    <p className="text-base text-muted-foreground mb-4 line-clamp-2">{ticket.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          <span>{new Date(ticket.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                        </div>
+                        <StatusBadge variant={ticket.priority === "urgent" || ticket.priority === "high" ? "cancelled" : "pending"} size="sm">
+                          {ticket.priority}
+                        </StatusBadge>
+                      </div>
+                      <Link href={`/patient/support/${ticket.id}`}>
+                        <PremiumButton variant="outline" size="sm" trailingIcon={<ArrowRight className="h-4 w-4" />}>
+                          View Details
+                        </PremiumButton>
+                      </Link>
+                    </div>
+                  </DashboardCard>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

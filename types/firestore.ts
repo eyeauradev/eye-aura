@@ -25,6 +25,24 @@ export interface UserDocument {
   updatedAt: Date;
 }
 
+// Refund Decision Types
+export type RefundDecisionType = "refund" | "no_refund";
+
+export interface RefundDecision {
+  decision: RefundDecisionType;
+  decidedBy: string;
+  decidedByRole: "doctor" | "admin";
+  decidedAt: Date;
+}
+
+export interface RefundAuditEntry {
+  action: "decision_at_approval" | "post_approval_refund";
+  decision: RefundDecisionType | "refund";
+  actorId: string;
+  actorRole: "doctor" | "admin";
+  timestamp: Date;
+}
+
 // Appointments Collection
 export type AppointmentStatus = 
   | "pending"
@@ -58,6 +76,37 @@ export interface AppointmentDocument {
   completedAt?: Date;
   cancelledAt?: Date;
   cancellationReason?: string;
+
+  // Cancellation request fields
+  cancellationRequestedAt?: Date;
+  previousStatus?: "pending" | "confirmed";
+
+  // Cancellation approval fields
+  cancellationApprovedBy?: string;
+  cancellationApprovedByRole?: "doctor" | "admin";
+  cancellationApprovedAt?: Date;
+
+  // Cancellation rejection fields
+  cancellationRejectedBy?: string;
+  cancellationRejectedByRole?: "doctor" | "admin";
+  cancellationRejectedAt?: Date;
+  cancellationRejectionReason?: string;
+
+  // Refund fields
+  refundId?: string;
+  refundAmount?: number;
+  refundedAt?: Date;
+
+  // Refund decision tracking
+  refundDecision?: RefundDecisionType;
+  refundDecisionBy?: string;
+  refundDecisionByRole?: "doctor" | "admin";
+  refundDecisionAt?: Date;
+  refundAuditTrail?: RefundAuditEntry[];
+  refundStatus?: RefundStatus;
+
+  // Booking request reference (for refund lookup)
+  bookingRequestId?: string;
 }
 
 // Services Collection

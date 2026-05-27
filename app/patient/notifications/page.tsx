@@ -5,9 +5,13 @@ import { useAuth } from "@/contexts/auth-context";
 import { notificationsService } from "@/services/notifications/notifications.service";
 import { EA, eaError } from "@/lib/errors";
 import { Bell, Calendar, FileText, MessageSquare, Check, X, Clock, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  DashboardCard,
+  StatusBadge,
+  PremiumButton,
+  SectionHeader,
+  GlassPanel,
+} from "@/components/patient-portal";
 
 import Link from "next/link";
 
@@ -24,17 +28,17 @@ const notificationIcons: Record<string, any> = {
   general: Bell,
 };
 
-const notificationColors: Record<string, string> = {
-  booking_confirmed: "bg-green-100 text-green-800 border-green-200",
-  booking_cancelled: "bg-red-100 text-red-800 border-red-200",
-  booking_reminder: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  appointment_completed: "bg-blue-100 text-blue-800 border-blue-200",
-  prescription_created: "bg-purple-100 text-purple-800 border-purple-200",
-  prescription_updated: "bg-purple-100 text-purple-800 border-purple-200",
-  support_ticket_response: "bg-orange-100 text-orange-800 border-orange-200",
-  support_ticket_resolved: "bg-green-100 text-green-800 border-green-200",
-  profile_updated: "bg-gray-100 text-gray-800 border-gray-200",
-  general: "bg-gray-100 text-gray-800 border-gray-200",
+const notificationVariants: Record<string, "confirmed" | "cancelled" | "pending" | "completed" | "in_progress" | "requested" | "active"> = {
+  booking_confirmed: "confirmed",
+  booking_cancelled: "cancelled",
+  booking_reminder: "pending",
+  appointment_completed: "completed",
+  prescription_created: "in_progress",
+  prescription_updated: "in_progress",
+  support_ticket_response: "requested",
+  support_ticket_resolved: "confirmed",
+  profile_updated: "active",
+  general: "pending",
 };
 
 export default function PatientNotificationsPage() {
@@ -90,7 +94,7 @@ export default function PatientNotificationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+      <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-secondary border-t-transparent mx-auto" />
           <p className="mt-4 text-base text-muted-foreground">Loading notifications...</p>
@@ -100,112 +104,102 @@ export default function PatientNotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-3xl text-primary sm:text-4xl">Notifications</h1>
-              <p className="mt-2 text-base text-muted-foreground">
-                Stay updated with your account activity
-              </p>
-            </div>
-            {unreadCount > 0 && (
-              <Button variant="outline" onClick={handleMarkAllAsRead} className="flex items-center gap-2">
-                <Check className="h-5 w-5" />
-                Mark All as Read
-              </Button>
-            )}
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Notifications</h1>
+          <p className="mt-1 text-base text-muted-foreground">
+            Stay updated with your account activity
+          </p>
         </div>
+        {unreadCount > 0 && (
+          <PremiumButton variant="outline" onClick={handleMarkAllAsRead} icon={<Check className="h-5 w-5" />}>
+            Mark All as Read
+          </PremiumButton>
+        )}
       </div>
 
-      
-        <div className="mx-auto max-w-4xl">
-          {notifications.length === 0 ? (
-            <Card className="border-primary/10 bg-primary/5">
-              <CardContent className="p-12 text-center">
-                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
-                  <Bell className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="font-display text-xl text-primary mb-2">No Notifications</h3>
-                <p className="text-base text-muted-foreground">
-                  You're all caught up! New notifications will appear here.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {notifications.map((notification) => {
-                const Icon = notificationIcons[notification.type] || Bell;
-                const color = notificationColors[notification.type] || notificationColors.general;
-
-                return (
-                  <Card
-                    key={notification.id}
-                    className={`border-primary/10 transition hover:shadow-lg ${
-                      !notification.read ? "bg-white/80" : "bg-white/50"
-                    }`}
-                  >
-                    <CardContent className="p-3 sm:p-6">
-                      <div className="flex items-start gap-4">
-                        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${color}`}>
-                          <Icon className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-4 mb-2">
-                            <div>
-                              <h3 className={`font-bold text-primary ${!notification.read ? "text-lg" : "text-base"}`}>
-                                {notification.title}
-                              </h3>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(notification.createdAt).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                            {!notification.read && (
-                              <Badge className="bg-secondary text-white">New</Badge>
-                            )}
-                          </div>
-                          <p className="text-base text-muted-foreground mb-4">{notification.message}</p>
-                          <div className="flex items-center gap-3">
-                            {notification.actionUrl && (
-                              <Link href={notification.actionUrl}>
-                                <Button variant="outline">
-                                  View Details
-                                </Button>
-                              </Link>
-                            )}
-                            {!notification.read && (
-                              <Button
-                                variant="ghost"
-                                onClick={() => handleMarkAsRead(notification.id)}
-                              >
-                                Mark as Read
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              onClick={() => handleDelete(notification.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+      <div className="max-w-4xl">
+        {notifications.length === 0 ? (
+          <GlassPanel padding="lg" className="text-center">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+              <Bell className="h-8 w-8 text-primary" />
             </div>
-          )}
-        </div>
-      
+            <h3 className="text-xl font-semibold text-foreground mb-2">No Notifications</h3>
+            <p className="text-base text-muted-foreground">
+              You&apos;re all caught up! New notifications will appear here.
+            </p>
+          </GlassPanel>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((notification, i) => {
+              const Icon = notificationIcons[notification.type] || Bell;
+              const variant = notificationVariants[notification.type] || "pending";
+
+              return (
+                <DashboardCard
+                  key={notification.id}
+                  staggerIndex={i}
+                  className={!notification.read ? "bg-card/90" : "bg-card/60"}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/8">
+                      <Icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div>
+                          <h3 className={`font-bold text-foreground ${!notification.read ? "text-lg" : "text-base"}`}>
+                            {notification.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(notification.createdAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        {!notification.read && (
+                          <StatusBadge variant="active" size="sm">New</StatusBadge>
+                        )}
+                      </div>
+                      <p className="text-base text-muted-foreground mb-4">{notification.message}</p>
+                      <div className="flex items-center gap-3">
+                        {notification.actionUrl && (
+                          <Link href={notification.actionUrl}>
+                            <PremiumButton variant="outline" size="sm">
+                              View Details
+                            </PremiumButton>
+                          </Link>
+                        )}
+                        {!notification.read && (
+                          <PremiumButton
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleMarkAsRead(notification.id)}
+                          >
+                            Mark as Read
+                          </PremiumButton>
+                        )}
+                        <PremiumButton
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(notification.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </PremiumButton>
+                      </div>
+                    </div>
+                  </div>
+                </DashboardCard>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

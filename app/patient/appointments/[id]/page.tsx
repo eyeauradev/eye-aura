@@ -7,10 +7,15 @@ import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
 import { EA, eaError } from "@/lib/errors";
 import { bookingService } from "@/services/booking/booking.service";
-import { Calendar, Clock, FileText, Video, ArrowLeft, ArrowRight, Calendar as CalendarIcon, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Calendar, Clock, FileText, Video, ArrowLeft, Calendar as CalendarIcon, X } from "lucide-react";
+import {
+  DashboardCard,
+  StatusBadge,
+  PremiumButton,
+  SectionHeader,
+  GlassPanel,
+  InfoRow,
+} from "@/components/patient-portal";
 
 
 export default function AppointmentDetailPage() {
@@ -74,23 +79,33 @@ export default function AppointmentDetailPage() {
     router.push(`/booking/reschedule/${appointment.id}`);
   };
 
-  const isUpcoming = appointment && new Date(appointment.scheduledFor) > new Date();
-  const canCancel = isUpcoming && appointment.status !== "cancelled" && appointment.status !== "cancellation_requested";
-  const canReschedule = !!appointment && isUpcoming && (appointment.status === "pending" || appointment.status === "confirmed");
-  const canJoin = appointment.status === "confirmed" && new Date(appointment.scheduledFor) <= new Date(new Date().getTime() + 15 * 60000) && new Date(appointment.scheduledFor) > new Date(new Date().getTime() - service?.duration * 60000);
+  const getStatusVariant = (status: string) => {
+    const map: Record<string, "pending" | "confirmed" | "in_progress" | "completed" | "cancelled"> = {
+      pending: "pending",
+      confirmed: "confirmed",
+      in_progress: "in_progress",
+      completed: "completed",
+      cancelled: "cancelled",
+      cancellation_requested: "pending",
+    };
+    return map[status] || "pending";
+  };
 
-  const statusConfig = {
-    pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-    confirmed: { label: "Confirmed", color: "bg-green-100 text-green-800 border-green-200" },
-    in_progress: { label: "In Progress", color: "bg-blue-100 text-blue-800 border-blue-200" },
-    completed: { label: "Completed", color: "bg-gray-100 text-gray-800 border-gray-200" },
-    cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800 border-red-200" },
-    cancellation_requested: { label: "Cancellation Requested", color: "bg-orange-100 text-orange-800 border-orange-200" },
+  const getStatusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      pending: "Pending",
+      confirmed: "Confirmed",
+      in_progress: "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      cancellation_requested: "Cancellation Requested",
+    };
+    return map[status] || status;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
+      <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-secondary border-t-transparent mx-auto" />
           <p className="mt-4 text-base text-muted-foreground">Loading appointment details...</p>
@@ -101,313 +116,340 @@ export default function AppointmentDetailPage() {
 
   if (!appointment || !service) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF] px-5">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-4 sm:p-8 text-center">
-            <p className="text-base text-muted-foreground">Appointment not found</p>
-            <Link href="/patient/appointments" className="inline-block mt-4">
-              <Button>View Appointments</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="min-h-[60vh] flex items-center justify-center px-5">
+        <GlassPanel padding="lg" className="max-w-md w-full text-center">
+          <p className="text-base text-muted-foreground">Appointment not found</p>
+          <Link href="/patient/appointments" className="inline-block mt-4">
+            <PremiumButton>View Appointments</PremiumButton>
+          </Link>
+        </GlassPanel>
       </div>
     );
   }
 
+  const isUpcoming = new Date(appointment.scheduledFor) > new Date();
+  const canCancel = isUpcoming && appointment.status !== "cancelled" && appointment.status !== "cancellation_requested";
+  const canReschedule = isUpcoming && (appointment.status === "pending" || appointment.status === "confirmed");
+  const canJoin = appointment.status === "confirmed" && new Date(appointment.scheduledFor) <= new Date(new Date().getTime() + 15 * 60000) && new Date(appointment.scheduledFor) > new Date(new Date().getTime() - service.duration * 60000);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F7F4EF] via-[#DDE5DF] to-[#F7F4EF]">
-      {/* Header */}
-      <div className="border-b border-primary/10 bg-white/50 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8">
-          <Link
-            href="/patient/appointments"
-            className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Appointments
-          </Link>
-          <h1 className="font-display text-3xl text-primary sm:text-4xl">Appointment Details</h1>
+    <div className="space-y-6">
+      {/* Back Navigation */}
+      <Link
+        href="/patient/appointments"
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Appointments
+      </Link>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Cancellation Requested Banner */}
+          {appointment.status === "cancellation_requested" && (
+            <GlassPanel padding="md" className="border-secondary/30 bg-secondary/5">
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-secondary mt-2 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-foreground">Cancellation Requested</p>
+                  {appointment.cancellationReason && (
+                    <p className="text-sm text-muted-foreground">
+                      Reason: {appointment.cancellationReason}
+                    </p>
+                  )}
+                  {appointment.cancellationRequestedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      Requested on{" "}
+                      {new Date(appointment.cancellationRequestedAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your cancellation request is pending approval from the doctor.
+                  </p>
+                </div>
+              </div>
+            </GlassPanel>
+          )}
+
+          {/* Cancellation Rejection Notification */}
+          {appointment.cancellationRejectionReason && appointment.status !== "cancellation_requested" && appointment.status !== "cancelled" && (
+            <GlassPanel padding="md" className="border-ring/30 bg-ring/5">
+              <div className="flex items-start gap-3">
+                <div className="h-2 w-2 rounded-full bg-ring mt-2 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-foreground">Cancellation Request Rejected</p>
+                  <p className="text-sm text-muted-foreground">
+                    Reason: {appointment.cancellationRejectionReason}
+                  </p>
+                  {appointment.cancellationRejectedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      Rejected on{" "}
+                      {new Date(appointment.cancellationRejectedAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  )}
+                  {appointment.cancellationRejectedByRole && (
+                    <p className="text-xs text-muted-foreground">
+                      Rejected by: {appointment.cancellationRejectedByRole === "doctor" ? "Doctor" : "Admin"}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Your appointment has been restored to its previous status.
+                  </p>
+                </div>
+              </div>
+            </GlassPanel>
+          )}
+
+          {/* Status Card */}
+          <DashboardCard disableHover>
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground">{service.title}</h2>
+                <p className="mt-2 text-base text-muted-foreground">{service.description}</p>
+              </div>
+              <StatusBadge variant={getStatusVariant(appointment.status)} size="md">
+                {getStatusLabel(appointment.status)}
+              </StatusBadge>
+            </div>
+
+            <div className="space-y-6">
+              {/* Date & Time */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <InfoRow
+                  icon={CalendarIcon}
+                  label="Date"
+                  value={appointment.scheduledFor.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                />
+                <InfoRow
+                  icon={Clock}
+                  label="Time"
+                  value={appointment.scheduledFor.toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                />
+              </div>
+
+              {/* Duration */}
+              <InfoRow
+                icon={FileText}
+                label="Duration"
+                value={`${service.duration} minutes`}
+              />
+
+              {/* Meeting Type */}
+              <InfoRow
+                icon={Video}
+                label="Consultation Type"
+                value="Online Video Consultation"
+              />
+
+              {/* Notes */}
+              {appointment.notes && (
+                <div className="pt-4 border-t border-border/50">
+                  <InfoRow label="Your Notes" value={appointment.notes} />
+                </div>
+              )}
+
+              {/* Cancellation Reason */}
+              {appointment.cancellationReason && (
+                <div className="pt-4 border-t border-border/50">
+                  <InfoRow label="Cancellation Reason" value={appointment.cancellationReason} />
+                </div>
+              )}
+            </div>
+          </DashboardCard>
+
+          {/* Doctor Card */}
+          {doctor && (
+            <DashboardCard disableHover staggerIndex={1}>
+              <SectionHeader title="Consultation With" className="mt-0 mb-4" />
+              <div className="flex items-center gap-4">
+                {doctor.photoURL ? (
+                  <img
+                    src={doctor.photoURL}
+                    alt={doctor.displayName || "Doctor"}
+                    className="h-16 w-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xl font-bold text-primary">
+                      {doctor.displayName?.charAt(0) || "D"}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className="font-bold text-foreground text-lg">{doctor.displayName || "Doctor"}</p>
+                  <p className="text-base text-muted-foreground">Eye Wellness Specialist</p>
+                </div>
+              </div>
+            </DashboardCard>
+          )}
+
+          {/* Timeline */}
+          <DashboardCard disableHover staggerIndex={2}>
+            <SectionHeader title="Appointment Timeline" className="mt-0 mb-4" />
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="h-2 w-2 rounded-full bg-secondary mt-2 shrink-0" />
+                <div>
+                  <p className="font-bold text-foreground">Booking Created</p>
+                  <p className="text-sm text-muted-foreground">
+                    {appointment.createdAt.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+              {appointment.status === "confirmed" && (
+                <div className="flex items-start gap-4">
+                  <div className="h-2 w-2 rounded-full bg-secondary mt-2 shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground">Confirmed</p>
+                    <p className="text-sm text-muted-foreground">
+                      {appointment.updatedAt.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {appointment.completedAt && (
+                <div className="flex items-start gap-4">
+                  <div className="h-2 w-2 rounded-full bg-secondary mt-2 shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground">Completed</p>
+                    <p className="text-sm text-muted-foreground">
+                      {appointment.completedAt.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {appointment.cancelledAt && (
+                <div className="flex items-start gap-4">
+                  <div className="h-2 w-2 rounded-full bg-ring mt-2 shrink-0" />
+                  <div>
+                    <p className="font-bold text-foreground">Cancelled</p>
+                    <p className="text-sm text-muted-foreground">
+                      {appointment.cancelledAt.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DashboardCard>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Actions Card */}
+          <DashboardCard disableHover staggerIndex={3}>
+            <SectionHeader title="Actions" className="mt-0 mb-4" />
+            <div className="space-y-3">
+              {canJoin && (
+                <PremiumButton size="lg" fullWidth icon={<Video className="h-5 w-5" />}>
+                  Join Consultation
+                </PremiumButton>
+              )}
+              {canReschedule && (
+                <PremiumButton
+                  variant="outline"
+                  size="lg"
+                  fullWidth
+                  disabled
+                  icon={<CalendarIcon className="h-5 w-5" />}
+                >
+                  Reschedule (Coming Soon)
+                </PremiumButton>
+              )}
+              {canCancel && (
+                <PremiumButton
+                  variant="outline"
+                  size="lg"
+                  fullWidth
+                  icon={<X className="h-5 w-5" />}
+                  className="border-red-300 text-red-600 hover:bg-red-50"
+                  onClick={() => setShowCancelModal(true)}
+                >
+                  Cancel Appointment
+                </PremiumButton>
+              )}
+              {!isUpcoming && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  This appointment has {appointment.status === "completed" ? "been completed" : "passed"}
+                </p>
+              )}
+            </div>
+          </DashboardCard>
+
+          {/* Prescription Card */}
+          {appointment.prescriptionId && (
+            <DashboardCard disableHover staggerIndex={4}>
+              <SectionHeader title="Prescription" className="mt-0 mb-4" />
+              <Link href={`/patient/prescriptions/${appointment.prescriptionId}`}>
+                <PremiumButton variant="outline" size="lg" fullWidth icon={<FileText className="h-5 w-5" />}>
+                  View Prescription
+                </PremiumButton>
+              </Link>
+            </DashboardCard>
+          )}
+
+          {/* Support Card */}
+          <GlassPanel padding="md">
+            <p className="text-sm font-bold text-muted-foreground mb-2">Need Help?</p>
+            <Link href="/patient/support">
+              <PremiumButton variant="outline" size="lg" fullWidth>
+                Contact Support
+              </PremiumButton>
+            </Link>
+          </GlassPanel>
         </div>
       </div>
 
-      
-        <div className="mx-auto max-w-4xl">
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Status Card */}
-              <Card className="border-primary/10">
-                <CardHeader className="p-3 sm:p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-2xl">{service.title}</CardTitle>
-                      <p className="mt-2 text-base text-muted-foreground">{service.description}</p>
-                    </div>
-                    <Badge className={statusConfig[appointment.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-800 border-gray-200"}>
-                      {statusConfig[appointment.status as keyof typeof statusConfig]?.label || appointment.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Date & Time */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="flex items-start gap-3">
-                      <CalendarIcon className="h-5 w-5 text-secondary mt-0.5" />
-                      <div>
-                        <p className="text-sm font-bold text-muted-foreground">Date</p>
-                        <p className="text-base font-bold text-primary">
-                          {appointment.scheduledFor.toLocaleDateString("en-US", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Clock className="h-5 w-5 text-secondary mt-0.5" />
-                      <div>
-                        <p className="text-sm font-bold text-muted-foreground">Time</p>
-                        <p className="text-base font-bold text-primary">
-                          {appointment.scheduledFor.toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Duration */}
-                  <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-secondary mt-0.5" />
-                    <div>
-                      <p className="text-sm font-bold text-muted-foreground">Duration</p>
-                      <p className="text-base text-primary">{service.duration} minutes</p>
-                    </div>
-                  </div>
-
-                  {/* Meeting Type */}
-                  <div className="flex items-start gap-3">
-                    <Video className="h-5 w-5 text-secondary mt-0.5" />
-                    <div>
-                      <p className="text-sm font-bold text-muted-foreground">Consultation Type</p>
-                      <p className="text-base text-primary">Online Video Consultation</p>
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  {appointment.notes && (
-                    <div className="pt-4 border-t border-primary/10">
-                      <p className="text-sm font-bold text-muted-foreground mb-2">Your Notes</p>
-                      <p className="text-base text-primary">{appointment.notes}</p>
-                    </div>
-                  )}
-
-                  {/* Cancellation Reason */}
-                  {appointment.cancellationReason && (
-                    <div className="pt-4 border-t border-primary/10">
-                      <p className="text-sm font-bold text-muted-foreground mb-2">Cancellation Reason</p>
-                      <p className="text-base text-primary">{appointment.cancellationReason}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Doctor Card */}
-              {doctor && (
-                <Card className="border-primary/10">
-                  <CardHeader className="p-3 sm:p-6">
-                    <CardTitle>Consultation With</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 sm:p-6">
-                    <div className="flex items-center gap-4">
-                      {doctor.photoURL ? (
-                        <img
-                          src={doctor.photoURL}
-                          alt={doctor.displayName || "Doctor"}
-                          className="h-16 w-16 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-xl font-bold text-primary">
-                            {doctor.displayName?.charAt(0) || "D"}
-                          </span>
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-bold text-primary text-lg">{doctor.displayName || "Doctor"}</p>
-                        <p className="text-base text-muted-foreground">Eye Wellness Specialist</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Timeline */}
-              <Card className="border-primary/10">
-                <CardHeader className="p-3 sm:p-6">
-                  <CardTitle>Appointment Timeline</CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className="h-2 w-2 rounded-full bg-secondary mt-2 shrink-0" />
-                      <div>
-                        <p className="font-bold text-primary">Booking Created</p>
-                        <p className="text-sm text-muted-foreground">
-                          {appointment.createdAt.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    {appointment.status === "confirmed" && (
-                      <div className="flex items-start gap-4">
-                        <div className="h-2 w-2 rounded-full bg-secondary mt-2 shrink-0" />
-                        <div>
-                          <p className="font-bold text-primary">Confirmed</p>
-                          <p className="text-sm text-muted-foreground">
-                            {appointment.updatedAt.toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {appointment.completedAt && (
-                      <div className="flex items-start gap-4">
-                        <div className="h-2 w-2 rounded-full bg-secondary mt-2 shrink-0" />
-                        <div>
-                          <p className="font-bold text-primary">Completed</p>
-                          <p className="text-sm text-muted-foreground">
-                            {appointment.completedAt.toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {appointment.cancelledAt && (
-                      <div className="flex items-start gap-4">
-                        <div className="h-2 w-2 rounded-full bg-red-400 mt-2 shrink-0" />
-                        <div>
-                          <p className="font-bold text-primary">Cancelled</p>
-                          <p className="text-sm text-muted-foreground">
-                            {appointment.cancelledAt.toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Actions Card */}
-              <Card className="border-primary/10">
-                <CardHeader className="p-3 sm:p-6">
-                  <CardTitle>Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {canJoin && (
-                    <Button size="lg" className="w-full">
-                      <Video className="h-5 w-5 mr-2" />
-                      Join Consultation
-                    </Button>
-                  )}
-                  {canReschedule && (
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full"
-                      onClick={handleReschedule}
-                    >
-                      <CalendarIcon className="h-5 w-5 mr-2" />
-                      Reschedule
-                    </Button>
-                  )}
-                  {canCancel && (
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full border-red-200 text-red-700 hover:bg-red-50"
-                      onClick={() => setShowCancelModal(true)}
-                    >
-                      <X className="h-5 w-5 mr-2" />
-                      Cancel Appointment
-                    </Button>
-                  )}
-                  {!isUpcoming && (
-                    <p className="text-sm text-muted-foreground text-center py-2">
-                      This appointment has {appointment.status === "completed" ? "been completed" : "passed"}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Prescription Card */}
-              {appointment.prescriptionId && (
-                <Card className="border-primary/10">
-                  <CardHeader className="p-3 sm:p-6">
-                    <CardTitle>Prescription</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-3 sm:p-6">
-                    <Link href={`/patient/prescriptions/${appointment.prescriptionId}`}>
-                      <Button variant="outline" size="lg" className="w-full">
-                        <FileText className="h-5 w-5 mr-2" />
-                        View Prescription
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Support Card */}
-              <Card className="border-primary/10 bg-primary/5">
-                <CardContent className="p-3 sm:p-6">
-                  <p className="text-sm font-bold text-muted-foreground mb-2">Need Help?</p>
-                  <Link href="/patient/support">
-                    <Button variant="outline" size="lg" className="w-full">
-                      Contact Support
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      
-
       {/* Cancellation Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-5 bg-black/50 backdrop-blur-sm">
-          <Card className="max-w-md w-full">
-            <CardHeader className="p-3 sm:p-6">
-              <CardTitle>Cancel Appointment</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-5 bg-foreground/50 backdrop-blur-sm">
+          <GlassPanel padding="lg" className="max-w-md w-full bg-card/95">
+            <h3 className="text-xl font-semibold text-foreground mb-4">Cancel Appointment</h3>
+            <div className="space-y-4">
               <p className="text-base text-muted-foreground">
                 Are you sure you want to cancel this appointment? This action cannot be undone.
               </p>
@@ -419,15 +461,15 @@ export default function AppointmentDetailPage() {
                   value={cancellationReason}
                   onChange={(e) => setCancellationReason(e.target.value)}
                   placeholder="Please let us know why you're cancelling..."
-                  className="w-full h-24 rounded-2xl border border-primary/20 bg-white/70 p-4 text-base transition placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 focus-visible:border-secondary/50"
+                  className="w-full h-24 rounded-2xl border border-border bg-card/70 p-4 text-base transition placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
                   maxLength={500}
                 />
               </div>
               {error && (
-                <p className="text-sm text-red-600">{error}</p>
+                <p className="text-sm text-ring">{error}</p>
               )}
               <div className="flex gap-3 pt-4">
-                <Button
+                <PremiumButton
                   variant="outline"
                   onClick={() => {
                     setShowCancelModal(false);
@@ -435,20 +477,20 @@ export default function AppointmentDetailPage() {
                     setError("");
                   }}
                   disabled={cancelling}
-                  className="flex-1"
+                  fullWidth
                 >
                   Keep Appointment
-                </Button>
-                <Button
+                </PremiumButton>
+                <PremiumButton
                   onClick={handleCancel}
                   disabled={cancelling || !cancellationReason.trim()}
-                  className="flex-1"
+                  fullWidth
                 >
                   {cancelling ? "Cancelling..." : "Confirm Cancellation"}
-                </Button>
+                </PremiumButton>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </GlassPanel>
         </div>
       )}
     </div>

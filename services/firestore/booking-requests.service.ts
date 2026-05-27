@@ -135,6 +135,8 @@ export class BookingRequestsService {
       status: "confirmed",
       scheduledFor: request.requestedTime,
       consultationPlatform: "google_meet",
+      paymentId: request.paymentId,
+      bookingRequestId: id,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

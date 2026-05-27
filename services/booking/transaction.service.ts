@@ -6,7 +6,7 @@ import {
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/services/firebase/client";
 import { v4 as uuidv4 } from "uuid";
-import type { AppointmentDocument, DoctorSlotDocument } from "@/types/firestore";
+import type { AppointmentDocument, DoctorSlotDocument, RefundDecision, RefundAuditEntry } from "@/types/firestore";
 
 export class TransactionService {
   private db = getFirebaseDb();
@@ -209,6 +209,141 @@ export class TransactionService {
         scheduledFor: newSlot.startTime,
         updatedAt: new Date(),
       });
+    });
+  }
+
+  /**
+   * Atomically set appointment to cancellation_requested.
+   * Stores the reason, timestamp, and previous status for potential restoration.
+   */
+  async requestCancellationWithTransaction(
+    appointmentId: string,
+    reason: string
+  ): Promise<void> {
+    const appointmentRef = doc(this.db, "appointments", appointmentId);
+
+    return runTransaction(this.db, async (transaction) => {
+      const appointmentDoc = await transaction.get(appointmentRef);
+      if (!appointmentDoc.exists()) throw new Error("Appointment not found");
+
+      const appointment = appointmentDoc.data() as AppointmentDocument;
+
+      if (appointment.status === "cancelled" || appointment.status === "completed") {
+        throw new Error("Cannot request cancellation for this appointment");
+      }
+      if (appointment.status === "cancellation_requested") {
+        throw new Error("Cancellation already requested");
+      }
+
+      transaction.update(appointmentRef, {
+        status: "cancellation_requested",
+        cancellationReason: reason,
+        cancellationRequestedAt: new Date(),
+        previousStatus: appointment.status,
+        updatedAt: new Date(),
+      });
+    });
+  }
+
+  /**
+   * Atomically reject a cancellation: restore previous status.
+   * Records rejection metadata and reason.
+   */
+  async rejectCancellationWithTransaction(
+    appointmentId: string,
+    rejectedBy: { uid: string; role: "doctor" | "admin" },
+    rejectionReason: string
+  ): Promise<void> {
+    const appointmentRef = doc(this.db, "appointments", appointmentId);
+
+    return runTransaction(this.db, async (transaction) => {
+      const appointmentDoc = await transaction.get(appointmentRef);
+      if (!appointmentDoc.exists()) throw new Error("Appointment not found");
+
+      const appointment = appointmentDoc.data() as AppointmentDocument;
+
+      if (appointment.status !== "cancellation_requested") {
+        throw new Error("Appointment is not in cancellation_requested state");
+      }
+
+      const previousStatus = appointment.previousStatus || "confirmed";
+
+      transaction.update(appointmentRef, {
+        status: previousStatus,
+        cancellationRejectedBy: rejectedBy.uid,
+        cancellationRejectedByRole: rejectedBy.role,
+        cancellationRejectedAt: new Date(),
+        cancellationRejectionReason: rejectionReason,
+        updatedAt: new Date(),
+      });
+    });
+  }
+
+  /**
+   * Atomically approve a cancellation: set status to cancelled, release slot.
+   * Returns the paymentId (if any) so the caller can trigger refund.
+   */
+  async approveCancellationWithTransaction(
+    appointmentId: string,
+    approvedBy: { uid: string; role: "doctor" | "admin" },
+    refundDecision: RefundDecision
+  ): Promise<{ paymentId?: string; bookingRequestId?: string }> {
+    const appointmentRef = doc(this.db, "appointments", appointmentId);
+
+    return runTransaction(this.db, async (transaction) => {
+      const appointmentDoc = await transaction.get(appointmentRef);
+      if (!appointmentDoc.exists()) throw new Error("Appointment not found");
+
+      const appointment = appointmentDoc.data() as AppointmentDocument;
+
+      if (appointment.status !== "cancellation_requested") {
+        throw new Error("Appointment is not in cancellation_requested state");
+      }
+
+      // Build the refund audit entry
+      const auditEntry: RefundAuditEntry = {
+        action: "decision_at_approval",
+        decision: refundDecision.decision,
+        actorId: refundDecision.decidedBy,
+        actorRole: refundDecision.decidedByRole,
+        timestamp: refundDecision.decidedAt,
+      };
+
+      // Update appointment to cancelled with refund decision fields
+      transaction.update(appointmentRef, {
+        status: "cancelled",
+        cancelledAt: new Date(),
+        cancellationApprovedBy: approvedBy.uid,
+        cancellationApprovedByRole: approvedBy.role,
+        cancellationApprovedAt: new Date(),
+        refundDecision: refundDecision.decision,
+        refundDecisionBy: refundDecision.decidedBy,
+        refundDecisionByRole: refundDecision.decidedByRole,
+        refundDecisionAt: refundDecision.decidedAt,
+        refundAuditTrail: [auditEntry],
+        updatedAt: new Date(),
+      });
+
+      // Release the slot
+      if (appointment.slotId) {
+        const slotRef = doc(this.db, "doctor_slots", appointment.slotId);
+        const slotDoc = await transaction.get(slotRef);
+        if (slotDoc.exists()) {
+          const slot = slotDoc.data() as DoctorSlotDocument;
+          if (slot.appointmentId === appointmentId) {
+            transaction.update(slotRef, {
+              isAvailable: true,
+              appointmentId: null,
+              updatedAt: new Date(),
+            });
+          }
+        }
+      }
+
+      return {
+        paymentId: appointment.paymentId,
+        bookingRequestId: appointment.bookingRequestId,
+      };
     });
   }
 

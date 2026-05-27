@@ -6,6 +6,13 @@ import { visionAssessmentsService, usersService } from "@/services/firestore";
 import type { VisionAssessmentDocument, UserDocument } from "@/types/firestore";
 import { Eye, BookOpen, ArrowRight, Clock, Lock, CheckCircle2, Activity, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import {
+  DashboardCard,
+  StatusBadge,
+  PremiumButton,
+  SectionHeader,
+  GlassPanel,
+} from "@/components/patient-portal";
 
 const TYPE_LABELS: Record<string, { label: string; icon: typeof Eye; desc: string }> = {
   far:  { label: "Far Vision",  icon: Eye,      desc: "3-metre Snellen chart" },
@@ -18,11 +25,18 @@ function getEntries(list: VisionAssessmentDocument[]): DisplayEntry[] {
   return list.flatMap((a) => a.assessmentTypes.map((type) => ({ assessment: a, type })));
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  assigned:    { label: "Ready",       color: "text-[#0f4f4b]",   bg: "bg-[#0f4f4b]/8 border-[#0f4f4b]/15" },
-  in_progress: { label: "In Progress", color: "text-[#b5964d]",   bg: "bg-[#b5964d]/8 border-[#b5964d]/20" },
-  completed:   { label: "Completed",   color: "text-green-700",   bg: "bg-green-50 border-green-200" },
-  expired:     { label: "Expired",     color: "text-gray-500",    bg: "bg-gray-50 border-gray-200" },
+const STATUS_VARIANT_MAP: Record<string, "confirmed" | "pending" | "completed" | "inactive"> = {
+  assigned: "confirmed",
+  in_progress: "pending",
+  completed: "completed",
+  expired: "inactive",
+};
+
+const STATUS_LABEL_MAP: Record<string, string> = {
+  assigned: "Ready",
+  in_progress: "In Progress",
+  completed: "Completed",
+  expired: "Expired",
 };
 
 export default function AssessmentHubPage() {
@@ -62,7 +76,7 @@ export default function AssessmentHubPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
-        <RefreshCw className="h-6 w-6 text-[#0f4f4b]/40 animate-spin" />
+        <RefreshCw className="h-6 w-6 text-primary/40 animate-spin" />
       </div>
     );
   }
@@ -71,8 +85,8 @@ export default function AssessmentHubPage() {
     <div className="space-y-8 max-w-2xl">
       {/* Header */}
       <div>
-        <h1 className="font-display text-2xl sm:text-3xl text-[#0f4f4b] mb-1">My Assessments</h1>
-        <p className="text-sm text-[#0f4f4b]/55">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground mb-1">My Assessments</h1>
+        <p className="text-sm text-muted-foreground">
           Assessments assigned by your doctor will appear here.
         </p>
       </div>
@@ -80,15 +94,14 @@ export default function AssessmentHubPage() {
       {/* Active / Ready */}
       {active.length > 0 && (
         <section className="space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0f4f4b]/40">
-            Ready to Start
-          </p>
-          {getEntries(active).map(({ assessment, type }) => (
+          <SectionHeader title="Ready to Start" className="mt-0 mb-3" />
+          {getEntries(active).map(({ assessment, type }, i) => (
             <AssessmentCard
               key={`${assessment.id}-${type}`}
               assessment={assessment}
               type={type}
               doctor={assessment.doctorId ? doctorCache[assessment.doctorId] : undefined}
+              index={i}
             />
           ))}
         </section>
@@ -97,15 +110,14 @@ export default function AssessmentHubPage() {
       {/* Completed */}
       {completed.length > 0 && (
         <section className="space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0f4f4b]/40">
-            Completed
-          </p>
-          {getEntries(completed).map(({ assessment, type }) => (
+          <SectionHeader title="Completed" className="mt-0 mb-3" />
+          {getEntries(completed).map(({ assessment, type }, i) => (
             <AssessmentCard
               key={`${assessment.id}-${type}`}
               assessment={assessment}
               type={type}
               doctor={assessment.doctorId ? doctorCache[assessment.doctorId] : undefined}
+              index={i}
             />
           ))}
         </section>
@@ -114,15 +126,14 @@ export default function AssessmentHubPage() {
       {/* Expired */}
       {expired.length > 0 && (
         <section className="space-y-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0f4f4b]/40">
-            Expired
-          </p>
-          {getEntries(expired).map(({ assessment, type }) => (
+          <SectionHeader title="Expired" className="mt-0 mb-3" />
+          {getEntries(expired).map(({ assessment, type }, i) => (
             <AssessmentCard
               key={`${assessment.id}-${type}`}
               assessment={assessment}
               type={type}
               doctor={assessment.doctorId ? doctorCache[assessment.doctorId] : undefined}
+              index={i}
             />
           ))}
         </section>
@@ -130,25 +141,25 @@ export default function AssessmentHubPage() {
 
       {/* Empty state */}
       {assessments.length === 0 && (
-        <div className="rounded-3xl border border-[#0f4f4b]/10 bg-white/60 p-10 text-center">
-          <div className="h-14 w-14 rounded-2xl bg-[#0f4f4b]/6 flex items-center justify-center mx-auto mb-4">
-            <Lock className="h-6 w-6 text-[#0f4f4b]/30" />
+        <GlassPanel padding="lg" className="text-center">
+          <div className="h-14 w-14 rounded-2xl bg-primary/6 flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-6 w-6 text-primary/30" />
           </div>
-          <p className="font-bold text-[#0f4f4b] mb-1">No assessments assigned yet</p>
-          <p className="text-sm text-[#0f4f4b]/50 leading-relaxed max-w-xs mx-auto">
+          <p className="font-bold text-foreground mb-1">No assessments assigned yet</p>
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
             Your doctor will assign vision assessments when needed. Book a consultation to get started.
           </p>
-        </div>
+        </GlassPanel>
       )}
 
       {/* Info note */}
-      <div className="rounded-2xl bg-[#b5964d]/6 border border-[#b5964d]/20 p-4">
-        <p className="text-xs font-bold text-[#b5964d] mb-1">Doctor-controlled assessments</p>
-        <p className="text-xs text-[#0f4f4b]/60 leading-relaxed">
+      <GlassPanel padding="sm" className="bg-secondary/6 border-secondary/20">
+        <p className="text-xs font-bold text-secondary mb-1">Doctor-controlled assessments</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
           Visual acuity assessments are assigned by your doctor during a consultation.
           You cannot self-start an assessment.
         </p>
-      </div>
+      </GlassPanel>
     </div>
   );
 }
@@ -157,15 +168,16 @@ function AssessmentCard({
   assessment,
   type,
   doctor,
+  index,
 }: {
   assessment: VisionAssessmentDocument;
   type: string;
   doctor?: UserDocument;
+  index: number;
 }) {
   const t = TYPE_LABELS[type];
   const Icon = t?.icon ?? Eye;
 
-  const status = STATUS_CONFIG[assessment.status] ?? STATUS_CONFIG.expired;
   const withinExpiry = !assessment.expiresAt || new Date(assessment.expiresAt) > new Date();
   const canStart = (assessment.status === "assigned" || assessment.status === "in_progress") && withinExpiry;
   const canRetry = assessment.status === "completed" && withinExpiry;
@@ -176,22 +188,25 @@ function AssessmentCard({
   const href = `/patient/assessment/visual-acuity?id=${assessment.id}${typeParam}`;
 
   return (
-    <div className={`rounded-2xl border bg-white p-4 flex flex-col sm:flex-row sm:items-center gap-4 ${
-      (canStart || canRetry) ? "shadow-sm hover:shadow-md transition-shadow" : "opacity-60"
-    }`}>
+    <DashboardCard
+      staggerIndex={index}
+      className={`flex flex-col sm:flex-row sm:items-center gap-4 ${
+        !(canStart || canRetry) ? "opacity-60" : ""
+      }`}
+    >
       {/* Type icon + label */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="h-9 w-9 rounded-xl bg-[#0f4f4b]/8 flex items-center justify-center shrink-0">
-          <Icon className="h-4 w-4 text-[#0f4f4b]" />
+        <div className="h-9 w-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
+          <Icon className="h-4 w-4 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-bold text-[#0f4f4b] leading-none mb-0.5">{t?.label ?? type}</p>
-          <p className="text-[11px] text-[#0f4f4b]/50">{t?.desc}</p>
+          <p className="text-sm font-bold text-foreground leading-none mb-0.5">{t?.label ?? type}</p>
+          <p className="text-[11px] text-muted-foreground">{t?.desc}</p>
         </div>
       </div>
 
       {/* Meta */}
-      <div className="flex flex-col gap-1 text-xs text-[#0f4f4b]/50 shrink-0">
+      <div className="flex flex-col gap-1 text-xs text-muted-foreground shrink-0">
         {doctor && (
           <span className="flex items-center gap-1">
             <Activity className="h-3 w-3" />
@@ -202,29 +217,26 @@ function AssessmentCard({
           <Clock className="h-3 w-3" />
           {new Date(assessment.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
         </span>
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${status.bg} ${status.color}`}>
-          {assessment.status === "completed" && <CheckCircle2 className="h-3 w-3" />}
-          {status.label}
-        </span>
+        <StatusBadge variant={STATUS_VARIANT_MAP[assessment.status] || "inactive"} size="sm">
+          {STATUS_LABEL_MAP[assessment.status] || assessment.status}
+        </StatusBadge>
       </div>
 
       {/* Action */}
       {canStart && (
-        <Link
-          href={href}
-          className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#0f4f4b] text-white text-xs font-bold hover:bg-[#0a3a36] transition-colors shrink-0"
-        >
-          Begin <ArrowRight className="h-3.5 w-3.5" />
+        <Link href={href}>
+          <PremiumButton size="sm" trailingIcon={<ArrowRight className="h-3.5 w-3.5" />}>
+            Begin
+          </PremiumButton>
         </Link>
       )}
       {canRetry && (
-        <Link
-          href={href}
-          className="flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-bold hover:bg-[#0f4f4b]/5 transition-colors shrink-0"
-        >
-          <RefreshCw className="h-3.5 w-3.5" /> Retry
+        <Link href={href}>
+          <PremiumButton variant="outline" size="sm" icon={<RefreshCw className="h-3.5 w-3.5" />}>
+            Retry
+          </PremiumButton>
         </Link>
       )}
-    </div>
+    </DashboardCard>
   );
 }
