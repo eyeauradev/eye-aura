@@ -112,7 +112,9 @@ export default function AdminServiceCreatePage() {
         suitableFor: formData.suitableFor,
         doctorIds: formData.doctorIds,
         isActive: true,
-        assessmentAutomation: automation.enabled ? automation : undefined,
+        // Only include assessmentAutomation when enabled — passing undefined
+        // causes Firestore to throw "Unsupported field value: undefined".
+        ...(automation.enabled ? { assessmentAutomation: automation } : {}),
         createdAt: new Date(),
         updatedAt: new Date(),
       });

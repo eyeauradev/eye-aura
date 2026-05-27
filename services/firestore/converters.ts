@@ -114,11 +114,31 @@ export const appointmentConverter = {
 
 // Service converter
 export const serviceConverter = {
-  toFirestore: (service: ServiceDocument): DocumentData => ({
-    ...service,
-    createdAt: toTimestamp(service.createdAt),
-    updatedAt: toTimestamp(service.updatedAt),
-  }),
+  toFirestore: (service: ServiceDocument): DocumentData => {
+    // Explicitly build the object — never spread the full document because
+    // optional fields set to `undefined` are rejected by Firestore.
+    const data: DocumentData = {
+      title: service.title,
+      description: service.description,
+      type: service.type,
+      price: service.price,
+      currency: service.currency,
+      duration: service.duration,
+      suitableFor: service.suitableFor,
+      isActive: service.isActive,
+      doctorIds: service.doctorIds ?? [],
+      createdAt: toTimestamp(service.createdAt),
+      updatedAt: toTimestamp(service.updatedAt),
+    };
+
+    // Only write assessmentAutomation when it is explicitly enabled.
+    // Writing `undefined` causes Firestore to throw "Unsupported field value: undefined".
+    if (service.assessmentAutomation?.enabled) {
+      data.assessmentAutomation = service.assessmentAutomation;
+    }
+
+    return data;
+  },
   fromFirestore: (snapshot: QueryDocumentSnapshot): ServiceDocument => {
     const data = snapshot.data();
     return {

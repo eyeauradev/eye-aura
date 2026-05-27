@@ -95,7 +95,9 @@ export default function AdminServiceEditPage() {
         duration: parseInt(formData.duration),
         suitableFor: formData.suitableFor,
         doctorIds: selectedDoctorIds,
-        assessmentAutomation: automation.enabled ? automation : undefined,
+        // Only include assessmentAutomation when enabled — passing undefined
+        // causes Firestore to throw "Unsupported field value: undefined".
+        ...(automation.enabled ? { assessmentAutomation: automation } : {}),
       });
       router.push(`/admin/services/${service.id}`);
     } catch (error) {

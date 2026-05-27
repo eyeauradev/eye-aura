@@ -266,6 +266,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Platform Settings Collection
+    // Admins can read and write. All authenticated users can read (for branding/config).
+    match /platform_settings/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
     // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;

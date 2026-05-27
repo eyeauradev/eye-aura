@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { usersService, appointmentsService, prescriptionsService, doctorSlotsService } from "@/services/firestore";
-import { ArrowLeft, Calendar, Clock, User, CheckCircle, Ban, Edit2, Eye } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, User, CheckCircle, Ban, Edit2, Eye, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 import Link from "next/link";
 import type { UserDocument, AppointmentDocument, PrescriptionDocument, DoctorSlotDocument } from "@/types/firestore";
@@ -138,7 +139,10 @@ export default function AdminDoctorDetailPage() {
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="text-lg">Profile Information</CardTitle>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6">
+          <CardContent className="p-3 sm:p-6 space-y-6">
+            {/* Display Name Editor */}
+            <DisplayNameEditor doctor={doctor} onUpdate={(name) => setDoctor({ ...doctor, displayName: name })} />
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Status</p>
@@ -239,6 +243,65 @@ export default function AdminDoctorDetailPage() {
           </CardContent>
         </Card>
       
+    </div>
+  );
+}
+
+function DisplayNameEditor({ doctor, onUpdate }: { doctor: UserDocument; onUpdate: (name: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(doctor.displayName || "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await usersService.update(doctor.id, { displayName: name.trim() });
+      onUpdate(name.trim());
+      setEditing(false);
+    } catch (err) {
+      console.error("Failed to update display name:", err);
+      alert("Failed to update display name");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="flex items-center justify-between p-3 rounded-xl bg-primary/4 border border-primary/10">
+        <div>
+          <p className="text-xs text-muted-foreground mb-0.5">Display Name (visible to patients)</p>
+          <p className="text-base font-bold text-primary">{doctor.displayName || "Not set"}</p>
+        </div>
+        <Button variant="outline" className="min-h-0 h-8 px-3 text-xs shrink-0" onClick={() => { setName(doctor.displayName || ""); setEditing(true); }}>
+          <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+          Edit
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/4 border border-primary/10">
+      <div className="flex-1">
+        <p className="text-xs text-muted-foreground mb-1">Display Name (visible to patients)</p>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Dr. Harshita Sharma"
+          className="h-9"
+          autoFocus
+          onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+        />
+      </div>
+      <Button className="min-h-0 h-8 px-3 text-xs" onClick={handleSave} disabled={saving || !name.trim()}>
+        <Save className="h-3.5 w-3.5 mr-1" />
+        {saving ? "…" : "Save"}
+      </Button>
+      <Button variant="ghost" className="min-h-0 h-8 w-8 px-0" onClick={() => setEditing(false)}>
+        <X className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }
