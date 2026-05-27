@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Mail } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
 
 const quickLinks = [
   { label: "Services", href: "#services" },
@@ -12,13 +13,6 @@ const quickLinks = [
   { label: "About Us", href: "#founder" },
 ];
 
-const patientLinks = [
-  { label: "Book Consultation", href: "/booking" },
-  { label: "Sign Up", href: "/auth/signup" },
-  { label: "Sign In", href: "/auth/login" },
-  { label: "Patient Dashboard", href: "/patient/dashboard" },
-];
-
 const legalLinks = [
   { label: "Privacy Policy", href: "#" },
   { label: "Terms of Service", href: "#" },
@@ -26,6 +20,17 @@ const legalLinks = [
 ];
 
 export function FooterSection() {
+  const { user } = useAuth();
+
+  const patientLinks = [
+    { label: "Book Consultation", href: "/booking" },
+    ...(!user ? [
+      { label: "Sign Up", href: "/auth/signup" },
+      { label: "Sign In", href: "/auth/login" },
+    ] : []),
+    { label: "Patient Dashboard", href: "/patient/dashboard" },
+  ];
+
   return (
     <footer className="bg-[#060f0e] text-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -39,7 +44,6 @@ export function FooterSection() {
             <p className="mb-6 max-w-xs text-sm leading-relaxed text-white/45">
               Next-generation digital eye wellness for the screen generation. Certified tele-optometry, accessible to every Indian.
             </p>
-            {/* WhatsApp CTA */}
             <a href="https://wa.me/917903357976" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2.5 rounded-xl bg-green-500/15 border border-green-500/25 px-4 py-2.5 text-sm font-semibold text-green-400 transition hover:bg-green-500/22"
             >

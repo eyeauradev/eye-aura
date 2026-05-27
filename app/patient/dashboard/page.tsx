@@ -87,6 +87,17 @@ export default function PatientDashboard() {
 
         setUpcomingAppointments(enrichedAppointments);
 
+        // Load recent prescriptions
+        const { prescriptionsService } = await import("@/services/firestore");
+        const prescriptionData = await prescriptionsService.getByPatientId(user.id, 3);
+        const enrichedPrescriptions = await Promise.all(
+          prescriptionData.map(async (p) => {
+            const doctor = await usersService.getById(p.doctorId);
+            return { ...p, doctor };
+          })
+        );
+        setRecentPrescriptions(enrichedPrescriptions);
+
         // Load booking requests — only non-accepted ones (accepted become confirmed appointments)
         const requests = await bookingRequestsService.getByPatientId(user.id);
         const activeRequests = requests.filter(r => r.status !== "accepted" && r.status !== "rejected");

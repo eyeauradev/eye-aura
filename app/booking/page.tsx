@@ -231,6 +231,9 @@ export default function BookingPage() {
       <div className="sticky top-0 z-30 border-b border-[#0f4f4b]/8 bg-white/80 backdrop-blur-md">
         <div className="mx-auto max-w-3xl px-5 sm:px-8">
           <div className="py-4 flex items-center gap-6">
+            <Link href="/patient/dashboard" className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b]/60 hover:text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-3 py-2 hover:border-[#0f4f4b]/40 transition-colors">
+              <ChevronLeft className="h-3.5 w-3.5" /> Back
+            </Link>
             <div className="min-w-0">
               <h1 className="font-display text-xl text-[#0f4f4b] leading-none">Book Consultation</h1>
               <p className="text-xs text-[#0f4f4b]/45 mt-0.5">

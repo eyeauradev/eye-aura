@@ -11,6 +11,7 @@ import {
   User,
   Eye,
   RefreshCw,
+  Globe,
 } from "lucide-react";
 import {
   FloatingSidebar,
@@ -27,6 +28,7 @@ const sidebarNavItems: NavItem[] = [
   { href: "/patient/assessment", label: "Assessments", icon: Eye, group: "main" },
   { href: "/patient/prescriptions", label: "Prescriptions", icon: FileText, group: "main" },
   { href: "/patient/profile", label: "My Account", icon: User, group: "account" },
+  { href: "/", label: "Public Home", icon: Globe, group: "external" },
 ];
 
 const mobileNavItems = [

@@ -128,7 +128,7 @@ export default function PatientPrescriptionsPage() {
                       })}
                     </div>
                   )}
-                  <div className="pt-3 flex gap-2">
+                  <div className="pt-3 flex items-center gap-2">
                     <Link href={`/patient/prescriptions/${prescription.id}`} className="flex-1">
                       <PremiumButton variant="outline" size="sm" fullWidth>
                         View Details
@@ -136,7 +136,8 @@ export default function PatientPrescriptionsPage() {
                     </Link>
                     <PremiumButton
                       variant="outline"
-                      size="icon"
+                      size="sm"
+                      className="shrink-0 px-3"
                       onClick={() => window.open(`/prescriptions/${prescription.id}/pdf`, "_blank")}
                     >
                       <Download className="h-4 w-4" />
