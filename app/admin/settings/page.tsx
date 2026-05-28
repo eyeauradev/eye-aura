@@ -4,11 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getFirebaseDb } from "@/services/firebase/client";
 import { Video, Mail, Bell, Palette, Save, RefreshCw, CheckCircle, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_THEME, type ThemeColors } from "@/contexts/theme-context";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 // ─── Firestore path ───────────────────────────────────────────────────────
 function getSettingsDoc() {
@@ -184,8 +185,8 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Settings</h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <h1 className={TYPOGRAPHY.heading}>Settings</h1>
+        <p className="text-sm text-muted-foreground">
           Platform configuration, theme, and preferences
         </p>
       </div>
@@ -205,7 +206,7 @@ export default function AdminSettingsPage() {
                   Customize the entire app color palette. Changes preview live.
                 </CardDescription>
               </div>
-              <Button
+              <PremiumButton
                 type="button"
                 variant="outline"
                 onClick={handleReset}
@@ -213,7 +214,7 @@ export default function AdminSettingsPage() {
               >
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                 Reset to Default
-              </Button>
+              </PremiumButton>
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 space-y-6">
@@ -363,9 +364,9 @@ export default function AdminSettingsPage() {
           </div>
         )}
 
-        <Button type="submit" className="w-full" disabled={saving}>
+        <PremiumButton type="submit" className="w-full" disabled={saving}>
           {saving ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Settings</>}
-        </Button>
+        </PremiumButton>
       </form>
     </div>
   );

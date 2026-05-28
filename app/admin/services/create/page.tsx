@@ -6,10 +6,11 @@ import { ArrowLeft, Save, Check, X, Eye, BookOpen, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { servicesService, usersService } from "@/services/firestore";
 import type { ServiceType, UserDocument, VisionAssessmentType, ServiceAssessmentAutomation } from "@/types/firestore";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 
@@ -131,13 +132,13 @@ export default function AdminServiceCreatePage() {
     <div className="space-y-8">
       <div>
         <Link href="/admin/services">
-          <Button variant="ghost" className="mb-4">
+          <PremiumButton variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Services
-          </Button>
+          </PremiumButton>
         </Link>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Create Service</h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <h1 className={TYPOGRAPHY.heading}>Create Service</h1>
+        <p className="text-sm text-muted-foreground">
           Add a new consultation service to the platform
         </p>
       </div>
@@ -243,9 +244,9 @@ export default function AdminServiceCreatePage() {
                     onChange={(e) => setSymptomInput(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddSymptom())}
                   />
-                  <Button type="button" onClick={handleAddSymptom}>
+                  <PremiumButton type="button" onClick={handleAddSymptom}>
                     Add
-                  </Button>
+                  </PremiumButton>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.suitableFor.map((symptom) => (
@@ -315,7 +316,7 @@ export default function AdminServiceCreatePage() {
                       <Zap className="h-3.5 w-3.5 text-[#0f4f4b]" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-[#0f4f4b]">Assessment Automation</p>
+                      <p className="text-sm font-semibold text-[#0f4f4b]">Assessment Automation</p>
                       <p className="text-xs text-[#0f4f4b]/50">Auto-assign vision tests when booking is confirmed</p>
                     </div>
                   </div>
@@ -382,10 +383,10 @@ export default function AdminServiceCreatePage() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <PremiumButton type="submit" className="w-full" disabled={loading}>
                 <Save className="h-4 w-4 mr-2" />
                 {loading ? "Creating Service..." : "Create Service"}
-              </Button>
+              </PremiumButton>
             </form>
           </CardContent>
         </Card>

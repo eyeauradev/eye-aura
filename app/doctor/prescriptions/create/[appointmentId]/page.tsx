@@ -6,9 +6,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, prescriptionsService, usersService } from "@/services/firestore";
 import type { AppointmentDocument, PrescriptionDocument, UserDocument } from "@/types/firestore";
 import { ArrowLeft, Eye, FileText, Save, Eye as EyeIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 
@@ -204,10 +205,9 @@ export default function DoctorPrescriptionCreatePage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Appointment not found</p>
             <Link href="/doctor/appointments">
-              <Button variant="outline" className="mt-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
+              <PremiumButton variant="outline" icon={<ArrowLeft className="h-4 w-4" />}>
                 Back to Appointments
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -221,20 +221,18 @@ export default function DoctorPrescriptionCreatePage() {
       <div className="flex items-center justify-between">
         <div>
           <Link href="/doctor/appointments">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <PremiumButton variant="ghost" className="mb-4" icon={<ArrowLeft className="h-4 w-4" />}>
               Back to Appointments
-            </Button>
+            </PremiumButton>
           </Link>
-          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Create Prescription</h1>
-          <p className="text-xl font-medium text-primary">{patient?.displayName || "Patient"}</p>
+          <h1 className={TYPOGRAPHY.heading}>Create Prescription</h1>
+          <p className={TYPOGRAPHY.subheading}>{patient?.displayName || "Patient"}</p>
           <p className="text-sm text-muted-foreground">{patient?.email}</p>
           {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
         </div>
-        <Button onClick={() => setShowPreview(!showPreview)} variant="outline">
-          <EyeIcon className="h-4 w-4 mr-2" />
+        <PremiumButton onClick={() => setShowPreview(!showPreview)} variant="outline" icon={<EyeIcon className="h-4 w-4" />}>
           {showPreview ? "Hide Preview" : "Show Preview"}
-        </Button>
+        </PremiumButton>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
@@ -675,13 +673,12 @@ export default function DoctorPrescriptionCreatePage() {
 
             {/* Submit */}
             <div className="flex gap-3">
-              <Button type="submit" disabled={saving} className="flex-1">
-                <Save className="h-4 w-4 mr-2" />
+              <PremiumButton type="submit" disabled={saving} loading={saving} className="flex-1" icon={<Save className="h-4 w-4" />}>
                 {saving ? "Saving..." : "Save Prescription"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => router.back()}>
+              </PremiumButton>
+              <PremiumButton type="button" variant="outline" onClick={() => router.back()}>
                 Cancel
-              </Button>
+              </PremiumButton>
             </div>
           </form>
         </div>

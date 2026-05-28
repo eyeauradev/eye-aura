@@ -5,10 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { usersService, appointmentsService, prescriptionsService, doctorSlotsService } from "@/services/firestore";
 import { ArrowLeft, Calendar, Clock, User, CheckCircle, Ban, Edit2, Eye, Save, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { UserDocument, AppointmentDocument, PrescriptionDocument, DoctorSlotDocument } from "@/types/firestore";
@@ -88,10 +89,10 @@ export default function AdminDoctorDetailPage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Doctor not found</p>
             <Link href="/admin/doctors">
-              <Button variant="outline" className="mt-4">
+              <PremiumButton variant="outline" className="mt-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Doctors
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -104,31 +105,31 @@ export default function AdminDoctorDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <Link href="/admin/doctors">
-            <Button variant="ghost" className="mb-4">
+            <PremiumButton variant="ghost" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Doctors
-            </Button>
+            </PremiumButton>
           </Link>
-          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">{doctor.displayName || "Unknown"}</h1>
-          <p className="text-sm sm:text-xl text-muted-foreground">{doctor.email}</p>
+          <h1 className={TYPOGRAPHY.heading}>{doctor.displayName || "Unknown"}</h1>
+          <p className={TYPOGRAPHY.label}>{doctor.email}</p>
         </div>
         <div className="flex gap-3">
           {doctor.isActive ? (
-            <Button onClick={handleToggleStatus} variant="outline">
+            <PremiumButton onClick={handleToggleStatus} variant="outline">
               <Ban className="h-4 w-4 mr-2" />
               Disable Account
-            </Button>
+            </PremiumButton>
           ) : (
-            <Button onClick={handleToggleStatus} variant="outline">
+            <PremiumButton onClick={handleToggleStatus} variant="outline">
               <CheckCircle className="h-4 w-4 mr-2" />
               Activate Account
-            </Button>
+            </PremiumButton>
           )}
           <Link href="/admin/doctors">
-            <Button variant="outline">
+            <PremiumButton variant="outline">
               <Edit2 className="h-4 w-4 mr-2" />
               Edit Profile
-            </Button>
+            </PremiumButton>
           </Link>
         </div>
       </div>
@@ -180,7 +181,7 @@ export default function AdminDoctorDetailPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{appointments.length}</div>
+              <div className="text-2xl font-semibold text-foreground">{appointments.length}</div>
               <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
           </Card>
@@ -191,7 +192,7 @@ export default function AdminDoctorDetailPage() {
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{prescriptions.length}</div>
+              <div className="text-2xl font-semibold text-foreground">{prescriptions.length}</div>
               <p className="text-xs text-muted-foreground mt-1">Issued</p>
             </CardContent>
           </Card>
@@ -202,7 +203,7 @@ export default function AdminDoctorDetailPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{slots.filter((s) => s.isAvailable && !s.isBlocked).length}</div>
+              <div className="text-2xl font-semibold text-foreground">{slots.filter((s) => s.isAvailable && !s.isBlocked).length}</div>
               <p className="text-xs text-muted-foreground mt-1">Active</p>
             </CardContent>
           </Card>
@@ -272,12 +273,12 @@ function DisplayNameEditor({ doctor, onUpdate }: { doctor: UserDocument; onUpdat
       <div className="flex items-center justify-between p-3 rounded-xl bg-primary/4 border border-primary/10">
         <div>
           <p className="text-xs text-muted-foreground mb-0.5">Display Name (visible to patients)</p>
-          <p className="text-base font-bold text-primary">{doctor.displayName || "Not set"}</p>
+          <p className="text-base font-semibold text-foreground">{doctor.displayName || "Not set"}</p>
         </div>
-        <Button variant="outline" className="min-h-0 h-8 px-3 text-xs shrink-0" onClick={() => { setName(doctor.displayName || ""); setEditing(true); }}>
+        <PremiumButton variant="outline" className="min-h-0 h-8 px-3 text-xs shrink-0" onClick={() => { setName(doctor.displayName || ""); setEditing(true); }}>
           <Edit2 className="h-3.5 w-3.5 mr-1.5" />
           Edit
-        </Button>
+        </PremiumButton>
       </div>
     );
   }
@@ -295,13 +296,13 @@ function DisplayNameEditor({ doctor, onUpdate }: { doctor: UserDocument; onUpdat
           onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
         />
       </div>
-      <Button className="min-h-0 h-8 px-3 text-xs" onClick={handleSave} disabled={saving || !name.trim()}>
+      <PremiumButton className="min-h-0 h-8 px-3 text-xs" onClick={handleSave} disabled={saving || !name.trim()}>
         <Save className="h-3.5 w-3.5 mr-1" />
         {saving ? "…" : "Save"}
-      </Button>
-      <Button variant="ghost" className="min-h-0 h-8 w-8 px-0" onClick={() => setEditing(false)}>
+      </PremiumButton>
+      <PremiumButton variant="ghost" className="min-h-0 h-8 w-8 px-0" onClick={() => setEditing(false)}>
         <X className="h-3.5 w-3.5" />
-      </Button>
+      </PremiumButton>
     </div>
   );
 }

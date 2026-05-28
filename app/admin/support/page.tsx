@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { supportTicketsService, usersService } from "@/services/firestore";
 import { Search, Filter, MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { SupportTicketDocument } from "@/types/firestore";
@@ -69,8 +70,8 @@ export default function AdminSupportPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Support Tickets</h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <h1 className={TYPOGRAPHY.heading}>Support Tickets</h1>
+        <p className="text-sm text-muted-foreground">
           Manage platform support tickets
         </p>
       </div>
@@ -154,9 +155,9 @@ function TicketCard({
         </div>
       </div>
       <Link href={`/admin/support/${ticket.id}`} className="shrink-0">
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+        <PremiumButton variant="ghost" size="icon" className="h-8 w-8">
           <MessageSquare className="h-3.5 w-3.5" />
-        </Button>
+        </PremiumButton>
       </Link>
     </div>
   );

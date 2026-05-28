@@ -2,33 +2,42 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
+import Link from "next/link";
+import { Users, Calendar, Bell, CheckCircle, Video, FileText, Clock, AlertCircle, Loader2, XCircle } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService } from "@/services/firestore";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import { usersService } from "@/services/firestore";
 import type { AppointmentDocument, BookingRequestDocument } from "@/types/firestore";
-import { Calendar, Clock, Users, FileText, Settings, ArrowRight, Video, CheckCircle2, Bell, AlertCircle, Loader2, XCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  MetricCard,
+  DashboardCard,
+  GlassPanel,
+  PremiumButton,
+  SectionHeader,
+  StatusBadge,
+} from "@/components/premium";
+import { SPACING } from "@/lib/design-tokens";
+import { staggerContainer, cardEntrance } from "@/lib/motion-variants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { getFirebaseAuth } from "@/services/firebase/client";
 
-import Link from "next/link";
-
 export default function DoctorDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const shouldReduceMotion = useReducedMotion();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [todayAppointments, setTodayAppointments] = useState<(AppointmentDocument & { patient?: any })[]>([]);
-  const [followUpAppointments, setFollowUpAppointments] = useState<(AppointmentDocument & { patient?: any })[]>([]);
+  const [recentPatients, setRecentPatients] = useState<{ name: string; lastVisit: string; status: "active" | "completed" | "pending" }[]>([]);
   const [pendingRequests, setPendingRequests] = useState<(BookingRequestDocument & { patient?: any })[]>([]);
   const [stats, setStats] = useState({
-    totalUpcoming: 0,
-    completedToday: 0,
-    pendingPrescriptions: 0,
+    totalPatients: 0,
+    appointmentsToday: 0,
     pendingRequests: 0,
+    completedConsultations: 0,
   });
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; requestId: string }>({ open: false, requestId: "" });
   const [rejectReason, setRejectReason] = useState("");
@@ -53,135 +62,112 @@ export default function DoctorDashboard() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    async function loadDashboardData() {
-      if (!user) return;
+  const loadDashboardData = async () => {
+    if (!user) return;
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Get today's appointments
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+      // Get today's appointments
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const allAppointments = await appointmentsService.getByDoctorId(user.id);
-        
-        // Filter today's appointments
-        const todayAppts = allAppointments.filter(apt => {
-          const aptDate = new Date(apt.scheduledFor);
-          return aptDate >= today && aptDate < tomorrow;
-        });
+      const allAppointments = await appointmentsService.getByDoctorId(user.id);
 
-        // Filter follow-up appointments
-        const followUpAppts = allAppointments.filter(apt => apt.followUpRequired);
+      // Filter today's appointments
+      const todayAppts = allAppointments.filter((apt) => {
+        const aptDate = new Date(apt.scheduledFor);
+        return aptDate >= today && aptDate < tomorrow;
+      });
 
-        // Get pending booking requests
-        const requests = await bookingRequestsService.getByDoctorIdAndStatus(user.id, "pending");
+      // Get pending booking requests
+      const requests = await bookingRequestsService.getByDoctorIdAndStatus(user.id, "pending");
 
-        // Enrich requests with patient data
-        const requestsWithPatient = await Promise.all(
-          requests.map(async (request) => {
-            const patient = await usersService.getById(request.patientId);
-            return { ...request, patient };
-          })
-        );
+      // Enrich requests with patient data
+      const requestsWithPatient = await Promise.all(
+        requests.map(async (request) => {
+          const patient = await usersService.getById(request.patientId);
+          return { ...request, patient };
+        })
+      );
 
-        // Enrich today's appointments with patient data
-        const todayApptsWithPatient = await Promise.all(
-          todayAppts.map(async (apt) => {
-            const patient = await usersService.getById(apt.patientId);
-            return { ...apt, patient };
-          })
-        );
+      // Enrich today's appointments with patient data
+      const todayApptsWithPatient = await Promise.all(
+        todayAppts.map(async (apt) => {
+          const patient = await usersService.getById(apt.patientId);
+          return { ...apt, patient };
+        })
+      );
 
-        // Enrich follow-up appointments with patient data
-        const followUpApptsWithPatient = await Promise.all(
-          followUpAppts.map(async (apt) => {
-            const patient = await usersService.getById(apt.patientId);
-            return { ...apt, patient };
-          })
-        );
+      // Calculate stats
+      const completedAll = allAppointments.filter((apt) => apt.status === "completed").length;
 
-        // Calculate stats
-        const upcoming = allAppointments.filter(apt => 
-          apt.status === "pending" || apt.status === "confirmed"
-        ).length;
+      // Get unique patient IDs from all appointments
+      const uniquePatientIds = new Set(allAppointments.map((apt) => apt.patientId));
 
-        const completed = todayAppts.filter(apt => 
-          apt.status === "completed"
-        ).length;
+      // Build recent patients list (last 5 unique patients)
+      const patientMap = new Map<string, { name: string; lastVisit: string; status: "active" | "completed" | "pending" }>();
+      const sortedAppointments = [...allAppointments].sort(
+        (a, b) => new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime()
+      );
 
-        // Count pending prescriptions (appointments without prescriptions)
-        const pendingPrescriptions = todayAppts.filter(apt => 
-          apt.status === "completed" && !apt.prescriptionId
-        ).length;
-
-        setTodayAppointments(todayApptsWithPatient);
-        setFollowUpAppointments(followUpApptsWithPatient);
-        setPendingRequests(requestsWithPatient);
-        setStats({
-          totalUpcoming: upcoming,
-          completedToday: completed,
-          pendingPrescriptions,
-          pendingRequests: requests.length,
-        });
-      } catch (error) {
-        console.error("Error loading dashboard data:", error);
-      } finally {
-        setLoading(false);
+      for (const apt of sortedAppointments) {
+        if (patientMap.size >= 5) break;
+        if (!patientMap.has(apt.patientId)) {
+          const patient = await usersService.getById(apt.patientId);
+          const statusMap: Record<string, "active" | "completed" | "pending"> = {
+            confirmed: "active",
+            completed: "completed",
+            pending: "pending",
+            cancelled: "completed",
+          };
+          patientMap.set(apt.patientId, {
+            name: patient?.displayName || "Patient",
+            lastVisit: new Date(apt.scheduledFor).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            status: statusMap[apt.status] || "pending",
+          });
+        }
       }
+
+      setTodayAppointments(todayApptsWithPatient);
+      setPendingRequests(requestsWithPatient);
+      setRecentPatients(Array.from(patientMap.values()));
+      setStats({
+        totalPatients: uniquePatientIds.size,
+        appointmentsToday: todayAppts.length,
+        pendingRequests: requests.length,
+        completedConsultations: completedAll,
+      });
+    } catch (err) {
+      console.error("Error loading dashboard data:", err);
+      setError("Failed to load dashboard data. Please try again.");
+    } finally {
+      setLoading(false);
     }
+  };
 
+  useEffect(() => {
     loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  };
-
-  const formatDate = () => {
-    return new Date().toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   const canJoinConsultation = (appointment: AppointmentDocument) => {
     const now = new Date();
     const appointmentTime = new Date(appointment.scheduledFor);
     const timeDiff = appointmentTime.getTime() - now.getTime();
-    // Allow joining 15 minutes before
     return timeDiff < 15 * 60 * 1000 && timeDiff > -60 * 60 * 1000;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "confirmed":
-      case "accepted":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "pending":
-      case "requested":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "completed":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "cancelled":
-      case "rejected":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
   };
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
       await bookingRequestsService.acceptRequest(requestId);
-      // Reload requests
       const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "pending");
       const requestsWithPatient = await Promise.all(
         requests.map(async (request) => {
@@ -190,9 +176,9 @@ export default function DoctorDashboard() {
         })
       );
       setPendingRequests(requestsWithPatient);
-      setStats(prev => ({ ...prev, pendingRequests: requests.length }));
-    } catch (error) {
-      console.error("Error accepting request:", error);
+      setStats((prev) => ({ ...prev, pendingRequests: requests.length }));
+    } catch (err) {
+      console.error("Error accepting request:", err);
     }
   };
 
@@ -232,7 +218,6 @@ export default function DoctorDashboard() {
       }
 
       setRejectDialog({ open: false, requestId: "" });
-      // Reload pending requests
       const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "pending");
       const requestsWithPatient = await Promise.all(
         requests.map(async (request) => {
@@ -241,9 +226,9 @@ export default function DoctorDashboard() {
         })
       );
       setPendingRequests(requestsWithPatient);
-      setStats(prev => ({ ...prev, pendingRequests: requests.length }));
-    } catch (error: any) {
-      setRejectError(error.message || "Something went wrong. Please try again.");
+      setStats((prev) => ({ ...prev, pendingRequests: requests.length }));
+    } catch (err: any) {
+      setRejectError(err.message || "Something went wrong. Please try again.");
     } finally {
       setRejectLoading(false);
     }
@@ -251,109 +236,246 @@ export default function DoctorDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">Loading dashboard...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <GlassPanel padding="lg" className="max-w-md text-center">
+          <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
+          <p className="text-foreground font-medium mb-2">Something went wrong</p>
+          <p className="text-muted-foreground text-sm mb-6">{error}</p>
+          <PremiumButton onClick={loadDashboardData} icon={<Loader2 className="h-4 w-4" />}>
+            Retry
+          </PremiumButton>
+        </GlassPanel>
       </div>
     );
   }
 
   return (
     <>
-    <div className="space-y-8">
-      {/* Optional onboarding banner */}
-      {user && !user.onboardingCompleted && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
-          <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm text-blue-800">
+      <div className={`space-y-0 ${SPACING.pageY}`}>
+        {/* Onboarding banner */}
+        {user && !user.onboardingCompleted && (
+          <GlassPanel padding="sm" className="mb-6 flex items-center gap-4">
+            <AlertCircle className="h-5 w-5 text-primary flex-shrink-0" />
+            <p className="text-sm text-muted-foreground flex-1">
               Complete your profile for a better consultation experience.
             </p>
-          </div>
-          <Link href="/doctor/profile">
-            <Button variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100">
-              Complete Profile
-            </Button>
-          </Link>
-        </div>
-      )}
+            <PremiumButton asChild variant="outline" size="sm">
+              <Link href="/doctor/profile">Complete Profile</Link>
+            </PremiumButton>
+          </GlassPanel>
+        )}
 
-      {/* Welcome Header */}
-      <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">
-          {getGreeting()}, {user?.displayName || "Doctor"}
-        </h1>
-        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">{formatDate()}</p>
-        <p className="text-base text-muted-foreground mt-2">
-          Ready to provide exceptional eye care today.
-        </p>
-      </div>
+        {/* Key Metrics Section */}
+        <SectionHeader title="Overview" subtitle="Your practice at a glance" />
+        <motion.div
+          className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 ${SPACING.cardGap}`}
+          variants={shouldReduceMotion ? undefined : staggerContainer}
+          initial={shouldReduceMotion ? false : "hidden"}
+          animate="visible"
+        >
+          <MetricCard
+            icon={<Users className="h-6 w-6" />}
+            value={stats.totalPatients}
+            label="Total Patients"
+            staggerIndex={0}
+          />
+          <MetricCard
+            icon={<Calendar className="h-6 w-6" />}
+            value={stats.appointmentsToday}
+            label="Appointments Today"
+            staggerIndex={1}
+          />
+          <MetricCard
+            icon={<Bell className="h-6 w-6" />}
+            value={stats.pendingRequests}
+            label="Pending Requests"
+            staggerIndex={2}
+          />
+          <MetricCard
+            icon={<CheckCircle className="h-6 w-6" />}
+            value={stats.completedConsultations}
+            label="Completed Consultations"
+            staggerIndex={3}
+          />
+        </motion.div>
 
-      {/* Stats Overview */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-primary/10 bg-white/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Upcoming</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            <div className="text-3xl font-bold text-primary">{stats.totalUpcoming}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-primary/10 bg-white/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Completed Today</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            <div className="text-3xl font-bold text-primary">{stats.completedToday}</div>
-          </CardContent>
-        </Card>
-        <Card className={`border-primary/10 bg-white/50 ${stats.pendingRequests > 0 ? "ring-2 ring-amber-400" : ""}`}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Requests</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            <div className="text-3xl font-bold text-primary">{stats.pendingRequests}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-primary/10 bg-white/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Prescriptions</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            <div className="text-3xl font-bold text-primary">{stats.pendingPrescriptions}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Pending Booking Requests */}
-      {pendingRequests.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <h2 className="font-display text-2xl text-primary">Pending Booking Requests</h2>
-              <Badge className="bg-amber-100 text-amber-800 border-amber-200">
-                {pendingRequests.length} new
-              </Badge>
-            </div>
-            <Link href="/doctor/requests">
-              <Button variant="outline">View All</Button>
-            </Link>
-          </div>
-
-          <div className="grid gap-4">
-            {pendingRequests.slice(0, 3).map((request) => (
-              <Card key={request.id} className="border-amber-200 bg-amber-50">
-                <CardContent className="p-3 sm:p-6">
-                  <div className="flex flex-col gap-3">
+        {/* Appointment Overview Section */}
+        <SectionHeader
+          title="Today's Appointments"
+          subtitle={`${todayAppointments.length} scheduled for today`}
+          action={
+            <PremiumButton asChild variant="outline" size="sm">
+              <Link href="/doctor/appointments">View All</Link>
+            </PremiumButton>
+          }
+        />
+        {todayAppointments.length > 0 ? (
+          <motion.div
+            className={`grid grid-cols-1 md:grid-cols-2 ${SPACING.cardGap}`}
+            variants={shouldReduceMotion ? undefined : staggerContainer}
+            initial={shouldReduceMotion ? false : "hidden"}
+            animate="visible"
+          >
+            {todayAppointments.slice(0, 4).map((appointment, index) => {
+              const canJoin = canJoinConsultation(appointment);
+              return (
+                <DashboardCard key={appointment.id} staggerIndex={index}>
+                  <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                        <Bell className="h-5 w-5 text-amber-600" />
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Users className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium text-primary truncate">{request.patient?.displayName || "Patient"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{request.patient?.email || ""}</p>
+                        <p className="font-medium text-foreground truncate">
+                          {appointment.patient?.displayName || "Patient"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(appointment.scheduledFor).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <StatusBadge
+                      variant={appointment.status as any}
+                      size="sm"
+                    >
+                      {appointment.status}
+                    </StatusBadge>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {canJoin && appointment.consultationLink && (
+                      <PremiumButton asChild size="sm" icon={<Video className="h-3.5 w-3.5" />}>
+                        <a
+                          href={appointment.consultationLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Join
+                        </a>
+                      </PremiumButton>
+                    )}
+                    {appointment.status === "completed" && !appointment.prescriptionId && (
+                      <PremiumButton asChild variant="outline" size="sm" icon={<FileText className="h-3.5 w-3.5" />}>
+                        <Link href={`/doctor/prescriptions/create/${appointment.id}`}>
+                          Prescription
+                        </Link>
+                      </PremiumButton>
+                    )}
+                    <PremiumButton asChild variant="ghost" size="sm">
+                      <Link href={`/doctor/appointments/${appointment.id}`}>View</Link>
+                    </PremiumButton>
+                  </div>
+                </DashboardCard>
+              );
+            })}
+          </motion.div>
+        ) : (
+          <GlassPanel padding="lg" className="text-center">
+            <Calendar className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+            <p className="text-muted-foreground text-sm">No consultations scheduled for today</p>
+          </GlassPanel>
+        )}
+
+        {/* Recent Patients Section */}
+        <SectionHeader
+          title="Recent Patients"
+          subtitle="Your 5 most recent patients"
+          action={
+            <PremiumButton asChild variant="outline" size="sm">
+              <Link href="/doctor/patients">View All</Link>
+            </PremiumButton>
+          }
+        />
+        {recentPatients.length > 0 ? (
+          <motion.div
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${SPACING.cardGap}`}
+            variants={shouldReduceMotion ? undefined : staggerContainer}
+            initial={shouldReduceMotion ? false : "hidden"}
+            animate="visible"
+          >
+            {recentPatients.map((patient, index) => (
+              <DashboardCard key={`patient-${index}`} staggerIndex={index}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Users className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground text-sm truncate">{patient.name}</p>
+                      <p className="text-xs text-muted-foreground">Last visit: {patient.lastVisit}</p>
+                    </div>
+                  </div>
+                  <StatusBadge variant={patient.status} size="sm">
+                    {patient.status}
+                  </StatusBadge>
+                </div>
+              </DashboardCard>
+            ))}
+          </motion.div>
+        ) : (
+          <GlassPanel padding="md" className="text-center">
+            <p className="text-muted-foreground text-sm">No patient records yet</p>
+          </GlassPanel>
+        )}
+
+        {/* Action Center */}
+        <SectionHeader title="Action Center" subtitle="Quick actions for your practice" />
+        <GlassPanel padding="lg">
+          <div className="flex flex-wrap gap-3">
+            <PremiumButton asChild icon={<Calendar className="h-4 w-4" />}>
+              <Link href="/doctor/appointments">New Appointment</Link>
+            </PremiumButton>
+            <PremiumButton asChild variant="outline" icon={<Bell className="h-4 w-4" />}>
+              <Link href="/doctor/requests">View Requests</Link>
+            </PremiumButton>
+            <PremiumButton asChild variant="outline" icon={<Clock className="h-4 w-4" />}>
+              <Link href="/doctor/slots">Manage Slots</Link>
+            </PremiumButton>
+          </div>
+        </GlassPanel>
+
+        {/* Pending Booking Requests */}
+        {pendingRequests.length > 0 && (
+          <>
+            <SectionHeader
+              title="Pending Booking Requests"
+              subtitle={`${pendingRequests.length} awaiting your response`}
+              action={
+                <PremiumButton asChild variant="outline" size="sm">
+                  <Link href="/doctor/requests">View All</Link>
+                </PremiumButton>
+              }
+            />
+            <motion.div
+              className={`grid grid-cols-1 ${SPACING.cardGap}`}
+              variants={shouldReduceMotion ? undefined : staggerContainer}
+              initial={shouldReduceMotion ? false : "hidden"}
+              animate="visible"
+            >
+              {pendingRequests.slice(0, 3).map((request, index) => (
+                <DashboardCard key={request.id} staggerIndex={index}>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
+                        <Bell className="h-5 w-5 text-secondary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground truncate">
+                          {request.patient?.displayName || "Patient"}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(request.requestedTime).toLocaleString("en-US", {
                             month: "short",
@@ -363,277 +485,52 @@ export default function DoctorDashboard() {
                           })}
                         </p>
                       </div>
+                      <StatusBadge variant="requested" size="sm">
+                        Pending
+                      </StatusBadge>
                     </div>
                     {request.notes && (
-                      <p className="text-sm text-muted-foreground italic px-1">
-                        "{request.notes}"
+                      <p className="text-sm text-muted-foreground italic pl-1">
+                        &ldquo;{request.notes}&rdquo;
                       </p>
                     )}
                     <div className="flex gap-2">
-                      <Button
+                      <PremiumButton
                         onClick={() => handleAcceptRequest(request.id)}
-                        className="flex-1 bg-green-600 hover:bg-green-700 h-9 text-sm"
+                        size="sm"
+                        icon={<CheckCircle className="h-4 w-4" />}
+                        className="flex-1"
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
                         Accept
-                      </Button>
-                      <Button
+                      </PremiumButton>
+                      <PremiumButton
                         variant="outline"
                         onClick={() => openRejectDialog(request.id)}
-                        className="flex-1 h-9 text-sm"
+                        size="sm"
+                        className="flex-1"
                       >
                         Reject
-                      </Button>
+                      </PremiumButton>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Today's Consultations */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-display text-2xl text-primary">Today's Consultations</h2>
-          <Link href="/doctor/appointments">
-            <Button variant="outline">View All</Button>
-          </Link>
-        </div>
-
-        {todayAppointments.length > 0 ? (
-          <div className="grid gap-4">
-            {todayAppointments.map((appointment) => {
-              const canJoin = canJoinConsultation(appointment);
-              return (
-                <Card key={appointment.id} className="border-primary/10">
-                  <CardContent className="p-3 sm:p-6">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Users className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-primary truncate">{appointment.patient?.displayName || "Patient"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(appointment.scheduledFor).toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                        <Badge className={`${getStatusColor(appointment.status)} shrink-0 text-[10px]`}>
-                          {appointment.status}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {canJoin && appointment.consultationLink && (
-                          <Button asChild className="flex-1 min-w-[80px] h-9 text-sm">
-                            <a
-                              href={appointment.consultationLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1"
-                            >
-                              <Video className="h-3.5 w-3.5" />
-                              Join
-                            </a>
-                          </Button>
-                        )}
-                        {appointment.status === "completed" && !appointment.prescriptionId && (
-                          <Button asChild variant="outline" className="flex-1 min-w-[100px] h-9 text-sm">
-                            <Link href={`/doctor/prescriptions/create/${appointment.id}`}>
-                              <FileText className="h-3.5 w-3.5 mr-1" />
-                              Prescription
-                            </Link>
-                          </Button>
-                        )}
-                        <Button asChild variant="ghost" className="flex-1 min-w-[80px] h-9 text-sm">
-                          <Link href={`/doctor/appointments/${appointment.id}`}>View</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        ) : (
-          <div>
-            <Card className="border-primary/10 bg-primary/5">
-              <CardContent className="p-4 sm:p-8 text-center">
-                <Calendar className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
-                <p className="text-base text-muted-foreground">No consultations scheduled for today</p>
-              </CardContent>
-            </Card>
-          </div>
+                </DashboardCard>
+              ))}
+            </motion.div>
+          </>
         )}
       </div>
 
-      {/* Follow-Up Appointments */}
-      {followUpAppointments.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display text-2xl text-primary">Follow-Up Required</h2>
-            <Badge className="bg-secondary text-white">{followUpAppointments.length}</Badge>
-          </div>
-
-          <div className="grid gap-4">
-            {followUpAppointments.slice(0, 3).map((appointment) => (
-              <Card key={appointment.id} className="border-secondary/20 bg-secondary/5">
-                <CardContent className="p-3 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
-                        <Clock className="h-5 w-5 text-secondary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-primary">{appointment.patient?.displayName || "Patient"}</p>
-                        {appointment.followUpDate && (
-                          <p className="text-sm text-muted-foreground">
-                            Follow-up: {new Date(appointment.followUpDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <Link href={`/doctor/appointments/${appointment.id}`}>
-                      <Button variant="outline" size="default">
-                        View
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Quick Actions */}
-      <div>
-        <h2 className="font-display text-2xl text-primary mb-6">Quick Actions</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Link href="/doctor/slots">
-            <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-3 sm:p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Calendar className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-primary">Calendar</p>
-                    <p className="text-sm text-muted-foreground">View your schedule</p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/doctor/schedule">
-            <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-3 sm:p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-primary">Edit Schedule</p>
-                    <p className="text-sm text-muted-foreground">Configure weekly availability</p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {pendingRequests.length > 0 && (
-            <Link href="/doctor/requests">
-              <Card className="border-amber-200 bg-amber-50 hover:border-amber-300 transition cursor-pointer">
-                <CardContent className="p-3 sm:p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
-                      <Bell className="h-6 w-6 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-primary">Review Requests</p>
-                      <p className="text-sm text-muted-foreground">{pendingRequests.length} pending</p>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          )}
-
-          <Link href="/doctor/appointments">
-            <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-3 sm:p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-primary">All Appointments</p>
-                    <p className="text-sm text-muted-foreground">View scheduled consultations</p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/doctor/patients">
-            <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-3 sm:p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-primary">Patient History</p>
-                    <p className="text-sm text-muted-foreground">Review patient records</p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/doctor/profile">
-            <Card className="border-primary/10 hover:border-primary/30 transition cursor-pointer">
-              <CardContent className="p-3 sm:p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Settings className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-primary">Profile Settings</p>
-                    <p className="text-sm text-muted-foreground">Update your information</p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground ml-auto" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-      </div>
-    </div>
-
-      {/* Rejection Dialog — must be inside JSX return */}
+      {/* Rejection Dialog */}
       <Dialog
         open={rejectDialog.open}
-        onOpenChange={(open) => !rejectLoading && setRejectDialog({ open, requestId: open ? rejectDialog.requestId : "" })}
+        onOpenChange={(open) =>
+          !rejectLoading && setRejectDialog({ open, requestId: open ? rejectDialog.requestId : "" })
+        }
       >
         <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl text-primary flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-red-500" />
+            <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
               Decline Booking Request
             </DialogTitle>
           </DialogHeader>
@@ -644,44 +541,35 @@ export default function DoctorDashboard() {
             <Textarea
               placeholder="e.g. I am unavailable on this date. Please book for a different time."
               value={rejectReason}
-              onChange={(e) => { setRejectReason(e.target.value); setRejectError(null); }}
+              onChange={(e) => {
+                setRejectReason(e.target.value);
+                setRejectError(null);
+              }}
               rows={3}
-              className="resize-none"
+              className="resize-none rounded-2xl"
               disabled={rejectLoading}
             />
             {rejectError && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-2xl px-3 py-2">
                 {rejectError}
               </p>
             )}
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <p className="text-xs text-amber-800">
-                The patient will be notified and their payment will be refunded automatically.
-              </p>
-            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
+            <PremiumButton
               variant="outline"
               onClick={() => setRejectDialog({ open: false, requestId: "" })}
               disabled={rejectLoading}
             >
               Cancel
-            </Button>
-            <Button
+            </PremiumButton>
+            <PremiumButton
               onClick={handleConfirmReject}
               disabled={rejectLoading || !rejectReason.trim()}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              loading={rejectLoading}
             >
-              {rejectLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Declining…
-                </span>
-              ) : (
-                "Decline & Refund"
-              )}
-            </Button>
+              Decline &amp; Refund
+            </PremiumButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

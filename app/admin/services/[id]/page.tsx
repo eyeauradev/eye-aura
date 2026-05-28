@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { servicesService } from "@/services/firestore";
 import { ArrowLeft, Edit2, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { ServiceDocument } from "@/types/firestore";
@@ -80,10 +81,10 @@ export default function AdminServiceDetailPage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Service not found</p>
             <Link href="/admin/services">
-              <Button variant="outline" className="mt-4">
+              <PremiumButton variant="outline" className="mt-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Services
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -96,29 +97,29 @@ export default function AdminServiceDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <Link href="/admin/services">
-            <Button variant="ghost" className="mb-4">
+            <PremiumButton variant="ghost" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Services
-            </Button>
+            </PremiumButton>
           </Link>
-          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">{service.title}</h1>
-          <p className="text-sm sm:text-xl text-muted-foreground">{service.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</p>
+          <h1 className={TYPOGRAPHY.heading}>{service.title}</h1>
+          <p className={TYPOGRAPHY.label}>{service.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={handleToggleService} variant="outline">
+          <PremiumButton onClick={handleToggleService} variant="outline">
             {service.isActive ? <ToggleRight className="h-4 w-4 mr-2" /> : <ToggleLeft className="h-4 w-4 mr-2" />}
             {service.isActive ? "Disable" : "Enable"}
-          </Button>
+          </PremiumButton>
           <Link href={`/admin/services/${service.id}/edit`}>
-            <Button variant="outline">
+            <PremiumButton variant="outline">
               <Edit2 className="h-4 w-4 mr-2" />
               Edit
-            </Button>
+            </PremiumButton>
           </Link>
-          <Button onClick={handleDeleteService} variant="outline" className="text-red-600 hover:text-red-700">
+          <PremiumButton onClick={handleDeleteService} variant="outline" className="text-red-600 hover:text-red-700">
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
-          </Button>
+          </PremiumButton>
         </div>
       </div>
 

@@ -6,9 +6,10 @@ import { usersService, visionAssessmentsService } from "@/services/firestore";
 import type { UserDocument, VisionAssessmentDocument, VisionAssessmentType } from "@/types/firestore";
 import { getAuth } from "firebase/auth";
 import { Eye, BookOpen, ShieldAlert, CheckCircle2, Search, RefreshCw, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 export default function AdminAssessmentsPage() {
   const { user } = useAuth();
@@ -106,8 +107,8 @@ export default function AdminAssessmentsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-display text-2xl sm:text-3xl text-[#0f4f4b] mb-1">Vision Assessments</h1>
-        <p className="text-sm text-[#0f4f4b]/55">Assign assessments to patients. Admin overrides bypass appointment requirements.</p>
+        <h1 className={TYPOGRAPHY.heading}>Vision Assessments</h1>
+        <p className="text-sm text-muted-foreground">Assign assessments to patients. Admin overrides bypass appointment requirements.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -133,7 +134,7 @@ export default function AdminAssessmentsPage() {
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   className="flex-1 rounded-xl border-[#0f4f4b]/15"
                 />
-                <Button
+                <PremiumButton
                   onClick={handleSearch}
                   disabled={searching}
                   size="icon"
@@ -141,7 +142,7 @@ export default function AdminAssessmentsPage() {
                   className="rounded-xl border-[#0f4f4b]/15"
                 >
                   {searching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
+                </PremiumButton>
               </div>
               {patients.length > 0 && (
                 <div className="mt-2 rounded-xl border border-[#0f4f4b]/10 overflow-hidden">
@@ -224,14 +225,14 @@ export default function AdminAssessmentsPage() {
               </div>
             )}
 
-            <Button
+            <PremiumButton
               onClick={handleAssign}
               disabled={!selected || types.length === 0 || assigning}
               className="w-full rounded-xl bg-[#0f4f4b] hover:bg-[#0a3a36]"
             >
               {assigning ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-2" />}
               Assign Assessment (Admin Override)
-            </Button>
+            </PremiumButton>
           </CardContent>
         </Card>
 

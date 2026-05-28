@@ -6,10 +6,11 @@ import { useAuth } from "@/contexts/auth-context";
 import { doctorInvitesService, usersService } from "@/services/firestore";
 import { sendDoctorInviteEmail } from "@/services/email/email.service";
 import { Mail, User, Calendar, Clock, ArrowLeft, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 
@@ -125,13 +126,13 @@ export default function AdminDoctorInvitePage() {
       <div className="space-y-8">
         <div>
           <Link href="/admin/doctors">
-            <Button variant="ghost" className="mb-4">
+            <PremiumButton variant="ghost" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Doctors
-            </Button>
+            </PremiumButton>
           </Link>
-          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Invite Sent</h1>
-          <p className="text-sm sm:text-xl text-muted-foreground">
+          <h1 className={TYPOGRAPHY.heading}>Invite Sent</h1>
+          <p className="text-sm text-muted-foreground">
             Doctor invite has been created successfully
           </p>
         </div>
@@ -140,7 +141,7 @@ export default function AdminDoctorInvitePage() {
           <Card className="border-primary/10 bg-green-50/50">
             <CardContent className="p-12 text-center">
               <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-6" />
-              <h2 className="font-display text-2xl text-primary mb-4">
+              <h2 className={TYPOGRAPHY.subheading + " mb-4"}>
                 Invite Created for {formData.email}
               </h2>
               
@@ -164,19 +165,19 @@ export default function AdminDoctorInvitePage() {
               <div className="mb-6 p-4 bg-white border border-primary/10 rounded-lg text-left">
                 <p className="text-sm font-medium text-muted-foreground mb-2">Invite Link:</p>
                 <code className="text-sm text-primary break-all block mb-3">{inviteLink}</code>
-                <Button
+                <PremiumButton
                   variant="outline"
                   className="w-full"
                   onClick={() => navigator.clipboard.writeText(inviteLink)}
                 >
                   Copy Link
-                </Button>
+                </PremiumButton>
               </div>
               
               <Link href="/admin/doctors">
-                <Button className="w-full">
+                <PremiumButton className="w-full">
                   Back to Doctors
-                </Button>
+                </PremiumButton>
               </Link>
             </CardContent>
           </Card>
@@ -189,13 +190,13 @@ export default function AdminDoctorInvitePage() {
     <div className="space-y-8">
       <div>
         <Link href="/admin/doctors">
-          <Button variant="ghost" className="mb-4">
+          <PremiumButton variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Doctors
-          </Button>
+          </PremiumButton>
         </Link>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Invite Doctor</h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <h1 className={TYPOGRAPHY.heading}>Invite Doctor</h1>
+        <p className="text-sm text-muted-foreground">
           Send an invite to a new doctor to join the platform
         </p>
       </div>
@@ -290,9 +291,9 @@ export default function AdminDoctorInvitePage() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <PremiumButton type="submit" className="w-full" disabled={loading}>
                 {loading ? "Sending Invite..." : "Send Invite"}
-              </Button>
+              </PremiumButton>
             </form>
           </CardContent>
         </Card>

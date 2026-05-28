@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft } from "lucide-react";
 import { TestTypeSelector } from "./TestTypeSelector";
 import { InstructionsStep } from "./steps/InstructionsStep";
 import { CalibrationStep } from "./steps/CalibrationStep";
@@ -9,6 +8,7 @@ import { DurationSelector } from "./DurationSelector";
 import { TestingStep } from "./steps/TestingStep";
 import { NearTestingStep } from "./steps/NearTestingStep";
 import { ResultsStep } from "./steps/ResultsStep";
+import { AssessmentWrapper } from "@/components/premium/assessment-wrapper";
 import type {
   TestPhase,
   TestType,
@@ -17,6 +17,7 @@ import type {
   AcuityTestResult,
   EyeAcuityResult,
 } from "./types";
+import type { AssessmentStage } from "@/components/premium/assessment-wrapper";
 import { v4 as uuidv4 } from "uuid";
 import { visionAssessmentsService } from "@/services/firestore";
 
@@ -38,10 +39,18 @@ const PHASE_ORDER: TestPhase[] = [
   "results",
 ];
 
+/** Map phases to AssessmentStage objects for the progress indicator */
+function buildStages(typeIsFixed: boolean): AssessmentStage[] {
+  const phases = typeIsFixed
+    ? PHASE_ORDER.filter((p) => p !== "type_select")
+    : PHASE_ORDER;
+  return phases.map((p) => ({ id: p, label: PHASE_LABELS[p] }));
+}
+
 interface AcuitySessionProps {
   assessmentId?: string;
   assessmentTypes?: import("@/types/firestore").VisionAssessmentType[];
-  nextAssessmentHref?: string;   // shown in Results: "Start next assessment" button
+  nextAssessmentHref?: string;
   nextAssessmentLabel?: string;
 }
 
@@ -63,9 +72,16 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
     if (phase === "testing") startedAt.current = Date.now();
   }, [phase]);
 
-  const currentIdx = PHASE_ORDER.indexOf(phase);
-  // Don't allow back-to-type-select when the test type is fixed by a doctor assignment
   const typeIsFixed = !!assessmentTypes?.length;
+  const stages = buildStages(typeIsFixed);
+  const currentIdx = PHASE_ORDER.indexOf(phase);
+
+  // Compute the stage index relative to the displayed stages
+  const displayedPhases = typeIsFixed
+    ? PHASE_ORDER.filter((p) => p !== "type_select")
+    : PHASE_ORDER;
+  const currentStageIdx = displayedPhases.indexOf(phase);
+
   const canGoBack =
     currentIdx > 0 &&
     phase !== "testing" &&
@@ -132,109 +148,75 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
     setPhase("type_select");
   };
 
-  const accentColor = testType === "far" ? "#0f4f4b" : "#b5964d";
+  // Build title and subtitle based on current phase
+  const title =
+    phase === "type_select"
+      ? "Visual Acuity Assessment"
+      : `${testType === "far" ? "Far" : "Near"} Vision Assessment`;
+
+  const subtitle = PHASE_LABELS[phase];
 
   return (
-    <div className="min-h-screen bg-[#F0EDE8]">
-      {/* Sticky top bar */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#0f4f4b]/8">
-        <div className="max-w-2xl mx-auto px-4 py-3.5 flex items-center gap-4">
-          {canGoBack && (
-            <button
-              onClick={goBack}
-              className="h-8 w-8 rounded-xl border border-[#0f4f4b]/15 flex items-center justify-center text-[#0f4f4b]/60 hover:text-[#0f4f4b] hover:bg-[#0f4f4b]/5 transition-colors shrink-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-[#0f4f4b]/50 uppercase tracking-widest truncate">
-              {phase === "type_select"
-                ? "Visual Acuity Assessment"
-                : `${testType === "far" ? "Far" : "Near"} Vision Assessment`}
-            </p>
-            <p className="text-sm font-bold text-[#0f4f4b] leading-tight">
-              {PHASE_LABELS[phase]}
-            </p>
-          </div>
+    <AssessmentWrapper
+      title={title}
+      subtitle={subtitle}
+      stages={stages}
+      currentStage={currentStageIdx}
+      canGoBack={canGoBack}
+      onBack={goBack}
+      stageKey={phase}
+    >
+      {phase === "type_select" && (
+        <TestTypeSelector onSelect={handleTypeSelect} />
+      )}
 
-          {/* Step progress pills (hidden during type_select) */}
-          {phase !== "type_select" && (
-            <div className="hidden sm:flex items-center gap-1">
-              {PHASE_ORDER.filter((p) => p !== "type_select").map((p, i) => {
-                const idx = PHASE_ORDER.indexOf(p);
-                const isActive = idx === currentIdx;
-                const isDone   = idx < currentIdx;
-                return (
-                  <div
-                    key={p}
-                    className="h-2 rounded-full transition-all duration-300"
-                    style={{
-                      width: isActive ? 32 : isDone ? 24 : 8,
-                      backgroundColor: isDone || isActive ? accentColor : `${accentColor}30`,
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+      {phase === "instructions" && (
+        <InstructionsStep
+          testType={testType}
+          onContinue={() => setPhase("calibration")}
+        />
+      )}
 
-      {/* Page content */}
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        {phase === "type_select" && (
-          <TestTypeSelector onSelect={handleTypeSelect} />
-        )}
+      {phase === "calibration" && (
+        <CalibrationStep
+          onCalibrated={handleCalibrated}
+          existingCalibration={calibration}
+        />
+      )}
 
-        {phase === "instructions" && (
-          <InstructionsStep
-            testType={testType}
-            onContinue={() => setPhase("calibration")}
-          />
-        )}
+      {phase === "duration_select" && (
+        <DurationSelector
+          testType={testType}
+          selected={timerDuration}
+          onSelect={setTimerDuration}
+          onContinue={handleDurationContinue}
+        />
+      )}
 
-        {phase === "calibration" && (
-          <CalibrationStep
-            onCalibrated={handleCalibrated}
-            existingCalibration={calibration}
-          />
-        )}
+      {phase === "testing" && calibration && testType === "far" && (
+        <TestingStep
+          calibration={calibration}
+          timerDuration={timerDuration}
+          onComplete={handleTestComplete}
+        />
+      )}
 
-        {phase === "duration_select" && (
-          <DurationSelector
-            testType={testType}
-            selected={timerDuration}
-            onSelect={setTimerDuration}
-            onContinue={handleDurationContinue}
-          />
-        )}
+      {phase === "testing" && calibration && testType === "near" && (
+        <NearTestingStep
+          calibration={calibration}
+          timerDuration={timerDuration}
+          onComplete={handleTestComplete}
+        />
+      )}
 
-        {phase === "testing" && calibration && testType === "far" && (
-          <TestingStep
-            calibration={calibration}
-            timerDuration={timerDuration}
-            onComplete={handleTestComplete}
-          />
-        )}
-
-        {phase === "testing" && calibration && testType === "near" && (
-          <NearTestingStep
-            calibration={calibration}
-            timerDuration={timerDuration}
-            onComplete={handleTestComplete}
-          />
-        )}
-
-        {phase === "results" && result && (
-          <ResultsStep
-            result={result}
-            onRetake={handleRetake}
-            nextAssessmentHref={nextAssessmentHref}
-            nextAssessmentLabel={nextAssessmentLabel}
-          />
-        )}
-      </div>
-    </div>
+      {phase === "results" && result && (
+        <ResultsStep
+          result={result}
+          onRetake={handleRetake}
+          nextAssessmentHref={nextAssessmentHref}
+          nextAssessmentLabel={nextAssessmentLabel}
+        />
+      )}
+    </AssessmentWrapper>
   );
 }

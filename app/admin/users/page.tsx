@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { usersService } from "@/services/firestore";
 import { Search, User, Shield, Ban, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import type { UserDocument } from "@/types/firestore";
 
@@ -94,8 +95,8 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Users</h1>
-        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">Manage platform users and roles</p>
+        <h1 className={TYPOGRAPHY.heading}>Users</h1>
+        <p className="text-sm text-muted-foreground">Manage platform users and roles</p>
       </div>
 
       
@@ -169,7 +170,7 @@ function UserCard({
   return (
     <div className="flex items-center gap-2 p-2 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-        <span className="text-primary font-bold">
+        <span className="text-primary font-semibold">
           {userItem.displayName?.charAt(0) || userItem.email?.charAt(0)}
         </span>
       </div>
@@ -195,7 +196,7 @@ function UserCard({
       <div className="flex items-center gap-0.5 shrink-0">
         {!isCurrentUser && (
           <>
-            <Button
+            <PremiumButton
               variant="ghost"
               size="icon"
               className="h-8 w-8"
@@ -203,9 +204,9 @@ function UserCard({
               title={userItem.isActive ? "Disable account" : "Enable account"}
             >
               {userItem.isActive ? <Ban className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />}
-            </Button>
+            </PremiumButton>
             {userItem.role !== "patient" && (
-              <Button
+              <PremiumButton
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
@@ -213,7 +214,7 @@ function UserCard({
                 title="Change role"
               >
                 <Shield className="h-3.5 w-3.5" />
-              </Button>
+              </PremiumButton>
             )}
           </>
         )}

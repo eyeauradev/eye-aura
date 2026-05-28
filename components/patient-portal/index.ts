@@ -1,11 +1,17 @@
-export { GlassPanel } from "./glass-panel";
-export { StatusBadge } from "./status-badge";
-export { PremiumButton } from "./premium-button";
-export { DashboardCard } from "./dashboard-card";
-export { InfoRow } from "./info-row";
-export { SectionHeader } from "./section-header";
-export { PremiumHeader } from "./premium-header";
-export { FloatingSidebar } from "./floating-sidebar";
-export { QuickActionsPanel } from "./quick-actions-panel";
-export { PageTransition } from "./page-transition";
-export { MotionWrapper } from "./motion-wrapper";
+/**
+ * Re-export all premium components from the shared location for backward compatibility.
+ * The canonical source is now components/premium/.
+ */
+export {
+  GlassPanel,
+  StatusBadge,
+  PremiumButton,
+  DashboardCard,
+  InfoRow,
+  SectionHeader,
+  PremiumHeader,
+  FloatingSidebar,
+  QuickActionsPanel,
+  PageTransition,
+  MotionWrapper,
+} from "@/components/premium";

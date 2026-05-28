@@ -7,6 +7,7 @@ import type { UserDocument, AppointmentDocument, PrescriptionDocument } from "@/
 import { BarChart3, Calendar, Users, TrendingUp, Activity, Clock, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 
 export default function AdminAnalyticsPage() {
@@ -91,8 +92,8 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Analytics</h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <h1 className={TYPOGRAPHY.heading}>Analytics</h1>
+        <p className="text-sm text-muted-foreground">
           Platform performance and usage metrics
         </p>
       </div>
@@ -105,7 +106,7 @@ export default function AdminAnalyticsPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{stats.totalUsers}</div>
+              <div className="text-2xl font-semibold text-foreground">{stats.totalUsers}</div>
               <p className="text-xs text-muted-foreground mt-1">Registered users</p>
             </CardContent>
           </Card>
@@ -116,7 +117,7 @@ export default function AdminAnalyticsPage() {
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{stats.totalDoctors}</div>
+              <div className="text-2xl font-semibold text-foreground">{stats.totalDoctors}</div>
               <p className="text-xs text-muted-foreground mt-1">On platform</p>
             </CardContent>
           </Card>
@@ -127,7 +128,7 @@ export default function AdminAnalyticsPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{stats.totalPatients}</div>
+              <div className="text-2xl font-semibold text-foreground">{stats.totalPatients}</div>
               <p className="text-xs text-muted-foreground mt-1">Registered patients</p>
             </CardContent>
           </Card>
@@ -138,7 +139,7 @@ export default function AdminAnalyticsPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{stats.totalAppointments}</div>
+              <div className="text-2xl font-semibold text-foreground">{stats.totalAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">All time</p>
             </CardContent>
           </Card>
@@ -153,7 +154,7 @@ export default function AdminAnalyticsPage() {
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{stats.completedAppointments}</div>
+              <div className="text-2xl font-semibold text-foreground">{stats.completedAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">Appointments completed</p>
             </CardContent>
           </Card>
@@ -164,7 +165,7 @@ export default function AdminAnalyticsPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{stats.pendingAppointments}</div>
+              <div className="text-2xl font-semibold text-foreground">{stats.pendingAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">Awaiting confirmation</p>
             </CardContent>
           </Card>
@@ -175,7 +176,7 @@ export default function AdminAnalyticsPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 sm:p-6">
-              <div className="text-2xl font-bold">{stats.thisMonthAppointments}</div>
+              <div className="text-2xl font-semibold text-foreground">{stats.thisMonthAppointments}</div>
               <p className="text-xs text-muted-foreground mt-1">Appointments scheduled</p>
             </CardContent>
           </Card>
@@ -191,7 +192,7 @@ export default function AdminAnalyticsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Prescriptions Generated</p>
-                <p className="text-3xl font-bold text-primary mt-1">{stats.totalPrescriptions}</p>
+                <p className="text-2xl font-semibold text-foreground mt-1">{stats.totalPrescriptions}</p>
               </div>
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <BarChart3 className="h-8 w-8 text-primary" />
@@ -213,7 +214,7 @@ export default function AdminAnalyticsPage() {
                   <Activity className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-primary">{stats.completionRate}%</p>
+                  <p className="text-2xl font-semibold text-foreground">{stats.completionRate}%</p>
                   <p className="text-sm font-medium text-primary">Completion Rate</p>
                   <p className="text-xs text-muted-foreground">{stats.completedAppointments} of {stats.totalAppointments} completed</p>
                 </div>
@@ -223,7 +224,7 @@ export default function AdminAnalyticsPage() {
                   <TrendingUp className="h-6 w-6 text-red-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-primary">{stats.cancellationRate}%</p>
+                  <p className="text-2xl font-semibold text-foreground">{stats.cancellationRate}%</p>
                   <p className="text-sm font-medium text-primary">Cancellation Rate</p>
                   <p className="text-xs text-muted-foreground">{stats.cancelledAppointments} cancelled total</p>
                 </div>
@@ -233,7 +234,7 @@ export default function AdminAnalyticsPage() {
                   <Calendar className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-primary">
+                  <p className="text-2xl font-semibold text-foreground">
                     {stats.thisMonthAppointments > 0 ? (stats.thisMonthAppointments / new Date().getDate()).toFixed(1) : "0.0"}
                   </p>
                   <p className="text-sm font-medium text-primary">Avg / Day</p>
@@ -245,7 +246,7 @@ export default function AdminAnalyticsPage() {
                   <Clock className="h-6 w-6 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-primary">{stats.pendingAppointments}</p>
+                  <p className="text-2xl font-semibold text-foreground">{stats.pendingAppointments}</p>
                   <p className="text-sm font-medium text-primary">Pending</p>
                   <p className="text-xs text-muted-foreground">Awaiting confirmation</p>
                 </div>
@@ -255,7 +256,7 @@ export default function AdminAnalyticsPage() {
                   <Users className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-primary">
+                  <p className="text-2xl font-semibold text-foreground">
                     {stats.totalPatients > 0 ? (stats.totalDoctors / stats.totalPatients).toFixed(2) : "0.00"}
                   </p>
                   <p className="text-sm font-medium text-primary">Doctor/Patient Ratio</p>
@@ -267,7 +268,7 @@ export default function AdminAnalyticsPage() {
                   <BarChart3 className="h-6 w-6 text-teal-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-primary">{stats.newThisWeek}</p>
+                  <p className="text-2xl font-semibold text-foreground">{stats.newThisWeek}</p>
                   <p className="text-sm font-medium text-primary">New Bookings</p>
                   <p className="text-xs text-muted-foreground">Created this week</p>
                 </div>

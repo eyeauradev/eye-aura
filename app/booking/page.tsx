@@ -8,6 +8,7 @@ import { servicesService, usersService, doctorAvailabilityService } from "@/serv
 import { EA, eaError } from "@/lib/errors";
 import type { ServiceDocument, UserDocument, DoctorAvailabilityDocument } from "@/types/firestore";
 import type { BookingState, BookingStep } from "@/types/booking";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRight, ShieldCheck, Loader2, Stethoscope, Eye, Video, Glasses, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";

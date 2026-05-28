@@ -5,13 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { servicesService, usersService } from "@/services/firestore";
 import { ArrowLeft, Save, Eye, BookOpen, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { ServiceDocument, UserDocument, VisionAssessmentType, ServiceAssessmentAutomation } from "@/types/firestore";
@@ -134,10 +135,10 @@ export default function AdminServiceEditPage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Service not found</p>
             <Link href="/admin/services">
-              <Button variant="outline" className="mt-4">
+              <PremiumButton variant="outline" className="mt-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Services
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -150,13 +151,13 @@ export default function AdminServiceEditPage() {
       <div className="flex items-center justify-between">
         <div>
           <Link href={`/admin/services/${service.id}`}>
-            <Button variant="ghost" className="mb-4">
+            <PremiumButton variant="ghost" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Service
-            </Button>
+            </PremiumButton>
           </Link>
-          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Edit Service</h1>
-          <p className="text-sm sm:text-xl text-muted-foreground">Update service details and assign doctors</p>
+          <h1 className={TYPOGRAPHY.heading}>Edit Service</h1>
+          <p className="text-sm text-muted-foreground">Update service details and assign doctors</p>
         </div>
       </div>
 
@@ -248,7 +249,7 @@ export default function AdminServiceEditPage() {
               </div>
 
               <div className="pt-6 border-t border-primary/10">
-                <Label className="text-base font-bold mb-4 block">Assign Doctors</Label>
+                <Label className="text-base font-semibold mb-4 block">Assign Doctors</Label>
                 {doctors.length === 0 ? (
                   <p className="text-muted-foreground">No doctors available. Please create doctor accounts first.</p>
                 ) : (
@@ -290,7 +291,7 @@ export default function AdminServiceEditPage() {
                       <Zap className="h-3.5 w-3.5 text-[#0f4f4b]" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-[#0f4f4b]">Assessment Automation</p>
+                      <p className="text-sm font-semibold text-[#0f4f4b]">Assessment Automation</p>
                       <p className="text-xs text-[#0f4f4b]/50">Auto-assign vision tests when booking is confirmed</p>
                     </div>
                   </div>
@@ -352,14 +353,14 @@ export default function AdminServiceEditPage() {
 
               <div className="flex justify-end gap-4 pt-6 border-t border-primary/10">
                 <Link href={`/admin/services/${service.id}`}>
-                  <Button variant="outline" type="button">
+                  <PremiumButton variant="outline" type="button">
                     Cancel
-                  </Button>
+                  </PremiumButton>
                 </Link>
-                <Button type="submit" disabled={saving} className="min-w-[200px]">
+                <PremiumButton type="submit" disabled={saving} className="min-w-[200px]">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? "Saving..." : "Save Changes"}
-                </Button>
+                </PremiumButton>
               </div>
             </form>
           </CardContent>

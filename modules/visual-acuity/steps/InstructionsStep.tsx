@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { CheckCircle2, Circle, ArrowRight, Ruler, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AssessmentActionButton } from "@/components/premium/assessment-wrapper";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { cn } from "@/lib/utils";
 import type { TestType } from "../types";
 
 interface InstructionsStepProps {
@@ -50,18 +52,14 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
     <div className="max-w-lg mx-auto space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div
-          className={`mx-auto h-14 w-14 rounded-2xl flex items-center justify-center ${
-            isFar ? "bg-[#0f4f4b]" : "bg-[#b5964d]"
-          }`}
-        >
+        <div className="mx-auto h-14 w-14 rounded-2xl bg-primary flex items-center justify-center">
           {isFar
-            ? <Ruler className="h-7 w-7 text-white" />
-            : <BookOpen className="h-7 w-7 text-white" />
+            ? <Ruler className="h-7 w-7 text-primary-foreground" />
+            : <BookOpen className="h-7 w-7 text-primary-foreground" />
           }
         </div>
-        <h2 className="text-2xl font-black text-[#0f4f4b]">Before We Begin</h2>
-        <p className="text-sm text-[#0f4f4b]/60 max-w-xs mx-auto">
+        <h2 className={cn(TYPOGRAPHY.heading)}>Before We Begin</h2>
+        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
           {isFar
             ? "Far vision test at 3 metres. Please confirm each preparation step."
             : "Near vision test at 35–40 cm. Please confirm each preparation step."}
@@ -69,25 +67,15 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
       </div>
 
       {/* Distance callout */}
-      <div
-        className={`rounded-2xl border p-4 flex items-center gap-4 ${
-          isFar
-            ? "bg-[#0f4f4b]/5 border-[#0f4f4b]/15"
-            : "bg-[#b5964d]/6 border-[#b5964d]/20"
-        }`}
-      >
-        <div
-          className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 font-black text-white text-lg ${
-            isFar ? "bg-[#0f4f4b]" : "bg-[#b5964d]"
-          }`}
-        >
+      <div className="rounded-2xl border border-border bg-primary/5 p-4 flex items-center gap-4">
+        <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shrink-0 font-black text-primary-foreground text-lg">
           {isFar ? "3m" : "40cm"}
         </div>
         <div>
-          <p className="font-bold text-[#0f4f4b] text-sm">
+          <p className={cn(TYPOGRAPHY.body, "font-semibold text-sm")}>
             {isFar ? "Testing distance: 3 metres" : "Viewing distance: ~40 cm"}
           </p>
-          <p className="text-xs text-[#0f4f4b]/60 mt-0.5 leading-relaxed">
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
             {isFar
               ? "Stand 3 metres from your screen. This is fixed for clinical accuracy."
               : "Hold device at comfortable reading distance — roughly arm's length."}
@@ -96,8 +84,8 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
       </div>
 
       {/* Instruction checklist */}
-      <div className="rounded-2xl bg-white/80 border border-[#0f4f4b]/12 p-5 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#0f4f4b]/50">
+      <div className="rounded-2xl bg-card/80 border border-border p-5 space-y-3">
+        <p className={cn(TYPOGRAPHY.label)}>
           Preparation Checklist
         </p>
         <div className="space-y-2">
@@ -107,17 +95,21 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
               <button
                 key={i}
                 onClick={() => toggle(i)}
-                className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                className={cn(
+                  "w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all",
                   done
-                    ? "bg-[#0f4f4b]/6 border-[#0f4f4b]/20"
-                    : "bg-transparent border-[#0f4f4b]/8 hover:bg-[#0f4f4b]/4"
-                }`}
+                    ? "bg-primary/6 border-primary/20"
+                    : "bg-transparent border-border hover:bg-muted/50"
+                )}
               >
                 {done
-                  ? <CheckCircle2 className="h-5 w-5 shrink-0 text-[#0f4f4b] mt-0.5" />
-                  : <Circle className="h-5 w-5 shrink-0 text-[#0f4f4b]/30 mt-0.5" />
+                  ? <CheckCircle2 className="h-5 w-5 shrink-0 text-primary mt-0.5" />
+                  : <Circle className="h-5 w-5 shrink-0 text-muted-foreground mt-0.5" />
                 }
-                <span className={`text-sm leading-relaxed ${done ? "text-[#0f4f4b] font-medium" : "text-[#0f4f4b]/65"}`}>
+                <span className={cn(
+                  "text-sm leading-relaxed",
+                  done ? "text-foreground font-medium" : "text-muted-foreground"
+                )}>
                   {text}
                 </span>
               </button>
@@ -125,21 +117,19 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
           })}
         </div>
         {!allDone && (
-          <p className="text-xs text-[#b5964d] font-medium pl-1">
+          <p className="text-xs text-accent-foreground font-medium pl-1">
             Tap each item to confirm you have read it.
           </p>
         )}
       </div>
 
-      <Button
+      <AssessmentActionButton
         onClick={onContinue}
         disabled={!allDone}
-        size="lg"
-        className="w-full h-14 text-base rounded-2xl bg-[#0f4f4b] hover:bg-[#0a3a36] disabled:opacity-40 transition-all"
+        trailingIcon={<ArrowRight className="h-4 w-4" />}
       >
         Proceed to Calibration
-        <ArrowRight className="h-4 w-4 ml-2" />
-      </Button>
+      </AssessmentActionButton>
     </div>
   );
 }

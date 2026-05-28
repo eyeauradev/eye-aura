@@ -5,7 +5,7 @@ import { paymentsService, usersService, servicesService } from "@/services/fires
 import type { PaymentDocument, UserDocument, ServiceDocument } from "@/types/firestore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Input } from "@/components/ui/input";
 import {
   CreditCard, RefreshCcw, Search, TrendingUp,
@@ -13,6 +13,7 @@ import {
   RotateCcw, IndianRupee, ArrowUpRight, User, Stethoscope,
   CalendarDays, Receipt, ChevronDown, ChevronUp,
 } from "lucide-react";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 import { cn } from "@/lib/utils";
 
 type EnrichedPayment = PaymentDocument & {
@@ -142,13 +143,13 @@ export default function AdminPaymentsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-display text-xl sm:text-2xl text-primary">Payments & Refunds</h1>
+          <h1 className={TYPOGRAPHY.heading}>Payments & Refunds</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Track all transactions and refund statuses.</p>
         </div>
-        <Button variant="outline" onClick={load} disabled={loading} className="shrink-0">
+        <PremiumButton variant="outline" onClick={load} disabled={loading} className="shrink-0">
           <RefreshCcw className={cn("h-4 w-4 mr-1.5", loading && "animate-spin")} />
           Refresh
-        </Button>
+        </PremiumButton>
       </div>
 
       {/* Stats — 2 cols on 320px, 3 on sm, 5 on lg */}

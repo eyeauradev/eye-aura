@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, usersService, prescriptionsService, servicesService } from "@/services/firestore";
 import { ArrowLeft, Calendar, User, FileText, Clock, CheckCircle, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 
@@ -76,10 +77,10 @@ export default function AdminAppointmentDetailPage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Appointment not found</p>
             <Link href="/admin/appointments">
-              <Button variant="outline" className="mt-4">
+              <PremiumButton variant="outline" className="mt-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Appointments
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -91,13 +92,13 @@ export default function AdminAppointmentDetailPage() {
     <div className="space-y-8">
       <div>
         <Link href="/admin/appointments">
-          <Button variant="ghost" className="mb-4">
+          <PremiumButton variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Appointments
-          </Button>
+          </PremiumButton>
         </Link>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Appointment Details</h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <h1 className={TYPOGRAPHY.heading}>Appointment Details</h1>
+        <p className={TYPOGRAPHY.label}>
           {appointment.scheduledFor.toLocaleDateString("en-US", {
             weekday: "long",
             month: "long",
@@ -227,10 +228,10 @@ export default function AdminAppointmentDetailPage() {
                   </div>
                 </div>
                 <Link href={`/admin/prescriptions/${prescription.id}`}>
-                  <Button variant="outline">
+                  <PremiumButton variant="outline">
                     <FileText className="h-4 w-4 mr-2" />
                     View
-                  </Button>
+                  </PremiumButton>
                 </Link>
               </div>
             </CardContent>

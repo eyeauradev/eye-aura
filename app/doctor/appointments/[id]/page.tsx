@@ -10,9 +10,10 @@ import type { AppointmentDocument, PrescriptionDocument, UserDocument, VisionAss
 import { isRefundEligible } from "@/lib/refund-eligibility";
 import { useToast } from "@/components/ui/toast-provider";
 import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare, Eye, BookOpen, Zap, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 
@@ -417,10 +418,10 @@ export default function DoctorAppointmentDetailPage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Appointment not found</p>
             <Link href="/doctor/appointments">
-              <Button variant="outline" className="mt-4">
+              <PremiumButton variant="outline" className="mt-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Appointments
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -435,15 +436,15 @@ export default function DoctorAppointmentDetailPage() {
       {/* Header */}
       <div>
         <Link href="/doctor/appointments">
-          <Button variant="ghost" className="mb-4">
+          <PremiumButton variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Appointments
-          </Button>
+          </PremiumButton>
         </Link>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Appointment Details</h1>
-            <p className="text-xl font-medium text-primary">{patient?.displayName || "Patient"}</p>
+            <h1 className={TYPOGRAPHY.heading}>Appointment Details</h1>
+            <p className={TYPOGRAPHY.subheading}>{patient?.displayName || "Patient"}</p>
             <p className="text-sm text-muted-foreground">{patient?.email}</p>
             {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
           </div>
@@ -518,7 +519,7 @@ export default function DoctorAppointmentDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {canJoinConsultation() && appointment.consultationLink && (
-                <Button asChild className="w-full">
+                <PremiumButton asChild className="w-full">
                   <a
                     href={appointment.consultationLink}
                     target="_blank"
@@ -528,22 +529,22 @@ export default function DoctorAppointmentDetailPage() {
                     <Video className="h-4 w-4" />
                     Join Consultation
                   </a>
-                </Button>
+                </PremiumButton>
               )}
               
               {appointment.status === "pending" && (
-                <Button
+                <PremiumButton
                   onClick={() => handleUpdateStatus("confirmed")}
                   disabled={updating}
                   className="w-full"
                 >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Confirm Appointment
-                </Button>
+                </PremiumButton>
               )}
               
               {(appointment.status === "pending" || appointment.status === "confirmed") && (
-                <Button
+                <PremiumButton
                   onClick={() => handleUpdateStatus("completed")}
                   disabled={updating}
                   variant="outline"
@@ -551,11 +552,11 @@ export default function DoctorAppointmentDetailPage() {
                 >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Mark as Completed
-                </Button>
+                </PremiumButton>
               )}
               
               {(appointment.status === "pending" || appointment.status === "confirmed") && (
-                <Button
+                <PremiumButton
                   onClick={() => handleUpdateStatus("cancelled")}
                   disabled={updating}
                   variant="outline"
@@ -563,7 +564,7 @@ export default function DoctorAppointmentDetailPage() {
                 >
                   <X className="h-4 w-4 mr-2" />
                   Cancel Appointment
-                </Button>
+                </PremiumButton>
               )}
 
               {appointment.status === "cancellation_requested" && (
@@ -579,15 +580,15 @@ export default function DoctorAppointmentDetailPage() {
                       </p>
                     )}
                   </div>
-                  <Button
+                  <PremiumButton
                     onClick={() => handleApproveCancellation()}
                     disabled={updating}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     {updating ? "Approving..." : "Approve Cancellation"}
-                  </Button>
-                  <Button
+                  </PremiumButton>
+                  <PremiumButton
                     onClick={() => setShowRejectModal(true)}
                     disabled={updating}
                     variant="outline"
@@ -595,16 +596,16 @@ export default function DoctorAppointmentDetailPage() {
                   >
                     <X className="h-4 w-4 mr-2" />
                     Reject Cancellation
-                  </Button>
+                  </PremiumButton>
                 </div>
               )}
 
               {appointment.status === "completed" && !appointment.prescriptionId && (
                 <Link href={`/doctor/prescriptions/create/${appointment.id}`} className="w-full">
-                  <Button variant="outline" className="w-full">
+                  <PremiumButton variant="outline" className="w-full">
                     <FileText className="h-4 w-4 mr-2" />
                     Create Prescription
-                  </Button>
+                  </PremiumButton>
                 </Link>
               )}
 
@@ -631,14 +632,14 @@ export default function DoctorAppointmentDetailPage() {
                         <p className="text-xs text-red-700">{refundError}</p>
                       </div>
                     )}
-                    <Button
+                    <PremiumButton
                       onClick={handleIssueRefund}
                       disabled={issuingRefund}
                       className="w-full bg-blue-600 hover:bg-blue-700"
                     >
                       <RefreshCw className={`h-4 w-4 mr-2 ${issuingRefund ? "animate-spin" : ""}`} />
                       {issuingRefund ? "Processing Refund..." : "Issue Refund"}
-                    </Button>
+                    </PremiumButton>
                   </div>
                 );
               })()}
@@ -803,14 +804,14 @@ export default function DoctorAppointmentDetailPage() {
                         Last reviewed {new Date(a.reviewedAt).toLocaleString("en-IN", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}
                       </p>
                     ) : <span />}
-                    <Button
+                    <PremiumButton
                       onClick={() => handleSaveReview(a.id)}
                       disabled={savingReview === a.id}
                       className="h-8 px-3 bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-xs"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
                       {savingReview === a.id ? "Saving…" : "Save Review"}
-                    </Button>
+                    </PremiumButton>
                   </div>
                 </div>
 
@@ -858,14 +859,14 @@ export default function DoctorAppointmentDetailPage() {
               </div>
             )}
 
-            <Button
+            <PremiumButton
               onClick={handleAssignAssessment}
               disabled={assigning || assigningTypes.length === 0}
               className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl"
             >
               <Zap className="h-4 w-4 mr-2" />
               {assigning ? "Assigning…" : `Assign ${assigningTypes.map((t) => t === "far" ? "Far" : "Near").join(" + ")} Assessment`}
-            </Button>
+            </PremiumButton>
           </CardContent>
         </Card>
       </div>
@@ -883,9 +884,9 @@ export default function DoctorAppointmentDetailPage() {
               placeholder="Add consultation notes, symptoms, or observations..."
               className="w-full min-h-[150px] p-4 border border-primary/10 rounded-2xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
             />
-            <Button onClick={handleSaveNotes} disabled={updating}>
+            <PremiumButton onClick={handleSaveNotes} disabled={updating}>
               {updating ? "Saving..." : "Save Notes"}
-            </Button>
+            </PremiumButton>
           </CardContent>
         </Card>
       
@@ -893,7 +894,7 @@ export default function DoctorAppointmentDetailPage() {
       {/* Prescriptions */}
       {prescriptions.length > 0 && (
         <div>
-          <h2 className="font-display text-2xl text-primary mb-6">Prescriptions</h2>
+          <h2 className={TYPOGRAPHY.subheading + " mb-6"}>Prescriptions</h2>
           <div className="grid gap-4">
             {prescriptions.map((prescription) => (
               <Card key={prescription.id} className="border-primary/10">
@@ -912,7 +913,7 @@ export default function DoctorAppointmentDetailPage() {
                       </p>
                     </div>
                     <Link href={`/doctor/prescriptions/${prescription.id}`}>
-                      <Button variant="outline">View Details</Button>
+                      <PremiumButton variant="outline">View Details</PremiumButton>
                     </Link>
                   </div>
                 </CardContent>
@@ -1003,7 +1004,7 @@ export default function DoctorAppointmentDetailPage() {
               />
             </div>
             <div className="flex gap-3">
-              <Button
+              <PremiumButton
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
@@ -1013,14 +1014,14 @@ export default function DoctorAppointmentDetailPage() {
                 disabled={updating}
               >
                 Cancel
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={handleRejectCancellation}
                 disabled={updating || !rejectionReason.trim()}
                 className="flex-1 bg-red-600 hover:bg-red-700"
               >
                 {updating ? "Rejecting..." : "Confirm Rejection"}
-              </Button>
+              </PremiumButton>
             </div>
           </div>
         </div>
@@ -1035,15 +1036,15 @@ export default function DoctorAppointmentDetailPage() {
               This appointment has a payment associated with it. Would you like to issue a refund to the patient?
             </p>
             <div className="flex flex-col gap-3">
-              <Button
+              <PremiumButton
                 onClick={() => approveWithDecision("refund")}
                 disabled={updating}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 {updating ? "Processing..." : "Approve with Refund"}
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 onClick={() => approveWithDecision("no_refund")}
                 disabled={updating}
                 variant="outline"
@@ -1051,15 +1052,15 @@ export default function DoctorAppointmentDetailPage() {
               >
                 <X className="h-4 w-4 mr-2" />
                 {updating ? "Processing..." : "Approve without Refund"}
-              </Button>
-              <Button
+              </PremiumButton>
+              <PremiumButton
                 variant="ghost"
                 className="w-full text-muted-foreground"
                 onClick={() => setShowApprovalChoiceModal(false)}
                 disabled={updating}
               >
                 Cancel
-              </Button>
+              </PremiumButton>
             </div>
           </div>
         </div>

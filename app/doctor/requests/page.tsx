@@ -6,7 +6,7 @@ import { bookingRequestsService } from "@/services/firestore/booking-requests.se
 import { usersService, servicesService } from "@/services/firestore";
 import { getFirebaseAuth } from "@/services/firebase/client";
 import type { BookingRequestDocument, BookingRequestStatus, ServiceDocument, UserDocument } from "@/types/firestore";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import {
   User, CalendarDays, RefreshCcw, RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 type EnrichedRequest = BookingRequestDocument & { patient?: UserDocument | null; service?: ServiceDocument | null };
 
@@ -172,7 +173,7 @@ export default function DoctorRequestsPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl text-primary">Booking Requests</h1>
+            <h1 className={TYPOGRAPHY.heading}>Booking Requests</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Review and manage consultation requests from patients.
             </p>
@@ -184,10 +185,9 @@ export default function DoctorRequestsPage() {
                 {pendingCount} pending
               </Badge>
             )}
-            <Button variant="outline" onClick={loadRequests}>
-              <RefreshCcw className="h-4 w-4 mr-1.5" />
+            <PremiumButton variant="outline" onClick={loadRequests} icon={<RefreshCcw className="h-4 w-4" />}>
               Refresh
-            </Button>
+            </PremiumButton>
           </div>
         </div>
 
@@ -259,7 +259,7 @@ export default function DoctorRequestsPage() {
                             <User className="h-5 w-5 text-primary" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-primary truncate">
+                            <p className={cn(TYPOGRAPHY.subheading, "truncate")}>
                               {request.patient?.displayName || "Patient"}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
@@ -312,7 +312,7 @@ export default function DoctorRequestsPage() {
                       {/* Rejection reason */}
                       {request.rejectionReason && (
                         <div className="rounded-xl bg-red-50 border border-red-100 px-3 py-2">
-                          <p className="text-xs font-bold text-red-700 mb-0.5">Decline reason</p>
+                          <p className={cn(TYPOGRAPHY.label, "text-red-700 mb-0.5")}>Decline reason</p>
                           <p className="text-sm text-red-700">{request.rejectionReason}</p>
                         </div>
                       )}
@@ -320,7 +320,7 @@ export default function DoctorRequestsPage() {
                       {/* Payment info */}
                       {request.paymentAmount && (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="font-bold text-secondary">
+                          <span className="font-medium text-secondary">
                             ₹{request.paymentAmount} paid
                           </span>
                           {isRejected && request.refundStatus === "processed" && (
@@ -335,54 +335,41 @@ export default function DoctorRequestsPage() {
                       {/* Retry refund for stuck/failed declined requests */}
                       {isRejected && (request.refundStatus === "pending" || request.refundStatus === "failed") && (
                         <div className="pt-1">
-                          <Button
+                          <PremiumButton
                             variant="outline"
                             onClick={() => handleRetryRefund(request)}
                             disabled={retryingRefundId === request.id}
-                            className="w-full h-9 text-sm border-amber-300 text-amber-800 hover:bg-amber-50"
+                            loading={retryingRefundId === request.id}
+                            fullWidth
+                            size="sm"
+                            icon={<RotateCcw className="h-4 w-4" />}
                           >
-                            {retryingRefundId === request.id ? (
-                              <span className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Retrying refund…
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-2">
-                                <RotateCcw className="h-4 w-4" />
-                                Retry Refund
-                              </span>
-                            )}
-                          </Button>
+                            {retryingRefundId === request.id ? "Retrying refund…" : "Retry Refund"}
+                          </PremiumButton>
                         </div>
                       )}
 
                       {/* Actions for pending */}
                       {isPending && (
                         <div className="flex gap-2 pt-1">
-                          <Button
+                          <PremiumButton
                             onClick={() => handleAccept(request.id)}
                             disabled={acceptingId === request.id}
-                            className="flex-1 bg-green-600 hover:bg-green-700 h-9 text-sm"
+                            loading={acceptingId === request.id}
+                            className="flex-1"
+                            size="sm"
+                            icon={<CheckCircle2 className="h-4 w-4" />}
                           >
-                            {acceptingId === request.id ? (
-                              <span className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Accepting…
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1.5">
-                                <CheckCircle2 className="h-4 w-4" />
-                                Accept
-                              </span>
-                            )}
-                          </Button>
-                          <Button
+                            {acceptingId === request.id ? "Accepting…" : "Accept"}
+                          </PremiumButton>
+                          <PremiumButton
                             variant="outline"
                             onClick={() => openRejectDialog(request.id)}
-                            className="flex-1 h-9 text-sm"
+                            className="flex-1"
+                            size="sm"
                           >
                             Decline
-                          </Button>
+                          </PremiumButton>
                         </div>
                       )}
                     </div>
@@ -401,7 +388,7 @@ export default function DoctorRequestsPage() {
       >
         <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl text-primary flex items-center gap-2">
+            <DialogTitle className={cn(TYPOGRAPHY.subheading, "flex items-center gap-2")}>
               <XCircle className="h-5 w-5 text-red-500" />
               Decline Booking Request
             </DialogTitle>
@@ -430,27 +417,20 @@ export default function DoctorRequestsPage() {
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
+            <PremiumButton
               variant="outline"
               onClick={() => setRejectDialog({ open: false, requestId: "" })}
               disabled={rejectLoading}
             >
               Cancel
-            </Button>
-            <Button
+            </PremiumButton>
+            <PremiumButton
               onClick={handleConfirmReject}
               disabled={rejectLoading || !rejectReason.trim()}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              loading={rejectLoading}
             >
-              {rejectLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Declining…
-                </span>
-              ) : (
-                "Decline & Refund"
-              )}
-            </Button>
+              {rejectLoading ? "Declining…" : "Decline & Refund"}
+            </PremiumButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

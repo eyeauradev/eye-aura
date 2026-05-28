@@ -6,9 +6,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { prescriptionsService, appointmentsService, usersService } from "@/services/firestore";
 import type { PrescriptionDocument, AppointmentDocument, UserDocument } from "@/types/firestore";
 import { ArrowLeft, Eye, Download, Share2, Calendar, User, FileText, Edit2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 
@@ -87,10 +88,9 @@ export default function DoctorPrescriptionDetailPage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Prescription not found</p>
             <Link href="/doctor/prescriptions">
-              <Button variant="outline" className="mt-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
+              <PremiumButton variant="outline" icon={<ArrowLeft className="h-4 w-4" />}>
                 Back to Prescriptions
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -104,13 +104,12 @@ export default function DoctorPrescriptionDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <Link href="/doctor/appointments">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <PremiumButton variant="ghost" className="mb-4" icon={<ArrowLeft className="h-4 w-4" />}>
               Back to Appointments
-            </Button>
+            </PremiumButton>
           </Link>
-          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Prescription Details</h1>
-          <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">
+          <h1 className={TYPOGRAPHY.heading}>Prescription Details</h1>
+          <p className="text-sm text-muted-foreground">
             {patient?.displayName || "Patient"} • {new Date(prescription.createdAt).toLocaleDateString("en-US", {
               month: "long",
               day: "numeric",
@@ -119,18 +118,15 @@ export default function DoctorPrescriptionDetailPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={handleExportPDF} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
+          <PremiumButton onClick={handleExportPDF} variant="outline" icon={<Download className="h-4 w-4" />}>
             Export PDF
-          </Button>
-          <Button onClick={handleExportPNG} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
+          </PremiumButton>
+          <PremiumButton onClick={handleExportPNG} variant="outline" icon={<Download className="h-4 w-4" />}>
             Export PNG
-          </Button>
-          <Button onClick={handleShare} variant="outline">
-            <Share2 className="h-4 w-4 mr-2" />
+          </PremiumButton>
+          <PremiumButton onClick={handleShare} variant="outline" icon={<Share2 className="h-4 w-4" />}>
             Share
-          </Button>
+          </PremiumButton>
         </div>
       </div>
 
@@ -152,25 +148,22 @@ export default function DoctorPrescriptionDetailPage() {
           <CardContent className="space-y-3">
             {appointment && (
               <Link href={`/doctor/appointments/${appointment.id}`} className="block">
-                <Button variant="outline" className="w-full">
-                  <Calendar className="h-4 w-4 mr-2" />
+                <PremiumButton variant="outline" fullWidth icon={<Calendar className="h-4 w-4" />}>
                   View Related Appointment
-                </Button>
+                </PremiumButton>
               </Link>
             )}
             {patient && (
               <Link href={`/doctor/patients/${patient.id}`} className="block">
-                <Button variant="outline" className="w-full">
-                  <User className="h-4 w-4 mr-2" />
+                <PremiumButton variant="outline" fullWidth icon={<User className="h-4 w-4" />}>
                   View Patient History
-                </Button>
+                </PremiumButton>
               </Link>
             )}
             <Link href={`/doctor/prescriptions/create/${prescription.appointmentId}`} className="block">
-              <Button variant="outline" className="w-full">
-                <Edit2 className="h-4 w-4 mr-2" />
+              <PremiumButton variant="outline" fullWidth icon={<Edit2 className="h-4 w-4" />}>
                 Edit Prescription
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>

@@ -7,6 +7,7 @@ import { doctorBlocksService } from "@/services/firestore/doctor-blocks.service"
 import type { DoctorAvailabilityDocument, DoctorBlockDocument, DayOfWeek } from "@/types/firestore";
 import { Calendar, Clock, Plus, Ban, Trash2, ChevronLeft, ChevronRight, Settings, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 const DOW_MAP: Record<number, DayOfWeek> = {
   0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday",
@@ -145,9 +146,9 @@ export default function DoctorSlotsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Calendar className="h-4 w-4 text-primary/60" />
-            <p className="text-xs uppercase tracking-widest text-primary/50 font-medium">Schedule Overview</p>
+            <p className="text-xs uppercase tracking-[0.12em] text-primary/50 font-medium">Schedule Overview</p>
           </div>
-          <h1 className="font-display text-3xl sm:text-4xl text-primary tracking-tight">Availability Calendar</h1>
+          <h1 className={TYPOGRAPHY.heading}>Availability Calendar</h1>
           <p className="text-muted-foreground mt-1 text-sm">View your weekly schedule and manage time blocks.</p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -178,7 +179,7 @@ export default function DoctorSlotsPage() {
           <Card key={i} className="border-primary/10 bg-white/60">
             <CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">{stat.label}</p>
-              <p className="text-xl font-bold text-primary mt-1 leading-none">{stat.value}</p>
+              <p className="text-xl font-semibold text-primary mt-1 leading-none">{stat.value}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{stat.sub}</p>
             </CardContent>
           </Card>
@@ -277,7 +278,7 @@ export default function DoctorSlotsPage() {
                 <p className={`text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider ${isSelected(day) ? "text-white/70" : "text-muted-foreground"}`}>
                   {day.toLocaleDateString("en-US", { weekday: "short" })}
                 </p>
-                <p className={`text-sm sm:text-base font-bold mt-0.5 ${isSelected(day) ? "text-white" : ""}`}>
+                <p className={`text-sm sm:text-base font-semibold mt-0.5 ${isSelected(day) ? "text-white" : ""}`}>
                   {day.getDate()}
                 </p>
                 <div className="flex justify-center gap-0.5 mt-1">
@@ -364,7 +365,7 @@ export default function DoctorSlotsPage() {
       {upcomingBlocks.length > 0 && (
         <div className="rounded-2xl border border-primary/10 bg-white/60 p-4 sm:p-5 space-y-4">
           <div>
-            <h2 className="text-lg font-display text-primary font-semibold">All Upcoming Blocks</h2>
+            <h2 className={TYPOGRAPHY.subheading}>All Upcoming Blocks</h2>
             <p className="text-sm text-muted-foreground mt-0.5">All unavailable periods from today onward.</p>
           </div>
           <div className="space-y-2">

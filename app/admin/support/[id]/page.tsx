@@ -5,10 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { supportTicketsService, usersService } from "@/services/firestore";
 import { ArrowLeft, MessageSquare, User, Clock, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { SupportTicketDocument } from "@/types/firestore";
@@ -108,10 +109,10 @@ export default function AdminSupportDetailPage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Ticket not found</p>
             <Link href="/admin/support">
-              <Button variant="outline" className="mt-4">
+              <PremiumButton variant="outline" className="mt-4">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Support
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -124,36 +125,36 @@ export default function AdminSupportDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <Link href="/admin/support">
-            <Button variant="ghost" className="mb-4">
+            <PremiumButton variant="ghost" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Support
-            </Button>
+            </PremiumButton>
           </Link>
-          <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">{ticket.subject}</h1>
-          <p className="text-sm sm:text-xl text-muted-foreground">
+          <h1 className={TYPOGRAPHY.heading}>{ticket.subject}</h1>
+          <p className={TYPOGRAPHY.label}>
             {ticketUser?.displayName || "Unknown"} • {ticket.priority}
           </p>
         </div>
         <div className="flex gap-3">
           {ticket.status === "open" && (
-            <Button onClick={() => handleUpdateStatus("in_progress")} variant="outline">
+            <PremiumButton onClick={() => handleUpdateStatus("in_progress")} variant="outline">
               Mark In Progress
-            </Button>
+            </PremiumButton>
           )}
           {ticket.status === "in_progress" && (
             <>
-              <Button onClick={() => handleUpdateStatus("resolved")} variant="outline">
+              <PremiumButton onClick={() => handleUpdateStatus("resolved")} variant="outline">
                 Mark Resolved
-              </Button>
-              <Button onClick={() => handleUpdateStatus("closed")} variant="outline">
+              </PremiumButton>
+              <PremiumButton onClick={() => handleUpdateStatus("closed")} variant="outline">
                 Mark Closed
-              </Button>
+              </PremiumButton>
             </>
           )}
           {ticket.status === "resolved" && (
-            <Button onClick={() => handleUpdateStatus("closed")} variant="outline">
+            <PremiumButton onClick={() => handleUpdateStatus("closed")} variant="outline">
               Close Ticket
-            </Button>
+            </PremiumButton>
           )}
         </div>
       </div>
@@ -256,10 +257,10 @@ export default function AdminSupportDetailPage() {
                   onChange={(e) => setResponseText(e.target.value)}
                   className="flex-1"
                 />
-                <Button type="submit" disabled={submitting || !responseText.trim()}>
+                <PremiumButton type="submit" disabled={submitting || !responseText.trim()}>
                   <Send className="h-4 w-4 mr-2" />
                   {submitting ? "Sending..." : "Send"}
-                </Button>
+                </PremiumButton>
               </form>
             )}
           </CardContent>

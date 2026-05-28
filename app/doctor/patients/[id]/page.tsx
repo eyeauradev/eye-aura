@@ -6,9 +6,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, prescriptionsService, usersService } from "@/services/firestore";
 import type { AppointmentDocument, PrescriptionDocument, UserDocument } from "@/types/firestore";
 import { ArrowLeft, Calendar, Clock, FileText, Users, CalendarPlus, MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 
@@ -89,10 +90,9 @@ export default function DoctorPatientDetailPage() {
           <CardContent className="p-12 text-center">
             <p className="text-lg text-muted-foreground">Patient not found</p>
             <Link href="/doctor/patients">
-              <Button variant="outline" className="mt-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
+              <PremiumButton variant="outline" icon={<ArrowLeft className="h-4 w-4" />}>
                 Back to Patients
-              </Button>
+              </PremiumButton>
             </Link>
           </CardContent>
         </Card>
@@ -107,14 +107,13 @@ export default function DoctorPatientDetailPage() {
       {/* Header */}
       <div>
         <Link href="/doctor/patients">
-          <Button variant="ghost" className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+          <PremiumButton variant="ghost" className="mb-4" icon={<ArrowLeft className="h-4 w-4" />}>
             Back to Patients
-          </Button>
+          </PremiumButton>
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">{patient.displayName || "Patient"}</h1>
+            <h1 className={TYPOGRAPHY.heading}>{patient.displayName || "Patient"}</h1>
             <p className="text-base text-muted-foreground">{patient.email}</p>
             {patient.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
           </div>
@@ -206,9 +205,9 @@ export default function DoctorPatientDetailPage() {
                       </div>
                     </div>
                     <Link href={`/doctor/appointments/${apt.id}`}>
-                      <Button variant="outline" size="default">
+                      <PremiumButton variant="outline" size="sm">
                         View
-                      </Button>
+                      </PremiumButton>
                     </Link>
                   </div>
                 ))}
@@ -220,7 +219,7 @@ export default function DoctorPatientDetailPage() {
 
       {/* Consultation History */}
       
-        <h2 className="font-display text-2xl text-primary mb-6">Consultation History</h2>
+        <h2 className={TYPOGRAPHY.subheading + " mb-6"}>Consultation History</h2>
         {appointments.length > 0 ? (
           <div className="space-y-4">
             {appointments.map((appointment) => (
@@ -268,7 +267,7 @@ export default function DoctorPatientDetailPage() {
                     </div>
 
                     <Link href={`/doctor/appointments/${appointment.id}`}>
-                      <Button variant="ghost">View Details</Button>
+                      <PremiumButton variant="ghost">View Details</PremiumButton>
                     </Link>
                   </div>
                 </CardContent>
@@ -287,7 +286,7 @@ export default function DoctorPatientDetailPage() {
 
       {/* Prescriptions */}
       
-        <h2 className="font-display text-2xl text-primary mb-6">Prescriptions</h2>
+        <h2 className={TYPOGRAPHY.subheading + " mb-6"}>Prescriptions</h2>
         {prescriptions.length > 0 ? (
           <div className="space-y-4">
             {prescriptions.map((prescription) => (
@@ -322,7 +321,7 @@ export default function DoctorPatientDetailPage() {
                     </div>
 
                     <Link href={`/doctor/prescriptions/${prescription.id}`}>
-                      <Button variant="ghost">View Details</Button>
+                      <PremiumButton variant="ghost">View Details</PremiumButton>
                     </Link>
                   </div>
                 </CardContent>

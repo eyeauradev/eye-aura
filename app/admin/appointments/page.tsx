@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, usersService } from "@/services/firestore";
 import { Search, Calendar, Filter } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { AppointmentDocument, UserDocument } from "@/types/firestore";
@@ -75,8 +76,8 @@ export default function AdminAppointmentsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Appointments</h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <h1 className={TYPOGRAPHY.heading}>Appointments</h1>
+        <p className="text-sm text-muted-foreground">
           Monitor all platform appointments
         </p>
       </div>
@@ -177,9 +178,9 @@ function AppointmentCard({
         </div>
       </div>
       <Link href={`/admin/appointments/${appointment.id}`} className="shrink-0">
-        <Button variant="ghost" size="icon">
+        <PremiumButton variant="ghost" size="icon">
           <Calendar className="h-4 w-4" />
-        </Button>
+        </PremiumButton>
       </Link>
     </div>
   );

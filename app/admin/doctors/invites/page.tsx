@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { doctorInvitesService } from "@/services/firestore";
 import type { DoctorInviteDocument, InviteStatus } from "@/types/firestore";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import { Mail, Copy, RefreshCw, X, Clock, CheckCircle, AlertCircle, Calendar, User as UserIcon } from "lucide-react";
 
@@ -201,46 +202,46 @@ export default function DoctorInvitesPage() {
           <div className="flex flex-col gap-2">
             {invite.status === "pending" && (
               <>
-                <Button
+                <PremiumButton
                   variant="outline"
                   onClick={() => handleCopyLink(invite.token)}
                   disabled={actionLoading === invite.id}
                 >
                   <Copy className="h-4 w-4" />
-                </Button>
-                <Button
+                </PremiumButton>
+                <PremiumButton
                   variant="outline"
                   onClick={() => handleResend(invite.id)}
                   disabled={actionLoading === invite.id}
                 >
                   <RefreshCw className="h-4 w-4" />
-                </Button>
-                <Button
+                </PremiumButton>
+                <PremiumButton
                   variant="outline"
                   onClick={() => handleCancel(invite.id)}
                   disabled={actionLoading === invite.id}
                 >
                   <X className="h-4 w-4" />
-                </Button>
+                </PremiumButton>
               </>
             )}
             
             {invite.status === "opened" && (
               <>
-                <Button
+                <PremiumButton
                   variant="outline"
                   onClick={() => handleResend(invite.id)}
                   disabled={actionLoading === invite.id}
                 >
                   <RefreshCw className="h-4 w-4" />
-                </Button>
-                <Button
+                </PremiumButton>
+                <PremiumButton
                   variant="outline"
                   onClick={() => handleCancel(invite.id)}
                   disabled={actionLoading === invite.id}
                 >
                   <X className="h-4 w-4" />
-                </Button>
+                </PremiumButton>
               </>
             )}
           </div>
@@ -263,8 +264,8 @@ export default function DoctorInvitesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Doctor Invites</h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <h1 className={TYPOGRAPHY.heading}>Doctor Invites</h1>
+        <p className="text-sm text-muted-foreground">
           Manage doctor invitation lifecycle
         </p>
       </div>

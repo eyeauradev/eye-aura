@@ -5,8 +5,9 @@ import { useAuth } from "@/contexts/auth-context";
 import { usersService } from "@/services/firestore";
 import type { UserDocument } from "@/types/firestore";
 import { User, Mail, Phone, Calendar, Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 
 export default function DoctorProfilePage() {
@@ -74,8 +75,8 @@ export default function DoctorProfilePage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Profile Settings</h1>
-        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">Manage your account information</p>
+        <h1 className={TYPOGRAPHY.heading}>Profile Settings</h1>
+        <p className="text-sm text-muted-foreground">Manage your account information</p>
       </div>
 
       {/* Profile Form */}
@@ -116,10 +117,9 @@ export default function DoctorProfilePage() {
               />
             </div>
 
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              <Save className="h-4 w-4 mr-2" />
+            <PremiumButton onClick={handleSave} disabled={saving} loading={saving} fullWidth icon={<Save className="h-4 w-4" />}>
               {saving ? "Saving..." : "Save Changes"}
-            </Button>
+            </PremiumButton>
           </CardContent>
         </Card>
       

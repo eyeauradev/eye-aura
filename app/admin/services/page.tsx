@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { servicesService, usersService } from "@/services/firestore";
 import { Plus, Search, Edit2, ToggleLeft, ToggleRight, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { ServiceDocument, UserDocument } from "@/types/firestore";
@@ -73,14 +74,14 @@ export default function AdminServicesPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl text-primary mb-1">Services</h1>
-          <p className="text-base sm:text-sm sm:text-xl text-muted-foreground">Manage consultation services</p>
+          <h1 className={TYPOGRAPHY.heading}>Services</h1>
+          <p className="text-sm text-muted-foreground">Manage consultation services</p>
         </div>
         <Link href="/admin/services/create" className="self-start sm:self-auto">
-          <Button>
+          <PremiumButton>
             <Plus className="h-4 w-4 mr-2" />
             Create Service
-          </Button>
+          </PremiumButton>
         </Link>
       </div>
 
@@ -108,7 +109,7 @@ export default function AdminServicesPage() {
                 </p>
                 {!searchQuery && (
                   <Link href="/admin/services/create">
-                    <Button>Create First Service</Button>
+                    <PremiumButton>Create First Service</PremiumButton>
                   </Link>
                 )}
               </div>
@@ -134,7 +135,7 @@ function ServiceCard({ service, onToggle }: { service: ServiceDocument & { docto
   return (
     <div className="flex items-center gap-2 p-2 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-        <span className="text-primary font-bold">{service.title.charAt(0)}</span>
+        <span className="text-primary font-semibold">{service.title.charAt(0)}</span>
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-primary truncate">{service.title}</p>
@@ -157,11 +158,11 @@ function ServiceCard({ service, onToggle }: { service: ServiceDocument & { docto
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
         <Link href={`/admin/services/${service.id}`}>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <PremiumButton variant="ghost" size="icon" className="h-8 w-8">
             <Edit2 className="h-3.5 w-3.5" />
-          </Button>
+          </PremiumButton>
         </Link>
-        <Button
+        <PremiumButton
           variant="ghost"
           size="icon"
           className="h-8 w-8"
@@ -169,7 +170,7 @@ function ServiceCard({ service, onToggle }: { service: ServiceDocument & { docto
           title={service.isActive ? "Disable service" : "Enable service"}
         >
           {service.isActive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-        </Button>
+        </PremiumButton>
       </div>
     </div>
   );

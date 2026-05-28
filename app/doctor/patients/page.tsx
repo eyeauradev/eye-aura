@@ -5,9 +5,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, usersService } from "@/services/firestore";
 import type { AppointmentDocument, UserDocument } from "@/types/firestore";
 import { Users, Search, Calendar, Clock, FileText, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 
@@ -96,8 +97,8 @@ export default function DoctorPatientsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">Patients</h1>
-        <p className="text-sm sm:text-sm sm:text-xl text-muted-foreground">View patient consultation history</p>
+        <h1 className={TYPOGRAPHY.heading}>Patients</h1>
+        <p className="text-sm text-muted-foreground">View patient consultation history</p>
       </div>
 
       {/* Search */}
@@ -121,8 +122,8 @@ export default function DoctorPatientsPage() {
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Patients</p>
-                <p className="text-3xl font-bold text-primary">{patients.length}</p>
+                <p className={TYPOGRAPHY.label}>Total Patients</p>
+                <p className="text-2xl font-semibold text-foreground">{patients.length}</p>
               </div>
             </div>
           </CardContent>
@@ -134,8 +135,8 @@ export default function DoctorPatientsPage() {
                 <Calendar className="h-6 w-6 text-secondary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Follow-Ups Required</p>
-                <p className="text-3xl font-bold text-secondary">
+                <p className={TYPOGRAPHY.label}>Follow-Ups Required</p>
+                <p className="text-2xl font-semibold text-foreground">
                   {patients.filter(p => p.followUpRequired).length}
                 </p>
               </div>
@@ -212,10 +213,9 @@ function PatientCard({ patient, info }: { patient: { patientId: string; appointm
           </div>
 
           <Link href={`/doctor/patients/${patient.patientId}`}>
-            <Button variant="ghost">
+            <PremiumButton variant="ghost" trailingIcon={<ArrowRight className="h-4 w-4" />}>
               View Details
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+            </PremiumButton>
           </Link>
         </div>
       </CardContent>

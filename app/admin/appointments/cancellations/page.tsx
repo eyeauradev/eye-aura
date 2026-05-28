@@ -7,9 +7,10 @@ import { transactionService } from "@/services/booking/transaction.service";
 import { getAuth } from "firebase/auth";
 import { useToast } from "@/components/ui/toast-provider";
 import { Calendar, Clock, AlertCircle, CheckCircle2, X, ArrowLeft, DollarSign, History } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 import Link from "next/link";
 import type { AppointmentDocument, UserDocument, RefundDecision } from "@/types/firestore";
 import { isRefundEligible } from "@/lib/refund-eligibility";
@@ -226,15 +227,15 @@ export default function AdminCancellationsPage() {
       {/* Header */}
       <div>
         <Link href="/admin/appointments">
-          <Button variant="ghost" className="mb-4">
+          <PremiumButton variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Appointments
-          </Button>
+          </PremiumButton>
         </Link>
-        <h1 className="font-display text-2xl sm:text-4xl text-primary mb-1">
+        <h1 className={TYPOGRAPHY.heading}>
           Cancellation Requests
         </h1>
-        <p className="text-sm sm:text-xl text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Review and manage patient cancellation requests
         </p>
       </div>
@@ -242,9 +243,9 @@ export default function AdminCancellationsPage() {
       {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2">
         {(["pending", "approved", "rejected", "all"] as FilterStatus[]).map((status) => (
-          <Button
+          <PremiumButton
             key={status}
-            variant={filter === status ? "default" : "outline"}
+            variant={filter === status ? "primary" : "outline"}
             onClick={() => setFilter(status)}
             className={filter === status ? "" : "border-primary/10"}
           >
@@ -254,7 +255,7 @@ export default function AdminCancellationsPage() {
                 {requests.filter((r) => r.appointment.status === "cancellation_requested").length}
               </Badge>
             )}
-          </Button>
+          </PremiumButton>
         ))}
       </div>
 
@@ -312,7 +313,7 @@ export default function AdminCancellationsPage() {
                 className="w-full min-h-[100px] p-3 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none text-sm"
               />
               <div className="flex gap-3 justify-end">
-                <Button
+                <PremiumButton
                   variant="outline"
                   onClick={() => {
                     setRejectModalId(null);
@@ -321,14 +322,14 @@ export default function AdminCancellationsPage() {
                   disabled={actionLoading === rejectModalId}
                 >
                   Cancel
-                </Button>
-                <Button
+                </PremiumButton>
+                <PremiumButton
                   onClick={() => handleReject(rejectModalId)}
                   disabled={!rejectionReason.trim() || actionLoading === rejectModalId}
                   className="bg-red-600 hover:bg-red-700 text-white"
                 >
                   {actionLoading === rejectModalId ? "Rejecting..." : "Reject Request"}
-                </Button>
+                </PremiumButton>
               </div>
             </CardContent>
           </Card>
@@ -347,15 +348,15 @@ export default function AdminCancellationsPage() {
                 This appointment has a payment. Would you like to issue a refund along with the approval?
               </p>
               <div className="flex flex-col gap-3">
-                <Button
+                <PremiumButton
                   onClick={() => executeApproval(approvalChoiceModalId, "refund")}
                   disabled={actionLoading === approvalChoiceModalId}
                   className="w-full bg-green-600 hover:bg-green-700"
                 >
                   <DollarSign className="h-4 w-4 mr-2" />
                   {actionLoading === approvalChoiceModalId ? "Processing..." : "Approve with Refund"}
-                </Button>
-                <Button
+                </PremiumButton>
+                <PremiumButton
                   onClick={() => executeApproval(approvalChoiceModalId, "no_refund")}
                   disabled={actionLoading === approvalChoiceModalId}
                   variant="outline"
@@ -363,15 +364,15 @@ export default function AdminCancellationsPage() {
                 >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   {actionLoading === approvalChoiceModalId ? "Processing..." : "Approve without Refund"}
-                </Button>
-                <Button
+                </PremiumButton>
+                <PremiumButton
                   onClick={() => setApprovalChoiceModalId(null)}
                   disabled={actionLoading === approvalChoiceModalId}
                   variant="ghost"
                   className="w-full text-muted-foreground"
                 >
                   Cancel
-                </Button>
+                </PremiumButton>
               </div>
             </CardContent>
           </Card>
@@ -469,15 +470,15 @@ function CancellationRequestCard({
       {/* Actions for pending requests */}
       {isPending && (
         <div className="flex gap-2 pt-1">
-          <Button
+          <PremiumButton
             onClick={() => onApprove(appointment.id)}
             disabled={actionLoading === appointment.id}
             className="bg-green-600 hover:bg-green-700"
           >
             <CheckCircle2 className="h-4 w-4 mr-1" />
             {actionLoading === appointment.id ? "Processing..." : "Approve"}
-          </Button>
-          <Button
+          </PremiumButton>
+          <PremiumButton
             onClick={() => onReject(appointment.id)}
             disabled={actionLoading === appointment.id}
             variant="outline"
@@ -485,21 +486,21 @@ function CancellationRequestCard({
           >
             <X className="h-4 w-4 mr-1" />
             Reject
-          </Button>
+          </PremiumButton>
         </div>
       )}
 
       {/* Post-approval "Issue Refund" button (Task 7.2) */}
       {isApproved && refundEligibility?.eligible && appointment.paymentId && (
         <div className="pt-1">
-          <Button
+          <PremiumButton
             onClick={() => onIssueRefund(appointment.id, appointment.paymentId!)}
             disabled={refundLoading === appointment.id}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <DollarSign className="h-4 w-4 mr-1" />
             {refundLoading === appointment.id ? "Processing Refund..." : "Issue Refund"}
-          </Button>
+          </PremiumButton>
         </div>
       )}
 

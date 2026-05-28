@@ -93,7 +93,7 @@ export default function VisualAcuityPage() {
   if (checking) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <RefreshCw className="h-6 w-6 text-[#0f4f4b]/40 animate-spin" />
+        <RefreshCw className="h-6 w-6 text-muted-foreground animate-spin" />
       </div>
     );
   }
@@ -101,14 +101,14 @@ export default function VisualAcuityPage() {
   if (denied || !assessment) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 px-4">
-        <div className="h-16 w-16 rounded-2xl bg-[#0f4f4b]/6 flex items-center justify-center">
-          <Lock className="h-7 w-7 text-[#0f4f4b]/30" />
+        <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+          <Lock className="h-7 w-7 text-muted-foreground" />
         </div>
         <div>
-          <p className="font-bold text-[#0f4f4b] text-lg mb-1">
+          <p className="font-bold text-foreground text-lg mb-1">
             {deniedReason === "expired" ? "Assessment window closed" : "Assessment not available"}
           </p>
-          <p className="text-sm text-[#0f4f4b]/55 max-w-xs">
+          <p className="text-sm text-muted-foreground max-w-xs">
             {deniedReason === "expired"
               ? "The retry window for this assessment has passed. Contact your doctor if you need a new assignment."
               : "This assessment was not assigned to you. Please contact your doctor."}
@@ -116,7 +116,7 @@ export default function VisualAcuityPage() {
         </div>
         <Link
           href="/patient/assessment"
-          className="flex items-center gap-2 text-sm font-medium text-[#0f4f4b] hover:underline"
+          className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
         >
           <ArrowLeft className="h-4 w-4" /> Back to My Assessments
         </Link>

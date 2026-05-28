@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { usersService } from "@/services/firestore";
 import { UserPlus, Search, MoreVertical, Edit2, Ban, CheckCircle, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { UserDocument } from "@/types/firestore";
@@ -77,14 +78,14 @@ export default function AdminDoctorsPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl sm:text-4xl text-primary mb-1">Doctors</h1>
-          <p className="text-base sm:text-sm sm:text-xl text-muted-foreground">Manage platform doctors</p>
+          <h1 className={TYPOGRAPHY.heading}>Doctors</h1>
+          <p className="text-sm text-muted-foreground">Manage platform doctors</p>
         </div>
         <Link href="/admin/doctors/invite" className="self-start sm:self-auto">
-          <Button>
+          <PremiumButton>
             <UserPlus className="h-4 w-4 mr-2" />
             Invite Doctor
-          </Button>
+          </PremiumButton>
         </Link>
       </div>
 
@@ -112,7 +113,7 @@ export default function AdminDoctorsPage() {
                 </p>
                 {!searchQuery && (
                   <Link href="/admin/doctors/invite">
-                    <Button>Invite First Doctor</Button>
+                    <PremiumButton>Invite First Doctor</PremiumButton>
                   </Link>
                 )}
               </div>
@@ -139,7 +140,7 @@ function DoctorCard({ doctor, onDisable, onActivate }: { doctor: UserDocument; o
   return (
     <div className="flex items-center gap-2 p-2 rounded-xl bg-white/50 border border-primary/5 hover:border-primary/10 transition">
       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-        <span className="text-primary font-bold">
+        <span className="text-primary font-semibold">
           {doctor.displayName?.charAt(0) || doctor.email?.charAt(0)}
         </span>
       </div>
@@ -163,18 +164,18 @@ function DoctorCard({ doctor, onDisable, onActivate }: { doctor: UserDocument; o
       </div>
       <div className="flex items-center gap-0.5 shrink-0">
         <Link href={`/admin/doctors/${doctor.id}`}>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <PremiumButton variant="ghost" size="icon" className="h-8 w-8">
             <Edit2 className="h-3.5 w-3.5" />
-          </Button>
+          </PremiumButton>
         </Link>
         {doctor.isActive ? (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDisable(doctor.id)}>
+          <PremiumButton variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDisable(doctor.id)}>
             <Ban className="h-3.5 w-3.5" />
-          </Button>
+          </PremiumButton>
         ) : (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onActivate(doctor.id)}>
+          <PremiumButton variant="ghost" size="icon" className="h-8 w-8" onClick={() => onActivate(doctor.id)}>
             <CheckCircle className="h-3.5 w-3.5" />
-          </Button>
+          </PremiumButton>
         )}
       </div>
     </div>

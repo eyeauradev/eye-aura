@@ -9,6 +9,7 @@ import { ScheduleHeader } from "@/components/doctor/schedule/ScheduleHeader";
 import { WeeklyAvailabilityCard } from "@/components/doctor/schedule/WeeklyAvailabilityCard";
 import { UnavailableBlockCard } from "@/components/doctor/schedule/UnavailableBlockCard";
 import { AvailabilityPreview } from "@/components/doctor/schedule/AvailabilityPreview";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 const DAYS: DayOfWeek[] = [
   "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
@@ -131,7 +132,7 @@ export default function DoctorSchedulePage() {
       {/* Weekly Working Hours */}
       <section>
         <div className="mb-4">
-          <h2 className="text-xl font-display text-primary font-semibold">Weekly Working Hours</h2>
+          <h2 className={TYPOGRAPHY.subheading}>Weekly Working Hours</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             Configure your working hours for each day of the week.
           </p>

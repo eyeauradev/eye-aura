@@ -1,7 +1,9 @@
 "use client";
 
 import { Timer, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AssessmentActionButton } from "@/components/premium/assessment-wrapper";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { cn } from "@/lib/utils";
 import type { TimerDuration, TestType } from "./types";
 
 interface DurationSelectorProps {
@@ -30,11 +32,11 @@ export function DurationSelector({
     <div className="max-w-lg mx-auto space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="mx-auto h-14 w-14 rounded-2xl bg-[#0f4f4b]/8 flex items-center justify-center">
-          <Timer className="h-7 w-7 text-[#0f4f4b]" />
+        <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/8 flex items-center justify-center">
+          <Timer className="h-7 w-7 text-primary" />
         </div>
-        <h2 className="text-2xl font-black text-[#0f4f4b]">Reading Duration</h2>
-        <p className="text-sm text-[#0f4f4b]/60 max-w-xs mx-auto leading-relaxed">
+        <h2 className={cn(TYPOGRAPHY.heading)}>Reading Duration</h2>
+        <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
           Each set of {label} will be visible for this long before automatically
           advancing to the next level. Your doctor can advise the best setting.
         </p>
@@ -48,20 +50,21 @@ export function DurationSelector({
             <button
               key={value}
               onClick={() => onSelect(value)}
-              className={`flex flex-col items-center gap-2 p-5 rounded-2xl border text-center transition-all ${
+              className={cn(
+                "flex flex-col items-center gap-2 p-5 rounded-2xl border text-center transition-all",
                 isSelected
-                  ? "bg-[#0f4f4b] border-[#0f4f4b] text-white"
-                  : "bg-white border-[#0f4f4b]/12 hover:border-[#0f4f4b]/30 hover:bg-[#0f4f4b]/3"
-              }`}
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "bg-card border-border hover:border-primary/30 hover:bg-primary/3"
+              )}
             >
               {/* Circular timer visual */}
               <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
                 <circle cx="24" cy="24" r="19" fill="none"
-                  stroke={isSelected ? "rgba(255,255,255,0.25)" : "rgba(15,79,75,0.12)"}
+                  className={isSelected ? "stroke-primary-foreground/25" : "stroke-border"}
                   strokeWidth="3.5"
                 />
                 <circle cx="24" cy="24" r="19" fill="none"
-                  stroke={isSelected ? "white" : "#0f4f4b"}
+                  className={isSelected ? "stroke-primary-foreground" : "stroke-primary"}
                   strokeWidth="3.5"
                   strokeLinecap="round"
                   strokeDasharray={119.4}
@@ -69,15 +72,21 @@ export function DurationSelector({
                   style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
                 />
                 <text x="24" y="28" textAnchor="middle" fontSize="13" fontWeight="900"
-                  fill={isSelected ? "white" : "#0f4f4b"}
+                  className={isSelected ? "fill-primary-foreground" : "fill-foreground"}
                 >
                   {value}s
                 </text>
               </svg>
-              <p className={`text-sm font-bold ${isSelected ? "text-white" : "text-[#0f4f4b]"}`}>
+              <p className={cn(
+                "text-sm font-bold",
+                isSelected ? "text-primary-foreground" : "text-foreground"
+              )}>
                 {lbl}
               </p>
-              <p className={`text-xs leading-snug ${isSelected ? "text-white/70" : "text-[#0f4f4b]/50"}`}>
+              <p className={cn(
+                "text-xs leading-snug",
+                isSelected ? "text-primary-foreground/70" : "text-muted-foreground"
+              )}>
                 {detail}
               </p>
             </button>
@@ -86,23 +95,21 @@ export function DurationSelector({
       </div>
 
       {/* Context note */}
-      <div className="rounded-xl bg-[#0f4f4b]/4 border border-[#0f4f4b]/10 p-4 flex items-start gap-3">
-        <Timer className="h-4 w-4 text-[#0f4f4b]/40 shrink-0 mt-0.5" />
-        <p className="text-xs text-[#0f4f4b]/60 leading-relaxed">
+      <div className="rounded-xl bg-primary/4 border border-border p-4 flex items-start gap-3">
+        <Timer className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+        <p className="text-xs text-muted-foreground leading-relaxed">
           The timer starts automatically as soon as each line appears. Press
-          <strong className="text-[#0f4f4b]"> Unable to Read</strong> if you cannot read
+          <strong className="text-foreground"> Unable to Read</strong> if you cannot read
           the {label} before the timer expires. You can also pause at any time.
         </p>
       </div>
 
-      <Button
+      <AssessmentActionButton
         onClick={onContinue}
-        size="lg"
-        className="w-full h-14 text-base rounded-2xl bg-[#0f4f4b] hover:bg-[#0a3a36] shadow-[0_8px_32px_rgba(15,79,75,0.25)]"
+        trailingIcon={<ArrowRight className="h-4 w-4" />}
       >
         Begin Test
-        <ArrowRight className="h-4 w-4 ml-2" />
-      </Button>
+      </AssessmentActionButton>
     </div>
   );
 }
