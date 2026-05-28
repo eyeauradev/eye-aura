@@ -158,6 +158,25 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 ├── /components
 │   ├── section-container.tsx               # max-w-7xl responsive wrapper
 │   ├── /ui                                 # Shadcn UI components (button, card, badge, etc.)
+│   ├── /premium                            # Premium design system components
+│   │   ├── index.ts                        # Barrel export for all premium components
+│   │   ├── floating-sidebar.tsx            # Glass navigation sidebar (NavItem, FloatingSidebar)
+│   │   ├── page-transition.tsx             # CSS-based page transition wrapper
+│   │   ├── glass-panel.tsx                 # Reusable glass container
+│   │   ├── dashboard-card.tsx              # Metric/stat card
+│   │   ├── metric-card.tsx                 # Compact metric display
+│   │   ├── status-badge.tsx                # Colored status indicator
+│   │   ├── premium-button.tsx              # Styled button with variants
+│   │   ├── premium-header.tsx              # Page header with breadcrumbs
+│   │   ├── section-header.tsx              # Section title with action
+│   │   ├── info-row.tsx                    # Label-value display row
+│   │   ├── quick-actions-panel.tsx         # Action buttons panel
+│   │   ├── motion-wrapper.tsx              # CSS transition wrapper
+│   │   ├── premium-tabs.tsx                # Styled tab navigation
+│   │   ├── premium-modal.tsx               # Glass-styled modal dialog
+│   │   ├── premium-table.tsx               # Styled data table
+│   │   ├── premium-input.tsx               # Styled form input
+│   │   └── assessment-wrapper.tsx          # Visual acuity assessment container
 │   ├── /doctor/schedule                    # Modular scheduling components
 │   │   ├── ScheduleHeader.tsx              # Page header + save button with status states
 │   │   ├── WeeklyAvailabilityCard.tsx      # Per-day accordion: off toggle, duration, time ranges
@@ -181,6 +200,7 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │       ├── /engine
 │       │   ├── useLetterTimer.ts          # RAF-driven per-letter timer + advancement
 │       │   ├── useAssessmentProgress.ts   # Pure derivation of cross-eye global progress
+│       │   ├── useCalibrationSync.ts      # DPR/resize/orientation recalculation hook
 │       │   └── useVisionProgression.ts     # Line progression with indexRef/failsRef
 │       └── /steps
 │           ├── WelcomeStep.tsx             # Assessment introduction
@@ -225,6 +245,7 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │
 ├── /lib
 │   ├── utils.ts                            # cn() = clsx + tailwind-merge
+│   ├── design-tokens.ts                    # Premium design system tokens (GLASS, SHADOWS, TYPOGRAPHY, SPACING, RADIUS, DEPTH_LAYERS, RESPONSIVE_SPACING)
 │   ├── auth-server.ts                      # getServerSession(), requireRole(), isAdmin()
 │   ├── firebase-admin.ts                   # Alternative admin init (used by PDF route)
 │   └── send-email.ts                       # Server-side Resend email sender
@@ -988,18 +1009,122 @@ Two subtle radial gradients — sage green top-left, gold top-right — create t
 .soft-shadow  { box-shadow: 0 24px 70px rgba(15,79,75,0.11); }
 ```
 
+## Premium Design System Tokens (`lib/design-tokens.ts`)
+
+The premium design system is centralized in `lib/design-tokens.ts` and provides a single source of truth for all visual styling across the platform. Components import these tokens directly — no hardcoded colors or inconsistent values.
+
+### GLASS — Glassmorphism Backgrounds
+
+| Token | Value | Usage |
+|---|---|---|
+| `GLASS.background` | `bg-card/72` | Standard glass background |
+| `GLASS.cardBackground` | `bg-card/82` | Card glass background (slightly more opaque) |
+| `GLASS.headerBackground` | `bg-card/80` | Header glass background |
+| `GLASS.border` | `border border-white/60` | Glass border |
+| `GLASS.blur` | `backdrop-blur-[22px]` | Glass blur effect |
+
+### SHADOWS — Elevation System
+
+| Token | Value | Usage |
+|---|---|---|
+| `SHADOWS.card` | `shadow-[0_8px_32px_rgba(var(--primary-rgb),0.06)]` | Soft card elevation |
+| `SHADOWS.glass` | `shadow-[0_24px_80px_rgba(var(--primary-rgb),0.12)]` | Glass panel elevation |
+| `SHADOWS.buttonHover` | `shadow-[0_12px_40px_rgba(var(--primary-rgb),0.14)]` | Button hover elevation |
+| `SHADOWS.sidebar` | `shadow-[0_16px_64px_rgba(var(--primary-rgb),0.10)]` | Sidebar elevation |
+| `SHADOWS.elevated` | `shadow-[0_32px_100px_rgba(var(--primary-rgb),0.24)]` | Modals/popovers (≥2x surface shadow) |
+
+### TYPOGRAPHY — Responsive Text Styles
+
+| Token | Value | Usage |
+|---|---|---|
+| `TYPOGRAPHY.heading` | `text-2xl sm:text-3xl font-semibold text-foreground` | Page heading |
+| `TYPOGRAPHY.subheading` | `text-lg font-semibold text-foreground` | Card/section title |
+| `TYPOGRAPHY.body` | `text-base text-foreground` | Body text |
+| `TYPOGRAPHY.label` | `text-xs uppercase tracking-[0.12em] font-medium text-muted-foreground` | Labels and captions |
+
+### SPACING — Responsive Spacing Multiplier System
+
+Uses a multiplier system: Mobile (0.75x) → Tablet (0.875x) → Desktop (1x).
+
+| Token | Mobile | Tablet | Desktop | Usage |
+|---|---|---|---|---|
+| `SPACING.sectionGap` | 24px | 28px | 32px | Between major sections |
+| `SPACING.cardGap` | 16px | 20px | 24px | Between cards within a section |
+| `SPACING.cardPadding` | 16px | 20px | 24px | Internal card padding |
+| `SPACING.layoutGap` | 20px | 24px | 28px | Between sidebar and content |
+| `SPACING.pageX` | 12px | 16px | 24px | Page horizontal padding |
+| `SPACING.pageY` | 16px | 20px | 32px | Page vertical padding |
+
+### RADIUS — Border Radius Tokens
+
+| Token | Value | Usage |
+|---|---|---|
+| `RADIUS.container` | `rounded-[32px]` | Layout containers: header, sidebar, page wrappers |
+| `RADIUS.card` | `rounded-3xl` | Cards and elevated surfaces |
+| `RADIUS.interactive` | `rounded-2xl` | Buttons, inputs, interactive elements |
+| `RADIUS.pill` | `rounded-full` | Badges, pills, avatars |
+
+### DEPTH_LAYERS — Three-Layer Depth System
+
+No two adjacent layers share identical blur or background opacity values.
+
+| Layer | Blur | Background | Shadow | Usage |
+|---|---|---|---|---|
+| `background` | `backdrop-blur-none` | `bg-background` | `shadow-none` | Base page layer |
+| `surface` | `backdrop-blur-[22px]` | `bg-card/72` | `shadow-[0_24px_80px_rgba(var(--primary-rgb),0.12)]` | Cards and panels (GlassPanel) |
+| `elevated` | `backdrop-blur-[30px]` | `bg-card/82` | `shadow-[0_32px_100px_rgba(var(--primary-rgb),0.24)]` | Modals and popovers |
+
+### RESPONSIVE_SPACING — Breakpoint Configuration
+
+```typescript
+RESPONSIVE_SPACING = {
+  mobile: 0.75,       // Viewport < 768px
+  tablet: 0.875,      // Viewport 768px–1023px
+  desktop: 1,         // Viewport ≥ 1024px
+  minTouchTarget: "min-h-[44px] min-w-[44px]",  // Minimum touch target below 1024px
+}
+```
+
+---
+
 ## Animation Policy
 
 - **CSS transitions only**: `transition` class (Tailwind default 150ms) or `transition-all duration-200`
 - **No Framer Motion**: Being actively removed. Do not add `motion.div` or any framer-motion imports.
 - **Reduced motion**: `globals.css` includes `@media (prefers-reduced-motion)` block — all animations disabled for users with accessibility preferences
 
-## Responsive Strategy
+## Responsive Strategy & Breakpoint System
 
-- **Breakpoints**: `sm:` (640px) — the main mobile breakpoint for most layouts
-- **Pattern**: `px-5 sm:px-8`, `p-3 sm:p-6`, `grid-cols-1 sm:grid-cols-2`
-- **Typography**: `text-2xl sm:text-3xl`, `text-3xl sm:text-4xl`
-- **Navigation**: Mobile-first hamburger or bottom nav implied
+### Breakpoints
+
+| Breakpoint | Width | Usage |
+|---|---|---|
+| `sm:` | 640px | Typography scaling, basic layout adjustments |
+| `md:` | 768px | **Primary layout breakpoint** — mobile vs desktop layout switch (e.g., TestingShell 2-row → 3-column) |
+| `lg:` | 1024px | Sidebar visibility (FloatingSidebar hidden below lg), spacing multiplier full |
+
+### Layout Patterns
+
+- **Mobile-first**: All layouts start with mobile styling, enhanced at breakpoints
+- **Sidebar**: `hidden lg:block` — FloatingSidebar only visible at ≥1024px
+- **Mobile bottom nav**: `lg:hidden` — visible only below 1024px
+- **Content layout**: `flex-col md:flex-row` for responsive stacking
+- **Spacing**: Uses `SPACING` tokens which apply responsive multipliers via Tailwind breakpoints
+
+### Visual Acuity Assessment — Responsive 2-Row Mobile Layout
+
+The Snellen test reading phase uses a responsive layout in `TestingShell.tsx`:
+
+- **Desktop (≥768px)**: 3-column layout — `[Eye Info (w-28)] | [Snellen Chart (flex-1)] | [Timer (w-28)]`
+- **Mobile (<768px)**: 2-row layout — Row 1: `[Eye Info] + [Timer/Distance]` side-by-side compact bar; Row 2: Snellen chart at full container width
+
+This ensures the optotype chart area receives maximum horizontal space on mobile for readability.
+
+### Navigation Pattern
+
+- **Desktop (≥1024px)**: FloatingSidebar (glass panel, sticky, rounded-[32px])
+- **Tablet/Mobile (<1024px)**: Mobile bottom navigation bar (glass background, fixed bottom) + optional slide-out drawer (admin module)
+- **All modules include**: "Public Home" link (href="/") as first nav item in both sidebar and mobile nav
 
 <!-- SECTION:9 -->
 # 9. COMPONENT ARCHITECTURE
@@ -1009,9 +1134,123 @@ Two subtle radial gradients — sage green top-left, gold top-right — create t
 | Directory | Owns | Rule |
 |---|---|---|
 | `/components/ui/` | Shadcn UI primitives | Never modify directly. Extend by composition. |
+| `/components/premium/` | Premium design system components | Shared across all modules (patient, doctor, admin). Uses design tokens. |
 | `/components/doctor/schedule/` | Doctor scheduling components | Only used in `/doctor/schedule` and `/doctor/slots`. |
 | `/components/prescription/` | Prescription rendering | Only used in `/prescription/print/[id]`. |
 | `/modules/home/` | Homepage marketing sections | Only for public landing pages. |
+
+---
+
+## Premium Component Library (`/components/premium/`)
+
+The premium component library provides a unified, glass-morphism-based design system shared across all authenticated modules. All components consume tokens from `lib/design-tokens.ts`.
+
+| Component | Export | Responsibility |
+|---|---|---|
+| `FloatingSidebar` | `FloatingSidebar`, `NavItem` | Glass navigation sidebar — sticky, rounded-[32px], hidden below lg (1024px). Supports grouped items with dividers. |
+| `PageTransition` | `PageTransition` | CSS-based page transition wrapper for smooth route changes |
+| `GlassPanel` | `GlassPanel` | Reusable glass container with configurable rounding and padding |
+| `DashboardCard` | `DashboardCard` | Metric/stat card for dashboard pages |
+| `MetricCard` | `MetricCard` | Compact metric display card |
+| `StatusBadge` | `StatusBadge` | Colored status indicator badge |
+| `PremiumButton` | `PremiumButton` | Styled button with premium variants |
+| `PremiumHeader` | `PremiumHeader` | Page header with breadcrumbs |
+| `SectionHeader` | `SectionHeader` | Section title with optional action |
+| `InfoRow` | `InfoRow` | Label-value display row |
+| `QuickActionsPanel` | `QuickActionsPanel` | Action buttons panel |
+| `MotionWrapper` | `MotionWrapper` | CSS transition wrapper (no Framer Motion) |
+| `PremiumTabs` | `PremiumTabs` | Styled tab navigation |
+| `PremiumModal` | `PremiumModal` | Glass-styled modal dialog |
+| `PremiumTable` | `PremiumTable` | Styled data table |
+| `PremiumInput` | `PremiumInput` | Styled form input |
+| `AssessmentWrapper` | `AssessmentWrapper`, `AssessmentActionButton` | Visual acuity assessment container |
+
+---
+
+## Doctor/Admin Layout Revamp
+
+Both the doctor and admin modules use a shared premium layout architecture:
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Glass Header (sticky, z-40/z-50)                               │
+│  ┌─ Logo + Title ─────────────────────── User Info + Sign Out ─┐│
+│  └─────────────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─ FloatingSidebar ─┐  ┌─ Main Content (PageTransition) ─────┐│
+│  │  (hidden <1024px) │  │                                      ││
+│  │  Glass panel      │  │  {children}                          ││
+│  │  rounded-[32px]   │  │                                      ││
+│  │  sticky top-24    │  │                                      ││
+│  │  SHADOWS.sidebar  │  │                                      ││
+│  └───────────────────┘  └──────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────────┤
+│  Mobile Bottom Nav (fixed, lg:hidden, glass background)         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Glass Header
+
+- Sticky positioning (`sticky top-0`)
+- Uses `GLASS.headerBackground` + `GLASS.blur` + `GLASS.border`
+- Contains: Logo, module title, user info, sign-out button
+- Admin module adds a hamburger menu toggle for the slide-out drawer
+
+### FloatingSidebar
+
+- Visible only at `lg:` (≥1024px)
+- Glass panel with `rounded-[32px]` and `SHADOWS.sidebar`
+- Sticky with `top-24` offset (below header)
+- Supports grouped nav items with divider lines between groups
+- Active route detection via prefix matching (supports nested routes)
+
+### Mobile Bottom Navigation
+
+- Fixed at bottom, visible only below `lg:` (1024px)
+- Glass background (`GLASS.headerBackground` + `GLASS.blur`)
+- Shows subset of nav items with icons + labels
+- Minimum touch target: 44×44px
+- Active state: `text-primary` with optional background highlight
+
+### Admin Slide-Out Drawer
+
+- Additional navigation for admin module on mobile/tablet
+- Triggered by hamburger menu in header
+- Full-height overlay with glass background
+- Shows all admin nav items (not just the mobile subset)
+- Backdrop click dismisses
+
+### Navigation Items
+
+**Doctor Module** (`doctorNavItems`):
+| Label | Href | Group |
+|---|---|---|
+| Public Home | `/` | home |
+| Dashboard | `/doctor/dashboard` | main |
+| Appointments | `/doctor/appointments` | main |
+| Requests | `/doctor/requests` | main |
+| Patients | `/doctor/patients` | main |
+| Prescriptions | `/doctor/prescriptions` | main |
+| Slots | `/doctor/slots` | main |
+| Profile | `/doctor/profile` | account |
+
+**Admin Module** (`adminNavItems`):
+| Label | Href | Group |
+|---|---|---|
+| Public Home | `/` | home |
+| Dashboard | `/admin/dashboard` | main |
+| Doctors | `/admin/doctors` | main |
+| Services | `/admin/services` | main |
+| Assessments | `/admin/assessments` | main |
+| Appointments | `/admin/appointments` | main |
+| Users | `/admin/users` | management |
+| Payments | `/admin/payments` | management |
+| Analytics | `/admin/analytics` | management |
+| Settings | `/admin/settings` | settings |
+
+**Public Home Navigation**: All modules (patient, doctor, admin) include a "Public Home" link (href="/") as the first navigation item, ensuring users can always navigate back to the public landing page from any authenticated context.
 
 ## Reusable Components
 
@@ -1913,6 +2152,42 @@ Stored calibration is discarded when:
 - Age > 24 hours
 - `window.innerWidth` or `innerHeight` changed (orientation / resize)
 
+### Calibration Sync — `useCalibrationSync` Hook
+
+**File**: `modules/visual-acuity/engine/useCalibrationSync.ts`
+
+After initial calibration, the `useCalibrationSync` hook keeps `pxPerMm` accurate when the device environment changes (DPR change, resize, or orientation change).
+
+**Trigger Events:**
+- `window.resize` — viewport size change
+- `window.orientationchange` — device rotation
+- `matchMedia('(resolution: Xdppx)')` change — DPR change (monitor switch, pinch-zoom)
+
+**Recalculation Logic:**
+```typescript
+// When DPR changes:
+newPxPerMm = (calibration.cardWidthPx / CARD_WIDTH_MM) × (currentDpr / calibration.dpr)
+
+// When only viewport size changes (no DPR change):
+// pxPerMm stays the same — physical pixel density hasn't changed
+// Only deviceWidth/deviceHeight are updated
+```
+
+**Key Constants:**
+- `CARD_WIDTH_MM = 85.60` — ISO/IEC 7810 ID-1 standard credit card width
+- `DEBOUNCE_MS = 300` — debounce interval to avoid excessive re-renders
+
+**Behavior:**
+- Returns the current effective `CalibrationData` (original or recalculated)
+- Debounces all recalculations at 300ms
+- Cleans up all event listeners on unmount
+- Syncs effective state when input calibration reference changes (e.g., user re-calibrates)
+
+**Integration:**
+- Called in `TestingShell` component, passing the calibration prop
+- Returned effective calibration is passed to `SnellenRenderer`
+- SVG container has `transition: width 0.3s ease, height 0.3s ease` for smooth visual transitions during recalculation
+
 ## SVG Text Rendering Engine
 
 ### Architecture
@@ -1962,8 +2237,16 @@ type_select → instructions → calibration → duration_select → testing →
 ### Testing phases per eye
 
 ```
-eye_intro → reading (auto-advance by setInterval) → self_report
+eye_intro → reading (auto-advance by RAF timer) → self_report
 ```
+
+### Reading Phase Layout
+
+The reading phase uses a responsive layout in `TestingShell.tsx`:
+- **Desktop (≥768px)**: 3-column layout — Eye Info (w-28) | Snellen Chart (flex-1) | Timer (w-28)
+- **Mobile (<768px)**: 2-row layout — Row 1: Eye Info + Timer compact bar; Row 2: Snellen chart full width
+
+Calibration is kept in sync via `useCalibrationSync` hook — recalculates `pxPerMm` on DPR/resize/orientation changes.
 
 ### Line advancement
 
@@ -1994,7 +2277,8 @@ Buttons show: `Level N · 20/xx · label`.
 | `modules/visual-acuity/near/near-vision-data.ts` | Near vision Jaeger chart data           |
 | `modules/visual-acuity/engine/useLetterTimer.ts` | RAF-driven per-letter timer + advancement |
 | `modules/visual-acuity/engine/useAssessmentProgress.ts` | Pure derivation of cross-eye global progress |
-| `modules/visual-acuity/steps/TestingShell.tsx` | Shared eye-intro / reading / self-report shell |
+| `modules/visual-acuity/engine/useCalibrationSync.ts` | DPR/resize/orientation recalculation hook |
+| `modules/visual-acuity/steps/TestingShell.tsx` | Shared eye-intro / reading / self-report shell (responsive 2-row mobile layout) |
 | `modules/visual-acuity/engine/useVisionProgression.ts` | Line progression with indexRef/failsRef |
 | `modules/visual-acuity/steps/WelcomeStep.tsx` | Assessment introduction              |
 | `modules/visual-acuity/steps/InstructionsStep.tsx` | Testing instructions               |
@@ -2013,12 +2297,16 @@ Buttons show: `Level N · 20/xx · label`.
 - **NO per-line scoring**: All lines auto-advance by timer only (Pause is the only control during reading)
 - **Self-report after completion**: Patient selects smallest line they could read
 - **Snellen letter size formula**: H = denominator × (testingDistanceM / 6) × 1.454 mm (clinically accurate)
-- **SnellenRenderer min floor**: 10 CSS px to prevent sub-pixel collapse on near lines
-- **SVG fully responsive**: width:100%/height:auto + viewBox
+- **SnellenRenderer min floor**: 4 CSS px (`MIN_CAP_PX`) to prevent sub-pixel collapse on near lines
+- **SVG exact dimensions**: Rendered with exact numeric `width` and `height` attributes (not width:100%) — browser cannot scale or reflow. `viewBox` matches pixel dimensions 1:1.
+- **SVG smooth transitions**: Container has `transition: width 0.3s ease, height 0.3s ease` for smooth recalculation animations
+- **Scroll wrapper**: `overflowX: auto` on container — large lines scroll horizontally, never shrink
 - **onComplete returns**: { right: EyeAcuityResult; left: EyeAcuityResult } — no LineResult arrays
 - **testingDistance**: far=3m, near=0.35m
 - **Doctor note footer**: On every active test screen
 - **timerStartRef pattern**: Used in both TestingStep and NearTestingStep to break circular dep
+- **Responsive TestingShell**: 2-row mobile layout (<768px) gives chart full width; 3-column desktop layout (≥768px) preserves w-28 side columns
+- **Calibration sync**: `useCalibrationSync` hook recalculates pxPerMm on DPR/resize/orientation changes with 300ms debounce
 
 ## Minimum Device Requirements
 

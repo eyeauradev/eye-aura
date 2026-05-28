@@ -170,13 +170,15 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
         </div>
       )}
 
-      {/* Calibration area */}
-      <div
-        ref={containerRef}
-        className="flex flex-col items-center gap-6 rounded-3xl bg-white/90 border border-[#0f4f4b]/12 p-6"
-      >
-        {/* Calibration rectangle */}
-        <div className="relative" style={{ width: displayW, height: displayH }}>
+      {/* Calibration area — card overflows the viewport edges intentionally */}
+      <div ref={containerRef} className="flex flex-col items-center gap-6">
+
+        {/* Calibration rectangle — allowed to overflow horizontally so user can
+            hold a physical card against the screen edge for comparison */}
+        <div
+          className="relative"
+          style={{ width: displayW, height: displayH }}
+        >
           <div
             className={`w-full h-full rounded-xl border-2 flex flex-col items-center justify-center transition-all ${
               confirmed
@@ -207,53 +209,55 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
           )}
         </div>
 
-        {/* Slider */}
-        <div className="w-full space-y-3">
-          <div className="flex items-center justify-between text-xs text-[#0f4f4b]/50 font-medium">
-            <span>{portrait ? "Shorter" : "Narrower"}</span>
-            <span className="font-bold text-[#0f4f4b]">
-              {cardLongPx}px {portrait ? "tall" : "wide"}
-            </span>
-            <span>{portrait ? "Taller" : "Wider"}</span>
-          </div>
-          <input
-            type="range"
-            min={minLong}
-            max={maxLong}
-            value={cardLongPx}
-            onChange={(e) => {
-              setCardLongPx(Number(e.target.value));
-              setConfirmed(false);
-            }}
-            className="w-full accent-[#0f4f4b] h-2 rounded-full cursor-pointer"
-          />
-        </div>
-
-        {/* Fine-tune buttons */}
-        <div className="flex items-center gap-3">
+        {/* Controls — constrained to viewport width */}
+        <div className="w-full max-w-sm px-2 space-y-4">
+          {/* Slider */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-[#0f4f4b]/50 font-medium">
+              <span>{portrait ? "Shorter" : "Narrower"}</span>
+              <span className="font-bold text-[#0f4f4b]">
+                {cardLongPx}px {portrait ? "tall" : "wide"}
+              </span>
+              <span>{portrait ? "Taller" : "Wider"}</span>
+            </div>
+            <input
+              type="range"
+              min={minLong}
+              max={maxLong}
+              value={cardLongPx}
+              onChange={(e) => {
+                setCardLongPx(Number(e.target.value));
+                setConfirmed(false);
+              }}
+              className="w-full accent-[#0f4f4b] h-2 rounded-full cursor-pointer"
+            />
+          </div>        {/* Fine-tune buttons */}
+        <div className="grid grid-cols-4 gap-1.5 w-full">
           <button
             onClick={() => adjust(-5)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
+            className="flex items-center justify-center gap-1 py-2.5 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
           >
-            <ZoomOut className="h-3.5 w-3.5" /> -5px
+            <ZoomOut className="h-3 w-3 shrink-0 hidden sm:block" />
+            <span>-5px</span>
           </button>
           <button
             onClick={() => adjust(-1)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
+            className="flex items-center justify-center py-2.5 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
           >
             -1px
           </button>
           <button
             onClick={() => adjust(1)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
+            className="flex items-center justify-center py-2.5 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
           >
             +1px
           </button>
           <button
             onClick={() => adjust(5)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
+            className="flex items-center justify-center gap-1 py-2.5 rounded-xl border border-[#0f4f4b]/20 text-[#0f4f4b] text-xs font-semibold hover:bg-[#0f4f4b]/5 transition-colors"
           >
-            <ZoomIn className="h-3.5 w-3.5" /> +5px
+            <span>+5px</span>
+            <ZoomIn className="h-3 w-3 shrink-0 hidden sm:block" />
           </button>
         </div>
 
@@ -281,7 +285,8 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
             </button>
           </div>
         )}
-      </div>
+        </div>{/* end controls */}
+      </div>{/* end calibration area */}
 
       {/* Reference */}
       <div className="rounded-2xl bg-[#b5964d]/6 border border-[#b5964d]/20 p-4">

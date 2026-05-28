@@ -179,7 +179,8 @@ function AssessmentCard({
   const Icon = t?.icon ?? Eye;
 
   const withinExpiry = !assessment.expiresAt || new Date(assessment.expiresAt) > new Date();
-  const canStart = (assessment.status === "assigned" || assessment.status === "in_progress") && withinExpiry;
+  const isExpired = !withinExpiry && (assessment.status === "assigned" || assessment.status === "in_progress");
+  const canStart = (assessment.status === "assigned" || assessment.status === "in_progress") && !isExpired;
   const canRetry = assessment.status === "completed" && withinExpiry;
 
   // For old combined docs (multiple types in one doc) pass ?type= so the session
@@ -190,53 +191,70 @@ function AssessmentCard({
   return (
     <DashboardCard
       staggerIndex={index}
-      className={`flex flex-col sm:flex-row sm:items-center gap-4 ${
-        !(canStart || canRetry) ? "opacity-60" : ""
-      }`}
+      className={`${!(canStart || canRetry) ? "opacity-60" : ""}`}
     >
-      {/* Type icon + label */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-3 w-full">
+        {/* Type icon */}
         <div className="h-9 w-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
           <Icon className="h-4 w-4 text-primary" />
         </div>
-        <div>
+
+        {/* Label + desc */}
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-foreground leading-none mb-0.5">{t?.label ?? type}</p>
           <p className="text-[11px] text-muted-foreground">{t?.desc}</p>
         </div>
-      </div>
 
-      {/* Meta */}
-      <div className="flex flex-col gap-1 text-xs text-muted-foreground shrink-0">
-        {doctor && (
-          <span className="flex items-center gap-1">
-            <Activity className="h-3 w-3" />
-            Dr. {doctor.displayName ?? "Doctor"}
-          </span>
-        )}
-        <span className="flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {new Date(assessment.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-        </span>
-        <StatusBadge variant={STATUS_VARIANT_MAP[assessment.status] || "inactive"} size="sm">
-          {STATUS_LABEL_MAP[assessment.status] || assessment.status}
-        </StatusBadge>
-      </div>
+        {/* Right side: meta + action stacked */}
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          {/* Doctor + date */}
+          <div className="flex flex-col items-end gap-0.5 text-[11px] text-muted-foreground">
+            {doctor && (
+              <span className="flex items-center gap-1">
+                <Activity className="h-3 w-3" />
+                Dr. {doctor.displayName ?? "Doctor"}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {new Date(assessment.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+            </span>
+          </div>
 
-      {/* Action */}
-      {canStart && (
-        <Link href={href}>
-          <PremiumButton size="sm" trailingIcon={<ArrowRight className="h-3.5 w-3.5" />}>
-            Begin
-          </PremiumButton>
-        </Link>
-      )}
-      {canRetry && (
-        <Link href={href}>
-          <PremiumButton variant="outline" size="sm" icon={<RefreshCw className="h-3.5 w-3.5" />}>
-            Retry
-          </PremiumButton>
-        </Link>
-      )}
+          {/* Status badge */}
+          <StatusBadge variant={STATUS_VARIANT_MAP[assessment.status] || "inactive"} size="sm">
+            {STATUS_LABEL_MAP[assessment.status] || assessment.status}
+          </StatusBadge>
+
+          {/* Action */}
+          {canStart && (
+            <Link
+              href={href}
+              className="inline-flex items-center justify-center gap-1.5 font-medium h-8 px-3 text-xs rounded-xl bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-shadow duration-200 mt-0.5"
+            >
+              {assessment.status === "in_progress" ? "Continue" : "Start"}
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          )}
+          {canRetry && (
+            <Link
+              href={href}
+              className="inline-flex items-center justify-center gap-1.5 font-medium h-8 px-3 text-xs rounded-xl border border-border bg-transparent text-foreground hover:shadow-md transition-shadow duration-200 mt-0.5"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Retry
+            </Link>
+          )}
+          {isExpired && (
+            <div className="flex flex-col items-end gap-0 mt-0.5">
+              <span className="text-xs font-semibold text-destructive">Expired</span>
+              <span className="text-[10px] text-muted-foreground leading-tight text-right">
+                Ask your doctor to reassign
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
     </DashboardCard>
   );
 }

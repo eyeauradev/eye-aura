@@ -62,8 +62,6 @@ export class TransactionService {
         slotId,
         status: "pending",
         notes,
-        consultationPlatform: "google_meet",
-        consultationLink: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
         scheduledFor: slot.startTime,

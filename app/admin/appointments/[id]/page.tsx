@@ -171,7 +171,7 @@ export default function AdminAppointmentDetailPage() {
               )}
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">Consultation Platform</p>
-                <p className="font-medium text-primary capitalize">{appointment.consultationPlatform}</p>
+                <p className="font-medium text-primary capitalize">{appointment.consultationPlatform?.replace("_", " ") || "Not set"}</p>
               </div>
             </CardContent>
           </Card>

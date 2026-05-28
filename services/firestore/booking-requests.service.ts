@@ -134,7 +134,6 @@ export class BookingRequestsService {
       slotId: "", // Will be generated based on the requested time
       status: "confirmed",
       scheduledFor: request.requestedTime,
-      consultationPlatform: "google_meet",
       paymentId: request.paymentId,
       bookingRequestId: id,
       createdAt: new Date(),
@@ -153,8 +152,8 @@ export class BookingRequestsService {
       reason: "Accepted booking request",
     });
 
-    // Assessment automation: if service has automation enabled, auto-assign vision assessments
-    if (service?.assessmentAutomation?.enabled) {
+    // Assessment automation: if service has automation enabled with instant trigger, auto-assign vision assessments
+    if (service?.assessmentAutomation?.enabled && service.assessmentAutomation.triggerMode === "instant") {
       try {
         const autoId = crypto.randomUUID();
         const now = new Date();
@@ -172,7 +171,7 @@ export class BookingRequestsService {
           autoAssigned: true,
           createdAt: now,
           updatedAt: now,
-          expiresAt: new Date(new Date(request.requestedTime).getTime() + 60 * 60 * 1000),
+          expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
         };
         const assessmentRef = doc(this.db, "vision_assessments", autoId);
         await setDoc(assessmentRef, autoAssessment);

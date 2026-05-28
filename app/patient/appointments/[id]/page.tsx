@@ -384,10 +384,28 @@ export default function AppointmentDetailPage() {
           <DashboardCard disableHover staggerIndex={3}>
             <SectionHeader title="Actions" className="mt-0 mb-4" />
             <div className="space-y-3">
-              {canJoin && (
-                <PremiumButton size="lg" fullWidth icon={<Video className="h-5 w-5" />}>
-                  Join Consultation
-                </PremiumButton>
+              {appointment.consultationLink && (
+                <div className="p-3 rounded-2xl border border-border bg-muted/30">
+                  <p className={`${TYPOGRAPHY.label} mb-1`}>Consultation Link</p>
+                  <a
+                    href={appointment.consultationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary underline break-all"
+                  >
+                    {appointment.consultationLink}
+                  </a>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your doctor will share the meeting link before the consultation.
+                  </p>
+                </div>
+              )}
+              {!appointment.consultationLink && appointment.status === "confirmed" && (
+                <div className="p-3 rounded-2xl border border-border bg-muted/30">
+                  <p className="text-sm text-muted-foreground">
+                    Your doctor will share the consultation link (Google Meet/Zoom) before your appointment.
+                  </p>
+                </div>
               )}
               {canReschedule && (
                 <PremiumButton

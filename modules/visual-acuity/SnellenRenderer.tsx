@@ -125,6 +125,7 @@ export function SnellenRenderer({
             flexShrink: 0,
             background: "white",
             animation: animate ? "snellen-fade 0.3s ease forwards" : undefined,
+            transition: "width 0.3s ease, height 0.3s ease",
           }}
           textRendering="geometricPrecision"
           shapeRendering="geometricPrecision"

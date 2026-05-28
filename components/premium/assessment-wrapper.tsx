@@ -95,7 +95,7 @@ export function AssessmentWrapper({
         rounded="32"
         padding="none"
         className={cn(
-          "w-full max-w-2xl flex-1 flex flex-col overflow-hidden",
+          "w-full max-w-2xl flex-1 flex flex-col overflow-visible",
           "backdrop-blur-[24px]",
           SHADOWS.glass
         )}
@@ -194,7 +194,7 @@ export function AssessmentWrapper({
         </div>
 
         {/* Stage content with animated transitions */}
-        <div className="flex-1 px-6 pb-6 overflow-y-auto">
+        <div className="flex-1 px-6 pb-6 overflow-y-auto overflow-x-visible">
           {shouldReduceMotion ? (
             <div key={stageKey}>{children}</div>
           ) : (

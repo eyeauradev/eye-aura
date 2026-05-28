@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { SnellenRenderer } from "../SnellenRenderer";
 import { useAssessmentProgress } from "../engine/useAssessmentProgress";
+import { useCalibrationSync } from "../engine/useCalibrationSync";
 import { useLetterTimer } from "../engine/useLetterTimer";
 import type {
   CalibrationData,
@@ -70,6 +71,9 @@ export function TestingShell({
   testKind,
   onComplete,
 }: TestingShellProps): JSX.Element {
+  // Recalculate calibration when DPR/resize/orientation changes.
+  const effectiveCalibration = useCalibrationSync(calibration);
+
   const [currentEye, setCurrentEye] = useState<EyeType>("right");
   const [eyePhase, setEyePhase] = useState<EyePhase>("eye_intro");
   const [rightBest, setRightBest] = useState<string | null>(null);
@@ -216,20 +220,111 @@ export function TestingShell({
           </div>
         )}
 
-        {/* ── 3-column content row ──────────────────────────────────── */}
+        {/* ── Responsive content area ─────────────────────────────── */}
         {/*
-         * Layout:
+         * Desktop (md+): 3-column layout
          *   LEFT  (w-28 fixed)  — Eye icon + eye name + Level X/Y
          *   CENTER (flex-1)     — Snellen letters (primary focus)
          *   RIGHT (w-28 fixed)  — Circular countdown timer
          *
-         * All three columns share the same vertical center line via
-         * items-center on the flex row.
+         * Mobile (<md): 2-row layout
+         *   ROW 1 — Eye info (left) + Timer/distance (right) compact bar
+         *   ROW 2 — Snellen chart at full container width
          */}
-        <div className="flex items-center gap-4 px-5 py-6 min-h-[180px]">
+
+        {/* ── Mobile-only top row: eye info + timer side-by-side ───── */}
+        <div className="flex md:hidden items-center justify-between px-4 py-3">
+          {/* Eye info — compact */}
+          <div className="flex items-center gap-2">
+            <div
+              className="h-8 w-8 rounded-lg flex items-center justify-center shadow-sm"
+              style={{ backgroundColor: accent.primary }}
+            >
+              <Eye className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#0f4f4b] capitalize leading-tight">
+                {currentEye} Eye
+              </p>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-[10px] text-[#0f4f4b]/40">Lv</span>
+                <span
+                  className="text-sm font-black leading-none"
+                  style={{ color: accent.primary }}
+                >
+                  {progress.currentLevel}
+                </span>
+                <span className="text-[10px] text-[#0f4f4b]/40">
+                  /{progress.totalLevels}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Timer — compact */}
+          <div className="flex items-center gap-2">
+            <svg
+              width={48}
+              height={48}
+              viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+              style={{ flexShrink: 0 }}
+            >
+              {/* Track */}
+              <circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={ARC_R}
+                fill="none"
+                stroke={withAlpha(accent.primary, 0.1)}
+                strokeWidth="5"
+              />
+              {/* Progress arc */}
+              <circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={ARC_R}
+                fill="none"
+                stroke={ringColor}
+                strokeWidth="5"
+                strokeLinecap="round"
+                strokeDasharray={ARC_C}
+                strokeDashoffset={dashOffset}
+                style={{
+                  transform: "rotate(-90deg)",
+                  transformOrigin: "center",
+                  transition: isPaused
+                    ? "none"
+                    : "stroke-dashoffset 0.25s linear",
+                  willChange: "stroke-dashoffset",
+                }}
+              />
+              {/* Countdown number */}
+              <text
+                x={RING_SIZE / 2}
+                y={RING_SIZE / 2 + 7}
+                textAnchor="middle"
+                fontSize="22"
+                fontWeight="900"
+                fill={ringColor}
+                style={{ userSelect: "none" }}
+              >
+                {timer.remainingSeconds}
+              </text>
+            </svg>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-widest"
+              style={{ color: withAlpha(accent.primary, 0.4) }}
+            >
+              {isPaused ? "paused" : "sec"}
+            </p>
+          </div>
+        </div>
+
+        {/* ── Desktop 3-column layout (hidden on mobile) ───────────── */}
+        <div className="hidden md:flex items-center gap-4 px-5 py-6 min-h-[180px]">
 
           {/* LEFT — Eye / Level */}
-          <div className="w-28 flex-shrink-0 flex flex-col items-center gap-2">
+          <div className="w-28 md:flex-shrink-0 flex flex-col items-center gap-2">
             <div
               className="h-10 w-10 rounded-xl flex items-center justify-center shadow-sm"
               style={{ backgroundColor: accent.primary }}
@@ -258,16 +353,16 @@ export function TestingShell({
           {/* CENTER — Test letters (primary focus, never compressed) */}
           <div className="flex-1 flex items-center justify-center min-w-0">
             <SnellenRenderer
-              key={`${currentEye}-${timer.letterIndex}`}
+              key={`${currentEye}-${timer.letterIndex}-desktop`}
               letters={currentLine.letters}
               exactHeightMm={currentLine.exactHeightMm}
-              calibration={calibration}
+              calibration={effectiveCalibration}
               animate
             />
           </div>
 
           {/* RIGHT — Circular countdown timer */}
-          <div className="w-28 flex-shrink-0 flex flex-col items-center justify-center gap-1">
+          <div className="w-28 md:flex-shrink-0 flex flex-col items-center justify-center gap-1">
             <svg
               width={RING_SIZE}
               height={RING_SIZE}
@@ -323,6 +418,17 @@ export function TestingShell({
               {isPaused ? "paused" : "sec left"}
             </p>
           </div>
+        </div>
+
+        {/* ── Mobile chart row: full-width Snellen (hidden on desktop) */}
+        <div className="flex md:hidden items-center justify-center w-full px-3 py-4 min-h-[140px]">
+          <SnellenRenderer
+            key={`${currentEye}-${timer.letterIndex}-mobile`}
+            letters={currentLine.letters}
+            exactHeightMm={currentLine.exactHeightMm}
+            calibration={effectiveCalibration}
+            animate
+          />
         </div>
 
         {/* ── Pause / Resume button ─────────────────────────────────── */}

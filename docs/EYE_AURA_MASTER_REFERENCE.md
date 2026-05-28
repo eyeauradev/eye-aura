@@ -27,15 +27,18 @@ To provide accessible, premium digital eye care through a calm, operationally ef
 - Track patient consultation history and follow-ups
 
 ### Current Maturity Stage
-Phases 1-8 completed:
+Phases 1-11 completed:
 - ✅ Phase 1: Foundation (Next.js, TypeScript, Tailwind, components)
 - ✅ Phase 2: Public Website (homepage, services, navigation)
-- ✅ Phase 3: Auth & Backend (login, signup, middleware, roles)
+- ✅ Phase 3: Auth & Backend (login, signup, middleware, roles, email verification)
 - ✅ Phase 4: Booking Engine (booking flow, slots, reschedule)
-- ✅ Phase 5: Patient Module (dashboard, appointments, prescriptions, support)
-- ✅ Phase 6: Doctor Module (dashboard, appointments, slots, patients, prescriptions)
-- ✅ Phase 7: Admin Module (doctor invites, service management, user management, analytics)
+- ✅ Phase 5: Patient Module (dashboard, appointments, prescriptions, support, assessments)
+- ✅ Phase 6: Doctor Module (dashboard, appointments, slots, patients, prescriptions, requests)
+- ✅ Phase 7: Admin Module (doctor invites, service management, user management, analytics, assessments, payments)
 - ✅ Phase 8: Scheduling System Refactor (request/approval system, weekly availability, smart slot generation, custom minimal calendar UI, modular scheduling components, removed Framer Motion, mobile-responsive design)
+- ✅ Phase 9: Payment Architecture (Razorpay integration, create-order, verify-payment, refund with after() pattern, admin payments dashboard)
+- ✅ Phase 10: Visual Acuity Assessment System (calibration pipeline, SVG rendering, session flow, timer engine, doctor/admin assignment, service automation)
+- ✅ Phase 11: Premium Design System & Layout Revamp (design tokens, FloatingSidebar, PageTransition, glass header, mobile bottom nav, responsive layouts, Public Home navigation)
 
 ### Finalized Architecture Decisions
 - **NO Firebase Storage** - All data is structured Firestore data
@@ -73,47 +76,57 @@ Phases 1-8 completed:
 ### Folder Structure
 ```
 /app
-  /auth - Authentication pages (login, signup)
-  /patient - Patient module pages
-  /doctor - Doctor module pages
+  /auth - Authentication pages (login, signup, verify-email, forgot-password)
+  /patient - Patient module pages (dashboard, appointments, prescriptions, assessment)
+  /doctor - Doctor module pages (dashboard, appointments, requests, patients, prescriptions, slots, profile)
+  /admin - Admin module pages (dashboard, doctors, services, assessments, appointments, users, payments, analytics, settings)
   /booking - Booking flow pages
-  /(public) - Public website pages
+  /invite/[token] - Doctor invite acceptance (public)
+  /prescription/print/[id] - Puppeteer render target
+  /api - API routes (payments, assessments, doctor-onboarding, emails, prescription)
 /components
-  /ui - Shadcn UI components
-  /section-container - Reusable section wrapper
+  /ui - Shadcn UI components (button, card, badge, dialog, etc.)
+  /premium - Premium design system components (FloatingSidebar, GlassPanel, PageTransition, DashboardCard, MetricCard, StatusBadge, PremiumButton, PremiumHeader, SectionHeader, InfoRow, QuickActionsPanel, MotionWrapper, PremiumTabs, PremiumModal, PremiumTable, PremiumInput, AssessmentWrapper)
   /doctor
     /schedule - Modular scheduling components (ScheduleHeader, WeeklyAvailabilityCard, UnavailableBlockCard, AvailabilityPreview, TimeRangeRow)
+  /prescription - Prescription template for PDF rendering
 /modules
-  /public - Public website components
-  /patient - Patient module components
-  /doctor - Doctor module components
+  /home - Public homepage marketing sections
+  /visual-acuity - Visual acuity assessment module
+    /engine - Timer, progress, calibration sync hooks
+    /steps - Assessment step components (Welcome, Instructions, Calibration, Testing, Near, Results)
+    /near - Near vision data
 /services
-  /firebase - Firebase services (auth, firestore)
+  /firebase - Firebase services (client, admin, config)
+  /auth - Authentication service
+  /firestore - All Firestore CRUD services (users, appointments, booking-requests, etc.)
   /booking - Booking business logic
+  /email - Email service (Resend)
   /notifications - Notification service
-/hooks
-  /auth - Authentication hooks
-  /booking - Booking hooks
 /lib
-  /timezone - Timezone utilities
-  /auth-server - Server-side auth helpers
+  utils.ts - cn() = clsx + tailwind-merge
+  design-tokens.ts - Premium design system tokens (GLASS, SHADOWS, TYPOGRAPHY, SPACING, RADIUS, DEPTH_LAYERS, RESPONSIVE_SPACING)
+  auth-server.ts - Server-side auth helpers (getServerSession, requireRole, isAdmin)
+  firebase-admin.ts - Alternative admin init
+  send-email.ts - Server-side Resend email sender
 /types
-  /auth - Authentication types
-  /booking - Booking types
-  /firestore - Firestore document types
-/store - State management (if needed)
+  auth.ts - UserRole, UserProfile, AuthState
+  firestore.ts - ALL Firestore document interfaces + enums
+  booking.ts - BookingState, BookingStep, SlotGenerationConfig
+/contexts
+  auth-context.tsx - AuthProvider + useAuth() hook
 /docs - Project documentation
 ```
 
 ### Modular Structure
-- **/modules/public**: Landing page, services, navigation for unauthenticated users
-- **/modules/patient**: Patient dashboard, appointments, prescriptions, support, notifications
-- **/modules/doctor**: Doctor dashboard, appointments, slots, patients, prescriptions
-- **/modules/admin**: Reserved for future admin functionality
+- **/modules/home**: Landing page, services, navigation for unauthenticated users
+- **/modules/visual-acuity**: Visual acuity assessment engine (Snellen/Jaeger charts, calibration, SVG rendering, timer, session flow)
+- **/components/premium**: Shared premium design system components used across all authenticated modules
 
 ### Architecture Philosophy
 - Modular separation of concerns
-- Reusable components in `/components`
+- Premium design system with centralized tokens (`lib/design-tokens.ts`)
+- Reusable components in `/components/premium`
 - Business logic in `/services`
 - Type definitions in `/types`
 - Utility functions in `/lib`
@@ -2534,3 +2547,81 @@ All high-priority stabilization tasks completed. The booking lifecycle now works
 - Documented appointment prescriptionId update on prescription creation
 - Documented doctor_block creation on booking request acceptance
 - Updated LAST UPDATED date to 2026-05-20
+
+---
+
+#### 2026-05 - Premium Design System & Layout Revamp
+
+**Added**
+- Premium design system tokens in `lib/design-tokens.ts`:
+  - `GLASS` — glassmorphism backgrounds (background, cardBackground, headerBackground, border, blur)
+  - `SHADOWS` — elevation system (card, glass, buttonHover, sidebar, elevated)
+  - `TYPOGRAPHY` — responsive text styles (heading, subheading, body, label)
+  - `SPACING` — responsive spacing multiplier system (sectionGap, cardGap, cardPadding, layoutGap, pageX, pageY)
+  - `RADIUS` — border radius tokens (container, card, interactive, pill)
+  - `DEPTH_LAYERS` — three-layer depth system (background, surface, elevated)
+  - `RESPONSIVE_SPACING` — breakpoint multiplier configuration (mobile 0.75x, tablet 0.875x, desktop 1x)
+- Premium component library in `/components/premium/`:
+  - `FloatingSidebar` — glass navigation sidebar (sticky, rounded-[32px], hidden below lg)
+  - `PageTransition` — CSS-based page transition wrapper
+  - `GlassPanel` — reusable glass container
+  - `DashboardCard`, `MetricCard`, `StatusBadge`, `PremiumButton`, `PremiumHeader`
+  - `SectionHeader`, `InfoRow`, `QuickActionsPanel`, `MotionWrapper`
+  - `PremiumTabs`, `PremiumModal`, `PremiumTable`, `PremiumInput`
+  - `AssessmentWrapper` — visual acuity assessment container
+- Doctor/admin layout revamp:
+  - Glass header (sticky, GLASS.headerBackground + GLASS.blur)
+  - FloatingSidebar (visible ≥1024px, glass panel, SHADOWS.sidebar)
+  - Mobile bottom navigation (fixed, glass background, lg:hidden)
+  - Admin slide-out drawer (hamburger menu, full nav items)
+  - Background layer with subtle radial gradient glows
+- "Public Home" navigation item (href="/") added to all modules:
+  - Doctor module: first item in doctorNavItems and mobileNavItems
+  - Admin module: first item in adminNavItems and mobileNavItems
+  - Patient module: already had Public Home link
+
+**Changed**
+- Doctor layout: migrated from basic sidebar to FloatingSidebar + glass header + mobile bottom nav
+- Admin layout: migrated from basic sidebar to FloatingSidebar + glass header + mobile bottom nav + slide-out drawer
+- All module layouts now use design tokens (GLASS, SPACING, SHADOWS, RADIUS) instead of hardcoded values
+- Responsive breakpoint system formalized: sm (640px), md (768px), lg (1024px)
+
+---
+
+#### 2026-05 - Visual Acuity Assessment Architecture
+
+**Added**
+- `useCalibrationSync` hook (`modules/visual-acuity/engine/useCalibrationSync.ts`):
+  - Recalculates pxPerMm when DPR changes (monitor switch, pinch-zoom)
+  - Listens for resize, orientationchange, and matchMedia DPR change events
+  - Debounces recalculation at 300ms
+  - Returns effective CalibrationData (original or recalculated)
+- Responsive 2-row mobile layout in TestingShell:
+  - Mobile (<768px): Row 1 = eye info + timer compact bar; Row 2 = Snellen chart full width
+  - Desktop (≥768px): 3-column layout preserved (w-28 | flex-1 | w-28)
+- SVG smooth transition on SnellenRenderer container: `transition: width 0.3s ease, height 0.3s ease`
+
+**Key Constants**
+- `CARD_WIDTH_MM = 85.60` — ISO/IEC 7810 ID-1 standard credit card width
+- `CAP_HEIGHT_RATIO = 0.711` — Arial cap height as fraction of em-square
+- `MIN_CAP_PX = 4` — hard device-floor for capital height
+- `LETTER_GAP_RATIO = 0.5` — Sloan chart inter-letter spacing
+- `DEBOUNCE_MS = 300` — calibration sync debounce interval
+
+**Assessment Flow**
+```
+type_select → instructions → calibration → duration_select → testing → results
+```
+
+**Per-Eye Testing Phases**
+```
+eye_intro → reading (auto-advance by timer) → self_report
+```
+
+**SVG Rendering Pipeline**
+```
+rawCapPx = exactHeightMm × pxPerMm
+capPx = max(rawCapPx, MIN_CAP_PX)
+fontSize = capPx / CAP_HEIGHT_RATIO
+SVG rendered at exact numeric pixel dimensions (no browser scaling)
+```

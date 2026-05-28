@@ -19,6 +19,7 @@ import {
   RefreshCw,
   ClipboardList,
   Stethoscope,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloatingSidebar, PageTransition } from "@/components/premium";
@@ -27,6 +28,8 @@ import { GLASS, SPACING, SHADOWS } from "@/lib/design-tokens";
 
 /** Admin navigation items grouped logically */
 const adminNavItems: NavItem[] = [
+  // Home
+  { label: "Public Home", href: "/", icon: Home, group: "home" },
   // Main operations
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, group: "main" },
   { label: "Doctors", href: "/admin/doctors", icon: Stethoscope, group: "main" },

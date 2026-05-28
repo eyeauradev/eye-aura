@@ -33,8 +33,6 @@ export class BookingService {
       slotId: formData.slotId,
       status: "pending",
       notes: formData.notes,
-      consultationPlatform: "google_meet",
-      consultationLink: undefined,
       createdAt: new Date(),
       updatedAt: new Date(),
       scheduledFor: slot.startTime,

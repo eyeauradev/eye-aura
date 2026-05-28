@@ -64,8 +64,8 @@ export interface AppointmentDocument {
   notes?: string;
   prescriptionId?: string;
   paymentId?: string;
-  // Consultation platform
-  consultationPlatform: ConsultationPlatform;
+  // Consultation platform (set by doctor before consultation)
+  consultationPlatform?: ConsultationPlatform;
   consultationLink?: string;
   // Follow-up
   followUpRequired?: boolean;

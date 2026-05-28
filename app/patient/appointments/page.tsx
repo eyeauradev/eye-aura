@@ -8,7 +8,7 @@ import { EA, eaError } from "@/lib/errors";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import type { AppointmentDocument, ServiceDocument, UserDocument } from "@/types/firestore";
 import type { BookingRequestDocument } from "@/types/firestore";
-import { Calendar, Clock, Video, Filter, Plus, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, Filter, Plus, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import {
   DashboardCard,
   StatusBadge,
@@ -180,7 +180,6 @@ export default function PatientAppointmentsPage() {
 
   const AppointmentCard = ({ appointment, index }: { appointment: AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument }; index: number }) => {
     const isUpcoming = new Date(appointment.scheduledFor) > new Date();
-    const canJoin = appointment.status === "confirmed" && new Date(appointment.scheduledFor) <= new Date(new Date().getTime() + 15 * 60000) && new Date(appointment.scheduledFor) > new Date(new Date().getTime() - (appointment.service?.duration || 30) * 60000);
 
     return (
       <DashboardCard staggerIndex={index} className="overflow-hidden">
@@ -211,11 +210,6 @@ export default function PatientAppointmentsPage() {
               View Details
             </PremiumButton>
           </Link>
-          {canJoin && (
-            <PremiumButton size="sm" icon={<Video className="h-3.5 w-3.5" />}>
-              Join
-            </PremiumButton>
-          )}
         </div>
       </DashboardCard>
     );

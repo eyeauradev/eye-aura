@@ -15,6 +15,7 @@ import {
   UserCircle,
   LogOut,
   RefreshCw,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloatingSidebar, PageTransition } from "@/components/premium";
@@ -26,6 +27,7 @@ import { GLASS, SPACING, RADIUS } from "@/lib/design-tokens";
  * Groups: "main" for primary navigation, "account" for profile/settings.
  */
 const doctorNavItems: NavItem[] = [
+  { label: "Public Home", href: "/", icon: Home, group: "home" },
   { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard, group: "main" },
   { label: "Appointments", href: "/doctor/appointments", icon: Calendar, group: "main" },
   { label: "Requests", href: "/doctor/requests", icon: Bell, group: "main" },
@@ -37,6 +39,7 @@ const doctorNavItems: NavItem[] = [
 
 /** Subset of nav items shown in the mobile bottom navigation bar */
 const mobileNavItems: NavItem[] = [
+  { label: "Public Home", href: "/", icon: Home, group: "home" },
   { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard },
   { label: "Appointments", href: "/doctor/appointments", icon: Calendar },
   { label: "Requests", href: "/doctor/requests", icon: Bell },

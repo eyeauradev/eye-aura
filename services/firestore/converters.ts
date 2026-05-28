@@ -77,15 +77,25 @@ export const userConverter = {
 
 // Appointment converter
 export const appointmentConverter = {
-  toFirestore: (appointment: AppointmentDocument): DocumentData => ({
-    ...appointment,
-    scheduledFor: toTimestamp(appointment.scheduledFor),
-    completedAt: appointment.completedAt ? toTimestamp(appointment.completedAt) : null,
-    cancelledAt: appointment.cancelledAt ? toTimestamp(appointment.cancelledAt) : null,
-    followUpDate: appointment.followUpDate ? toTimestamp(appointment.followUpDate) : null,
-    createdAt: toTimestamp(appointment.createdAt),
-    updatedAt: toTimestamp(appointment.updatedAt),
-  }),
+  toFirestore: (appointment: AppointmentDocument): DocumentData => {
+    // Strip undefined fields — Firestore rejects undefined values
+    const data: DocumentData = {
+      ...appointment,
+      scheduledFor: toTimestamp(appointment.scheduledFor),
+      completedAt: appointment.completedAt ? toTimestamp(appointment.completedAt) : null,
+      cancelledAt: appointment.cancelledAt ? toTimestamp(appointment.cancelledAt) : null,
+      followUpDate: appointment.followUpDate ? toTimestamp(appointment.followUpDate) : null,
+      createdAt: toTimestamp(appointment.createdAt),
+      updatedAt: toTimestamp(appointment.updatedAt),
+    };
+    // Remove any keys with undefined values
+    Object.keys(data).forEach((key) => {
+      if (data[key] === undefined) {
+        delete data[key];
+      }
+    });
+    return data;
+  },
   fromFirestore: (snapshot: QueryDocumentSnapshot): AppointmentDocument => {
     const data = snapshot.data();
     return {
@@ -98,7 +108,7 @@ export const appointmentConverter = {
       notes: data.notes,
       prescriptionId: data.prescriptionId,
       paymentId: data.paymentId,
-      consultationPlatform: data.consultationPlatform || "google_meet",
+      consultationPlatform: data.consultationPlatform || undefined,
       consultationLink: data.consultationLink,
       followUpRequired: data.followUpRequired,
       followUpDate: data.followUpDate ? fromTimestamp(data.followUpDate) : undefined,
