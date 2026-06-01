@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import type { BookingRequestDocument } from "@/types/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { CheckCircle, Clock, ArrowRight, Home } from "lucide-react";
 
 export default function RequestSubmittedPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<BookingRequestDocument | null>(null);
   const [requestId, setRequestId] = useState<string>("");
@@ -32,7 +34,9 @@ export default function RequestSubmittedPage({ params }: { params: Promise<{ id:
         const requestData = await bookingRequestsService.getById(requestId);
         setRequest(requestData);
       } catch (error) {
-        eaError(EA.BKG_003, error);
+        const appError = getDisplayError(error, ERROR_CODES.SYSTEM.UNEXPECTED);
+        logError(appError.code, error, "RequestSubmittedPage");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }

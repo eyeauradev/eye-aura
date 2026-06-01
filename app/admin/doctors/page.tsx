@@ -9,12 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 
 import Link from "next/link";
 import type { UserDocument } from "@/types/firestore";
 
 export default function AdminDoctorsPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [doctors, setDoctors] = useState<UserDocument[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,8 +51,9 @@ export default function AdminDoctorsPage() {
       await usersService.update(doctorId, { isActive: false });
       setDoctors(doctors.map((d) => (d.id === doctorId ? { ...d, isActive: false } : d)));
     } catch (error) {
-      console.error("Error disabling doctor:", error);
-      alert("Failed to disable doctor");
+      const appError = getDisplayError(error, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, error, "AdminModule");
+      errorFromAppError(appError);
     }
   };
 
@@ -58,8 +62,9 @@ export default function AdminDoctorsPage() {
       await usersService.update(doctorId, { isActive: true });
       setDoctors(doctors.map((d) => (d.id === doctorId ? { ...d, isActive: true } : d)));
     } catch (error) {
-      console.error("Error activating doctor:", error);
-      alert("Failed to activate doctor");
+      const appError = getDisplayError(error, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, error, "AdminModule");
+      errorFromAppError(appError);
     }
   };
 

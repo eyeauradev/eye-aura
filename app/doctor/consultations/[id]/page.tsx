@@ -12,6 +12,7 @@ import type {
   UserDocument,
 } from "@/types/firestore";
 import { useToast } from "@/components/ui/toast-provider";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import {
   Calendar,
   Clock,
@@ -69,7 +70,7 @@ function getStatusVariant(status: AppointmentStatus): StatusVariant {
 export default function DoctorConsultationPage() {
   const params = useParams();
   const router = useRouter();
-  const { success: toastSuccess, error: toastError } = useToast();
+  const { success: toastSuccess, errorFromAppError } = useToast();
   const shouldReduceMotion = useReducedMotion();
 
   const [loading, setLoading] = useState(true);
@@ -119,12 +120,14 @@ export default function DoctorConsultationPage() {
         );
       } catch (error) {
         console.error("Error updating status:", error);
-        toastError("Failed to update consultation status");
+        const appError = getDisplayError(error, ERROR_CODES.DOCTOR.OPERATION_FAILED);
+        logError(appError.code, error, "DoctorModule");
+        errorFromAppError(appError);
       } finally {
         setUpdating(false);
       }
     },
-    [appointment, toastSuccess, toastError]
+    [appointment, toastSuccess, errorFromAppError]
   );
 
   const handleSaveNotes = useCallback(async () => {
@@ -137,11 +140,13 @@ export default function DoctorConsultationPage() {
       toastSuccess("Notes saved");
     } catch (error) {
       console.error("Error saving notes:", error);
-      toastError("Failed to save notes");
+      const appError = getDisplayError(error, ERROR_CODES.DOCTOR.OPERATION_FAILED);
+      logError(appError.code, error, "DoctorModule");
+      errorFromAppError(appError);
     } finally {
       setUpdating(false);
     }
-  }, [appointment, notes, toastSuccess, toastError]);
+  }, [appointment, notes, toastSuccess, errorFromAppError]);
 
   if (loading) {
     return (

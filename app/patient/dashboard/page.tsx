@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import type { BookingRequestDocument, ServiceDocument, UserDocument } from "@/types/firestore";
 import { TYPOGRAPHY, SPACING } from "@/lib/patient-portal/design-tokens";
@@ -37,6 +38,7 @@ import {
 export default function PatientDashboard() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [recentPrescriptions, setRecentPrescriptions] = useState<any[]>([]);
@@ -124,7 +126,9 @@ export default function PatientDashboard() {
         );
         setServicesWithDoctors(servicesWithDoctorsData);
       } catch (error) {
-        eaError(EA.PAT_001, error);
+        const appError = getDisplayError(error, ERROR_CODES.USER.LOAD_FAILED);
+        logError(appError.code, error, "PatientDashboard");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
 import { Save, Bell, CheckCircle, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +54,9 @@ export default function PatientProfilePage() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      setSaveError(eaError(EA.PAT_003, error));
+      const appError = getDisplayError(error, ERROR_CODES.USER.SAVE_FAILED);
+      logError(appError.code, error, "PatientProfilePage");
+      setSaveError(formatDisplayError(appError));
     } finally {
       setSaving(false);
     }

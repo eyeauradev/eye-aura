@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { supportTicketsService, usersService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { MessageSquare, ArrowLeft, Send, User, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
@@ -43,6 +44,7 @@ export default function SupportTicketDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [ticket, setTicket] = useState<any>(null);
   const [assignedTo, setAssignedTo] = useState<any>(null);
@@ -67,7 +69,9 @@ export default function SupportTicketDetailPage() {
           setAssignedTo(assignedToData);
         }
       } catch (error) {
-        eaError(EA.SUP_003, error);
+        const appError = getDisplayError(error, ERROR_CODES.SUPPORT.OPERATION_FAILED);
+        logError(appError.code, error, "SupportModule");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }
@@ -97,7 +101,9 @@ export default function SupportTicketDetailPage() {
       const updatedTicket = await supportTicketsService.getById(ticket.id);
       setTicket(updatedTicket);
     } catch (error) {
-      eaError(EA.SUP_004, error);
+      const appError = getDisplayError(error, ERROR_CODES.SUPPORT.OPERATION_FAILED);
+      logError(appError.code, error, "SupportModule");
+      errorFromAppError(appError);
     } finally {
       setSubmitting(false);
     }

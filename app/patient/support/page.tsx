@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { supportTicketsService, usersService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { v4 as uuidv4 } from "uuid";
 import { MessageSquare, Plus, ArrowRight, Clock, CheckCircle, AlertCircle, HelpCircle, CreditCard, Calendar as CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ const statusLabelMap: Record<string, string> = {
 
 export default function PatientSupportPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [tickets, setTickets] = useState<any[]>([]);
   const [showNewTicket, setShowNewTicket] = useState(false);
@@ -78,7 +80,9 @@ export default function PatientSupportPage() {
 
         setTickets(enrichedTickets);
       } catch (error) {
-        eaError(EA.SUP_001, error);
+        const appError = getDisplayError(error, ERROR_CODES.SUPPORT.OPERATION_FAILED);
+        logError(appError.code, error, "SupportModule");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }
@@ -124,7 +128,9 @@ export default function PatientSupportPage() {
 
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      eaError(EA.SUP_002, error);
+      const appError = getDisplayError(error, ERROR_CODES.SUPPORT.OPERATION_FAILED);
+      logError(appError.code, error, "SupportModule");
+      errorFromAppError(appError);
     } finally {
       setSubmitting(false);
     }

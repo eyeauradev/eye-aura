@@ -11,12 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { getDisplayError, logError, ERROR_CODES, formatDisplayError } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 
 import Link from "next/link";
 
 export default function AdminDoctorInvitePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [inviteLink, setInviteLink] = useState("");
@@ -109,13 +112,10 @@ export default function AdminDoctorInvitePage() {
       }
 
       setSuccess(true);
-    } catch (err: any) {
-      // Provide more specific error messages
-      if (err.message.includes("Failed to send email")) {
-        setError("Failed to send invite email. Please try again or contact support.");
-      } else {
-        setError(err.message || "Failed to send invite");
-      }
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, err, "AdminModule");
+      errorFromAppError(appError);
     } finally {
       setLoading(false);
     }

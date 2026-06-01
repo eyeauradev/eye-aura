@@ -10,6 +10,8 @@ import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 
 import Link from "next/link";
 
@@ -89,6 +91,7 @@ export default function DoctorPrescriptionCreatePage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [appointment, setAppointment] = useState<AppointmentDocument | null>(null);
@@ -109,7 +112,9 @@ export default function DoctorPrescriptionCreatePage() {
           setPatient(patientData);
         }
       } catch (error) {
-        console.error("Error loading appointment:", error);
+        const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
+        logError(appError.code, error, "PrescriptionModule");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }
@@ -180,8 +185,9 @@ export default function DoctorPrescriptionCreatePage() {
 
       router.push(`/doctor/prescriptions/${prescription.id}`);
     } catch (error) {
-      console.error("Error creating prescription:", error);
-      alert("Failed to create prescription. Please try again.");
+      const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
+      logError(appError.code, error, "PrescriptionModule");
+      errorFromAppError(appError);
     } finally {
       setSaving(false);
     }

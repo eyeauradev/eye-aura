@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
+import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,8 +57,10 @@ export default function VerifyEmailPage() {
       setResendSuccess(true);
       setCooldown(60); // 60 second cooldown
       setTimeout(() => setResendSuccess(false), 5000);
-    } catch (err: any) {
-      setError(err.message || "Failed to resend verification email");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.AUTH.GENERIC);
+      logError(appError.code, err, "VerifyEmailPage");
+      setError(formatDisplayError(appError));
     } finally {
       setResendLoading(false);
     }
@@ -69,8 +72,10 @@ export default function VerifyEmailPage() {
 
     try {
       await reloadUser();
-    } catch (err: any) {
-      setError(err.message || "Failed to refresh verification status");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.AUTH.GENERIC);
+      logError(appError.code, err, "VerifyEmailPage");
+      setError(formatDisplayError(appError));
     } finally {
       setRefreshLoading(false);
     }

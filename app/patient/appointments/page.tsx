@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import type { AppointmentDocument, ServiceDocument, UserDocument } from "@/types/firestore";
 import type { BookingRequestDocument } from "@/types/firestore";
@@ -20,6 +21,7 @@ import {
 
 export default function PatientAppointmentsPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [upcomingAppointments, setUpcomingAppointments] = useState<(AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
   const [pastAppointments, setPastAppointments] = useState<(AppointmentDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
@@ -83,7 +85,9 @@ export default function PatientAppointmentsPage() {
         setBookingRequests(requestsWithDetails.filter(r => r.status !== "accepted" && r.status !== "rejected"));
         setRejectedRequests(requestsWithDetails.filter(r => r.status === "rejected"));
       } catch (error) {
-        eaError(EA.APT_001, error);
+        const appError = getDisplayError(error, ERROR_CODES.APPOINTMENT.LOAD_FAILED);
+        logError(appError.code, error, "PatientAppointmentsPage");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }

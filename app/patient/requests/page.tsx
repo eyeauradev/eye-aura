@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { servicesService, usersService } from "@/services/firestore";
 import type { BookingRequestDocument, BookingRequestStatus, ServiceDocument, UserDocument } from "@/types/firestore";
 import {
@@ -62,6 +63,7 @@ const statusConfig: Record<string, { label: string; variant: "pending" | "confir
 
 export default function PatientRequestsPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [requests, setRequests] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<BookingRequestStatus | "all">("all");
@@ -82,7 +84,9 @@ export default function PatientRequestsPage() {
       );
       setRequests(enriched);
     } catch (e) {
-      eaError(EA.BKG_001, e);
+      const appError = getDisplayError(e, ERROR_CODES.BOOKING.SLOT_CONFLICT);
+      logError(appError.code, e, "PatientRequestsPage");
+      errorFromAppError(appError);
     } finally {
       setLoading(false);
     }

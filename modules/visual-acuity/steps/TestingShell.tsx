@@ -72,7 +72,10 @@ export function TestingShell({
   onComplete,
 }: TestingShellProps): JSX.Element {
   // Recalculate calibration when DPR/resize/orientation changes.
-  const effectiveCalibration = useCalibrationSync(calibration);
+  // useCalibrationSync accepts CalibrationData | null but TestingShell always
+  // receives a non-null CalibrationData, so fall back to the original prop if
+  // the hook hasn't emitted a value yet (initial render race).
+  const effectiveCalibration = useCalibrationSync(calibration) ?? calibration;
 
   const [currentEye, setCurrentEye] = useState<EyeType>("right");
   const [eyePhase, setEyePhase] = useState<EyePhase>("eye_intro");

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, formatDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,19 +37,19 @@ export default function SignupPage() {
       console.log("[SignupPage] Email verified:", user.emailVerified);
       console.log("[SignupPage] Redirecting to /auth/verify-email");
       router.push("/auth/verify-email");
-    } catch (err: any) {
-      eaError(EA.AUTH_002, err);
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.AUTH.EMAIL_IN_USE);
+      logError(appError.code, err, "SignupForm");
+      setError(formatDisplayError(appError));
 
-      // Handle specific Firebase errors with user-friendly messages
-      if (err.code === 'auth/email-already-in-use') {
-        setError("This email is already registered.");
+      // Show login link when the email is already registered
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "code" in err &&
+        (err as { code: string }).code === "auth/email-already-in-use"
+      ) {
         setShowLoginLink(true);
-      } else if (err.code === 'auth/weak-password') {
-        setError("Password is too weak. Please use at least 8 characters.");
-      } else if (err.code === 'auth/invalid-email') {
-        setError("Please enter a valid email address.");
-      } else {
-        setError(err.message || "Failed to create account");
       }
     }
   };
@@ -65,8 +65,10 @@ export default function SignupPage() {
       console.log("[SignupPage] User role:", user.role);
       console.log("[SignupPage] Redirecting to /patient/dashboard");
       router.push("/patient/dashboard");
-    } catch (err: any) {
-      setError(eaError(EA.AUTH_002, err));
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.AUTH.EMAIL_IN_USE);
+      logError(appError.code, err, "SignupForm");
+      setError(formatDisplayError(appError));
     }
   };
 

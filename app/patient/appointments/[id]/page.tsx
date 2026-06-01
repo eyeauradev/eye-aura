@@ -5,7 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, usersService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
+import { TYPOGRAPHY } from "@/lib/design-tokens";
 import { bookingService } from "@/services/booking/booking.service";
 import { Calendar, Clock, FileText, Video, ArrowLeft, Calendar as CalendarIcon, X } from "lucide-react";
 import {
@@ -22,6 +24,7 @@ export default function AppointmentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<any>(null);
   const [service, setService] = useState<any>(null);
@@ -50,7 +53,9 @@ export default function AppointmentDetailPage() {
         const doctorData = await usersService.getById(appointmentData.doctorId);
         setDoctor(doctorData);
       } catch (error) {
-        eaError(EA.APT_002, error);
+        const appError = getDisplayError(error, ERROR_CODES.APPOINTMENT.LOAD_FAILED);
+        logError(appError.code, error, "AppointmentDetailPage");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }
@@ -69,7 +74,9 @@ export default function AppointmentDetailPage() {
       await bookingService.cancelBooking(appointment.id, cancellationReason);
       router.push("/patient/appointments");
     } catch (err: any) {
-      setError(eaError(EA.APT_003, err));
+      const appError = getDisplayError(err, ERROR_CODES.APPOINTMENT.CANCEL_FAILED);
+      logError(appError.code, err, "AppointmentDetailPage");
+      setError(formatDisplayError(appError));
     } finally {
       setCancelling(false);
     }

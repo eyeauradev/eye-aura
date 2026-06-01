@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doctorInvitesService } from "@/services/firestore";
 import { useAuth } from "@/contexts/auth-context";
+import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
 import { Eye, EyeOff, Lock, User, Mail, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,8 +67,10 @@ export default function InviteAcceptancePage() {
 
         setInvite(inviteData);
         setLoading(false);
-      } catch (err: any) {
-        setError(err.message || "Failed to load invite");
+      } catch (err: unknown) {
+        const appError = getDisplayError(err, ERROR_CODES.SYSTEM.UNEXPECTED);
+        logError(appError.code, err, "InviteAcceptancePage");
+        setError(formatDisplayError(appError));
         setLoading(false);
       }
     }
@@ -126,8 +129,10 @@ export default function InviteAcceptancePage() {
       // Step 4: Redirect to verify-email page
       setSuccess(true);
       router.push("/auth/verify-email");
-    } catch (err: any) {
-      setError(err.message || "Failed to complete onboarding");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.SYSTEM.UNEXPECTED);
+      logError(appError.code, err, "InviteAcceptancePage");
+      setError(formatDisplayError(appError));
       setStatusMessage("");
     } finally {
       setSubmitting(false);

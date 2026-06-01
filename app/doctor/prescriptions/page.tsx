@@ -16,9 +16,12 @@ import {
 } from "@/components/premium";
 import { SPACING, TYPOGRAPHY } from "@/lib/design-tokens";
 import { staggerContainer } from "@/lib/motion-variants";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 
 export default function DoctorPrescriptionsPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const shouldReduceMotion = useReducedMotion();
   const [loading, setLoading] = useState(true);
   const [prescriptions, setPrescriptions] = useState<PrescriptionDocument[]>([]);
@@ -48,7 +51,9 @@ export default function DoctorPrescriptionsPage() {
         });
         setPatientCache(cache);
       } catch (error) {
-        console.error("Error loading prescriptions:", error);
+        const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
+        logError(appError.code, error, "PrescriptionModule");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }

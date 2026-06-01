@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getDisplayError, formatDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -26,8 +27,10 @@ export default function ForgotPasswordPage() {
     try {
       await resetPassword(email);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || "Failed to send reset email");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.AUTH.INVALID_CREDENTIAL);
+      logError(appError.code, err, "ForgotPasswordForm");
+      setError(formatDisplayError(appError));
     }
   };
 

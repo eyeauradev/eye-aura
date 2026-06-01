@@ -9,6 +9,7 @@ import { getAuth } from "firebase/auth";
 import type { AppointmentDocument, PrescriptionDocument, UserDocument, VisionAssessmentDocument, VisionAssessmentType, RefundDecision } from "@/types/firestore";
 import { isRefundEligible } from "@/lib/refund-eligibility";
 import { useToast } from "@/components/ui/toast-provider";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare, Eye, BookOpen, Zap, RefreshCw } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +32,7 @@ export default function DoctorAppointmentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+  const { success: toastSuccess, error: toastError, info: toastInfo, errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<AppointmentDocument | null>(null);
   const [patient, setPatient] = useState<UserDocument | null>(null);
@@ -201,9 +202,11 @@ export default function DoctorAppointmentDetailPage() {
       const updated = await appointmentsService.getById(appointment.id);
       if (updated) setAppointment(updated);
       toastSuccess("Cancellation approved successfully.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error approving cancellation:", error);
-      toastError(error?.message || "Failed to approve cancellation. Please try again.");
+      const appError = getDisplayError(error, ERROR_CODES.APPOINTMENT.CANCEL_FAILED);
+      logError(appError.code, error, "DoctorAppointmentDetailPage");
+      errorFromAppError(appError);
     } finally {
       setUpdating(false);
     }
@@ -288,9 +291,11 @@ export default function DoctorAppointmentDetailPage() {
       setShowRejectModal(false);
       setRejectionReason("");
       toastSuccess("Cancellation request rejected.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error rejecting cancellation:", error);
-      toastError(error?.message || "Failed to reject cancellation. Please try again.");
+      const appError = getDisplayError(error, ERROR_CODES.APPOINTMENT.CANCEL_FAILED);
+      logError(appError.code, error, "DoctorAppointmentDetailPage");
+      errorFromAppError(appError);
     } finally {
       setUpdating(false);
     }

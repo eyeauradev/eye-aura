@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { prescriptionsService, usersService, appointmentsService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { FileText, Calendar, User, Download, Plus } from "lucide-react";
 import {
   DashboardCard,
@@ -16,6 +17,7 @@ import {
 
 export default function PatientPrescriptionsPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
 
@@ -36,7 +38,9 @@ export default function PatientPrescriptionsPage() {
               const appointment = await appointmentsService.getById(prescription.appointmentId);
               return { ...prescription, doctor, appointment };
             } catch (err) {
-              eaError(EA.PRE_001, err);
+              const appError = getDisplayError(err, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
+              logError(appError.code, err, "PrescriptionModule");
+              errorFromAppError(appError);
               return { ...prescription, doctor: null, appointment: null };
             }
           })
@@ -44,7 +48,9 @@ export default function PatientPrescriptionsPage() {
 
         setPrescriptions(enrichedPrescriptions);
       } catch (error) {
-        eaError(EA.PRE_001, error);
+        const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
+        logError(appError.code, error, "PrescriptionModule");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }

@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider } from "@/contexts/theme-context";
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -68,7 +69,9 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </ToastProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

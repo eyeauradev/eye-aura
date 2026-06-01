@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { prescriptionsService, usersService, appointmentsService, servicesService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { User, ArrowLeft, Download, Printer, CheckCircle, Eye } from "lucide-react";
 import {
   DashboardCard,
@@ -19,6 +20,7 @@ export default function PrescriptionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [prescription, setPrescription] = useState<any>(null);
   const [doctor, setDoctor] = useState<any>(null);
@@ -49,7 +51,9 @@ export default function PrescriptionDetailPage() {
           setService(serviceData);
         }
       } catch (error) {
-        eaError(EA.PRE_002, error);
+        const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
+        logError(appError.code, error, "PrescriptionModule");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }

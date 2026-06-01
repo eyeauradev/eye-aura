@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { supportTicketsService, usersService } from "@/services/firestore";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { Search, Filter, MessageSquare } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +17,7 @@ import type { SupportTicketDocument } from "@/types/firestore";
 
 export default function AdminSupportPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [tickets, setTickets] = useState<SupportTicketDocument[]>([]);
   const [users, setUsers] = useState<Record<string, any>>({});
@@ -36,7 +39,9 @@ export default function AdminSupportPage() {
         });
         setUsers(userMap);
       } catch (error) {
-        console.error("Error loading tickets:", error);
+        const appError = getDisplayError(error, ERROR_CODES.SUPPORT.OPERATION_FAILED);
+        logError(appError.code, error, "SupportModule");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }

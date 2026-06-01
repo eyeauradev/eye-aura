@@ -10,6 +10,8 @@ import { WeeklyAvailabilityCard } from "@/components/doctor/schedule/WeeklyAvail
 import { UnavailableBlockCard } from "@/components/doctor/schedule/UnavailableBlockCard";
 import { AvailabilityPreview } from "@/components/doctor/schedule/AvailabilityPreview";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 
 const DAYS: DayOfWeek[] = [
   "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
@@ -40,6 +42,7 @@ const defaultSchedules = (): Record<DayOfWeek, DaySchedule> =>
 
 export default function DoctorSchedulePage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -94,7 +97,9 @@ export default function DoctorSchedulePage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
-      console.error("Failed to save:", error);
+      const appError = getDisplayError(error, ERROR_CODES.DOCTOR.OPERATION_FAILED);
+      logError(appError.code, error, "DoctorModule");
+      errorFromAppError(appError);
     } finally {
       setSaving(false);
     }

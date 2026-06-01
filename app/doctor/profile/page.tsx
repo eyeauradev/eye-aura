@@ -8,10 +8,13 @@ import { User, Mail, Phone, Calendar, Save } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 
 
 export default function DoctorProfilePage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<UserDocument | null>(null);
@@ -53,8 +56,9 @@ export default function DoctorProfilePage() {
       });
       setProfile(profile ? { ...profile, ...formData } : null);
     } catch (error) {
-      console.error("Error saving profile:", error);
-      alert("Failed to save profile. Please try again.");
+      const appError = getDisplayError(error, ERROR_CODES.DOCTOR.OPERATION_FAILED);
+      logError(appError.code, error, "DoctorModule");
+      errorFromAppError(appError);
     } finally {
       setSaving(false);
     }

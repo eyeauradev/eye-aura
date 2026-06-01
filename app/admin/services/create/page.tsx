@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Check, X, Eye, BookOpen, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { servicesService, usersService } from "@/services/firestore";
+import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
 import type { ServiceType, UserDocument, VisionAssessmentType, ServiceAssessmentAutomation } from "@/types/firestore";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -121,8 +122,10 @@ export default function AdminServiceCreatePage() {
       });
 
       router.push(`/admin/services/${newService.id}`);
-    } catch (err: any) {
-      setError(err.message || "Failed to create service");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, err, "AdminServiceCreatePage");
+      setError(formatDisplayError(appError));
     } finally {
       setLoading(false);
     }

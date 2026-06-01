@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { supportTicketsService, usersService } from "@/services/firestore";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { ArrowLeft, MessageSquare, User, Clock, Send } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +20,7 @@ export default function AdminSupportDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [ticket, setTicket] = useState<SupportTicketDocument | null>(null);
   const [ticketUser, setTicketUser] = useState<any>(null);
@@ -38,7 +41,9 @@ export default function AdminSupportDetailPage() {
           setTicketUser(userData);
         }
       } catch (error) {
-        console.error("Error loading ticket:", error);
+        const appError = getDisplayError(error, ERROR_CODES.SUPPORT.OPERATION_FAILED);
+        logError(appError.code, error, "SupportModule");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }
@@ -54,8 +59,9 @@ export default function AdminSupportDetailPage() {
       await supportTicketsService.update(ticket.id, { status: newStatus as any });
       setTicket({ ...ticket, status: newStatus as any });
     } catch (error) {
-      console.error("Error updating ticket status:", error);
-      alert("Failed to update status");
+      const appError = getDisplayError(error, ERROR_CODES.SUPPORT.OPERATION_FAILED);
+      logError(appError.code, error, "SupportModule");
+      errorFromAppError(appError);
     }
   };
 
@@ -84,8 +90,9 @@ export default function AdminSupportDetailPage() {
       });
       setResponseText("");
     } catch (error) {
-      console.error("Error submitting response:", error);
-      alert("Failed to submit response");
+      const appError = getDisplayError(error, ERROR_CODES.SUPPORT.OPERATION_FAILED);
+      logError(appError.code, error, "SupportModule");
+      errorFromAppError(appError);
     } finally {
       setSubmitting(false);
     }

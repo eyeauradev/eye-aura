@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 
 import Link from "next/link";
 import type { UserDocument, AppointmentDocument, PrescriptionDocument, DoctorSlotDocument } from "@/types/firestore";
@@ -18,6 +20,7 @@ export default function AdminDoctorDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [doctor, setDoctor] = useState<UserDocument | null>(null);
   const [appointments, setAppointments] = useState<AppointmentDocument[]>([]);
@@ -66,8 +69,9 @@ export default function AdminDoctorDetailPage() {
       await usersService.update(doctor.id, { isActive: !doctor.isActive });
       setDoctor({ ...doctor, isActive: !doctor.isActive });
     } catch (error) {
-      console.error("Error toggling doctor status:", error);
-      alert("Failed to update doctor status");
+      const appError = getDisplayError(error, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, error, "AdminModule");
+      errorFromAppError(appError);
     }
   };
 
@@ -249,6 +253,7 @@ export default function AdminDoctorDetailPage() {
 }
 
 function DisplayNameEditor({ doctor, onUpdate }: { doctor: UserDocument; onUpdate: (name: string) => void }) {
+  const { errorFromAppError } = useToast();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(doctor.displayName || "");
   const [saving, setSaving] = useState(false);
@@ -261,8 +266,9 @@ function DisplayNameEditor({ doctor, onUpdate }: { doctor: UserDocument; onUpdat
       onUpdate(name.trim());
       setEditing(false);
     } catch (err) {
-      console.error("Failed to update display name:", err);
-      alert("Failed to update display name");
+      const appError = getDisplayError(err, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, err, "AdminModule");
+      errorFromAppError(appError);
     } finally {
       setSaving(false);
     }

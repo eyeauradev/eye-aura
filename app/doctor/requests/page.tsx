@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import { usersService, servicesService } from "@/services/firestore";
 import { getFirebaseAuth } from "@/services/firebase/client";
+import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
 import type { BookingRequestDocument, BookingRequestStatus, ServiceDocument, UserDocument } from "@/types/firestore";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent } from "@/components/ui/card";
@@ -149,8 +150,10 @@ export default function DoctorRequestsPage() {
       }
       setRejectDialog({ open: false, requestId: "" });
       await loadRequests();
-    } catch (err: any) {
-      setRejectError(err.message || "Something went wrong.");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.DOCTOR.OPERATION_FAILED);
+      logError(appError.code, err, "DoctorRequestsPage");
+      setRejectError(formatDisplayError(appError));
     } finally {
       setRejectLoading(false);
     }

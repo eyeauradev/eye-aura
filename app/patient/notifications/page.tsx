@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { notificationsService } from "@/services/notifications/notifications.service";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { Bell, Calendar, FileText, MessageSquare, Check, X, Clock, Trash2 } from "lucide-react";
 import {
   DashboardCard,
@@ -43,6 +44,7 @@ const notificationVariants: Record<string, "confirmed" | "cancelled" | "pending"
 
 export default function PatientNotificationsPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -59,7 +61,9 @@ export default function PatientNotificationsPage() {
         const unread = await notificationsService.getUnreadCount(user.id);
         setUnreadCount(unread);
       } catch (error) {
-        eaError(EA.GEN_001, error);
+        const appError = getDisplayError(error, ERROR_CODES.SYSTEM.UNEXPECTED);
+        logError(appError.code, error, "PatientNotificationsPage");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }

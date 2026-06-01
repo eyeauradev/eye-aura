@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { getFirebaseAuth } from "@/services/firebase/client";
 import { servicesService, usersService, doctorAvailabilityService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, logError, ERROR_CODES, ERROR_MESSAGES } from "@/lib/errors";
 import type { ServiceDocument, UserDocument, DoctorAvailabilityDocument } from "@/types/firestore";
 import type { BookingState, BookingStep } from "@/types/booking";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRight, ShieldCheck, Loader2, Stethoscope, Eye, Video, Glasses, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast-provider";
 
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -39,6 +40,7 @@ const STEPS: BookingStep[] = [
 export default function BookingPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { errorFromAppError } = useToast();
   const [state, setState] = useState<BookingState>({
     currentStep: 0,
     service: null,
@@ -79,7 +81,9 @@ export default function BookingPage() {
       setServices(allServices);
       setServicesWithDoctors(servicesWithDoctorsData);
     } catch (error) {
-      eaError(EA.BKG_001, error);
+      const appError = getDisplayError(error, ERROR_CODES.BOOKING.SLOT_CONFLICT);
+      logError(appError.code, error, "BookingPage");
+      errorFromAppError(appError);
     }
   };
 
@@ -96,7 +100,9 @@ export default function BookingPage() {
       const availability = await doctorAvailabilityService.getByDoctorId(doctor.id);
       setDoctorAvailability(availability);
     } catch (error) {
-      eaError(EA.BKG_001, error);
+      const appError = getDisplayError(error, ERROR_CODES.BOOKING.SLOT_CONFLICT);
+      logError(appError.code, error, "BookingPage");
+      errorFromAppError(appError);
     }
     
     setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
@@ -116,13 +122,24 @@ export default function BookingPage() {
 
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
-    try {
-      // 1. Get Firebase ID token for authenticated API calls
-      const auth = getFirebaseAuth();
-      const idToken = await auth.currentUser?.getIdToken();
-      if (!idToken) throw new Error("Authentication required. Please sign in again.");
+    // 1. Get Firebase ID token for authenticated API calls
+    const auth = getFirebaseAuth();
+    const idToken = await auth.currentUser?.getIdToken();
+    if (!idToken) {
+      setState((prev) => ({ ...prev, loading: false }));
+      try {
+        const appError = getDisplayError(new Error("Authentication required"), ERROR_CODES.PAYMENT.CREATION_FAILED);
+        logError(appError.code, new Error("Authentication required"), "BookingPage");
+        errorFromAppError(appError);
+      } catch {
+        errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
+      }
+      return;
+    }
 
-      // 2. Create Razorpay order on the server
+    // 2. Create Razorpay order on the server
+    let orderData: any;
+    try {
       const orderRes = await fetch("/api/payments/create-order", {
         method: "POST",
         headers: {
@@ -141,83 +158,117 @@ export default function BookingPage() {
 
       if (!orderRes.ok) {
         const errData = await orderRes.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to initiate payment. Please try again.");
+        throw new Error(errData.error || "Payment creation failed");
       }
 
-      const orderData = await orderRes.json();
-
-      // 3. Load Razorpay checkout script
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        throw new Error("Payment gateway failed to load. Please check your connection and try again.");
+      orderData = await orderRes.json();
+    } catch (error) {
+      setState((prev) => ({ ...prev, loading: false }));
+      try {
+        const appError = getDisplayError(error, ERROR_CODES.PAYMENT.CREATION_FAILED);
+        logError(appError.code, error, "BookingPage");
+        errorFromAppError(appError);
+      } catch {
+        errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
       }
-
-      // 4. Open Razorpay checkout — waits for user to complete or dismiss
-      await new Promise<void>((resolve, reject) => {
-        const options: RazorpayOptions = {
-          key: orderData.keyId,
-          amount: orderData.amount, // Already in paise from Razorpay order
-          currency: orderData.currency,
-          name: "Eye Aura",
-          description: state.service?.title,
-          order_id: orderData.orderId,
-          handler: async (response) => {
-            try {
-              // 5. Verify payment signature server-side — creates booking_request
-              const verifyRes = await fetch("/api/payments/verify-payment", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${idToken}`,
-                },
-                body: JSON.stringify({
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                  paymentId: orderData.paymentId,
-                }),
-              });
-
-              if (!verifyRes.ok) {
-                const errData = await verifyRes.json().catch(() => ({}));
-                reject(new Error(errData.error || "Payment verification failed. Please contact support."));
-                return;
-              }
-
-              const verifyData = await verifyRes.json();
-              resolve();
-              router.push(`/patient/requests/${verifyData.bookingRequestId}`);
-            } catch (err: any) {
-              reject(err);
-            }
-          },
-          prefill: {
-            name: user?.displayName || "",
-            email: user?.email || "",
-          },
-          notes: {
-            booking_notes: state.notes || "",
-          },
-          modal: {
-            ondismiss: () => {
-              setState((prev) => ({ ...prev, loading: false }));
-              resolve(); // Dismissed — not an error, just cancelled
-            },
-          },
-          theme: {
-            color: "#0F4F4B",
-          },
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.on("payment.failed", (resp: any) => {
-          reject(new Error(resp.error?.description || "Payment failed. Please try again."));
-        });
-        rzp.open();
-      });
-    } catch (error: any) {
-      setState((prev) => ({ ...prev, loading: false, error: error.message }));
+      return;
     }
+
+    // 3. Load Razorpay checkout script
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded) {
+      setState((prev) => ({ ...prev, loading: false }));
+      try {
+        const appError = getDisplayError(new Error("Payment gateway failed to load"), ERROR_CODES.PAYMENT.CREATION_FAILED);
+        logError(appError.code, new Error("Payment gateway failed to load"), "BookingPage");
+        errorFromAppError(appError);
+      } catch {
+        errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
+      }
+      return;
+    }
+
+    // 4. Open Razorpay checkout — waits for user to complete or dismiss
+    await new Promise<void>((resolve) => {
+      const options: RazorpayOptions = {
+        key: orderData.keyId,
+        amount: orderData.amount, // Already in paise from Razorpay order
+        currency: orderData.currency,
+        name: "Eye Aura",
+        description: state.service?.title,
+        order_id: orderData.orderId,
+        handler: async (response) => {
+          // 5. Verify payment signature server-side — creates booking_request
+          try {
+            const verifyRes = await fetch("/api/payments/verify-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${idToken}`,
+              },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                paymentId: orderData.paymentId,
+              }),
+            });
+
+            if (!verifyRes.ok) {
+              const errData = await verifyRes.json().catch(() => ({}));
+              throw new Error(errData.error || "Payment verification failed");
+            }
+
+            const verifyData = await verifyRes.json();
+            resolve();
+            router.push(`/patient/requests/${verifyData.bookingRequestId}`);
+          } catch (error) {
+            setState((prev) => ({ ...prev, loading: false }));
+            try {
+              const appError = getDisplayError(error, ERROR_CODES.PAYMENT.VERIFICATION_FAILED);
+              logError(appError.code, error, "BookingPage");
+              errorFromAppError(appError);
+            } catch {
+              errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
+            }
+            resolve();
+          }
+        },
+        prefill: {
+          name: user?.displayName || "",
+          email: user?.email || "",
+        },
+        notes: {
+          booking_notes: state.notes || "",
+        },
+        modal: {
+          ondismiss: () => {
+            setState((prev) => ({ ...prev, loading: false }));
+            resolve(); // Dismissed — not an error, just cancelled
+          },
+        },
+        theme: {
+          color: "#0F4F4B",
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (resp: any) => {
+        setState((prev) => ({ ...prev, loading: false }));
+        try {
+          const slotError = getDisplayError(
+            new Error(resp?.error?.description || "Slot unavailable"),
+            ERROR_CODES.BOOKING.SLOT_CONFLICT
+          );
+          logError(slotError.code, resp?.error ?? resp, "BookingPage");
+          errorFromAppError(slotError);
+        } catch {
+          errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
+        }
+        resolve();
+      });
+      rzp.open();
+    });
   };
 
   const handleBack = () => {

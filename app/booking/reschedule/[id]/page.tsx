@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, servicesService, doctorSlotsService, usersService } from "@/services/firestore";
-import { EA, eaError } from "@/lib/errors";
+import { getDisplayError, formatDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 import { transactionService } from "@/services/booking/transaction.service";
 import { bookingService } from "@/services/booking/booking.service";
 import { Calendar, Clock, ArrowLeft, ArrowRight, CheckCircle } from "lucide-react";
@@ -18,6 +19,7 @@ export default function ReschedulePage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<any>(null);
   const [service, setService] = useState<any>(null);
@@ -67,7 +69,9 @@ export default function ReschedulePage() {
         const availableSlots = slots.filter((slot) => slot.id !== appointmentData.slotId);
         setAvailableSlots(availableSlots);
       } catch (error) {
-        eaError(EA.BKG_004, error);
+        const appError = getDisplayError(error, ERROR_CODES.BOOKING.SLOT_CONFLICT);
+        logError(appError.code, error, "ReschedulePage");
+        errorFromAppError(appError);
       } finally {
         setLoading(false);
       }
@@ -90,8 +94,10 @@ export default function ReschedulePage() {
     try {
       await transactionService.rescheduleAppointmentWithTransaction(appointment.id, selectedSlot.id);
       router.push(`/patient/appointments/${appointment.id}`);
-    } catch (err: any) {
-      setError(err.message || "Failed to reschedule appointment");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.APPOINTMENT.CANCEL_FAILED);
+      logError(appError.code, err, "ReschedulePage");
+      setError(formatDisplayError(appError));
       setRescheduling(false);
     }
   };

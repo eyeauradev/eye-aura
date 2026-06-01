@@ -9,11 +9,14 @@ import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { useToast } from "@/components/ui/toast-provider";
 
 import { Mail, Copy, RefreshCw, X, Clock, CheckCircle, AlertCircle, Calendar, User as UserIcon } from "lucide-react";
 
 export default function DoctorInvitesPage() {
   const { user } = useAuth();
+  const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [pendingInvites, setPendingInvites] = useState<DoctorInviteDocument[]>([]);
   const [openedInvites, setOpenedInvites] = useState<DoctorInviteDocument[]>([]);
@@ -83,7 +86,9 @@ export default function DoctorInvitesPage() {
       setCompletedInvites(completed);
       setFailedInvites(failed);
     } catch (error) {
-      console.error("Error resending invite:", error);
+      const appError = getDisplayError(error, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, error, "AdminModule");
+      errorFromAppError(appError);
     } finally {
       setActionLoading(null);
     }
@@ -107,7 +112,9 @@ export default function DoctorInvitesPage() {
       setCompletedInvites(completed);
       setFailedInvites(failed);
     } catch (error) {
-      console.error("Error cancelling invite:", error);
+      const appError = getDisplayError(error, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, error, "AdminModule");
+      errorFromAppError(appError);
     } finally {
       setActionLoading(null);
     }

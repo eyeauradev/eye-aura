@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import { CheckCircle2, XCircle, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { AppError } from "@/lib/errors";
+import { formatDisplayError, ERROR_CODES, ERROR_MESSAGES } from "@/lib/errors";
 
 type ToastType = "success" | "error" | "info";
 
@@ -17,6 +19,7 @@ interface ToastContextValue {
   success: (message: string) => void;
   error: (message: string) => void;
   info: (message: string) => void;
+  errorFromAppError: (appError: AppError) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -35,11 +38,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [dismiss]);
 
   const success = useCallback((message: string) => toast(message, "success"), [toast]);
-  const error = useCallback((message: string) => toast(message, "error"), [toast]);
+
+  const error = useCallback((message: string) => {
+    const RAW_PATTERN = /^(auth|firestore)\//i;
+    const safeMessage = RAW_PATTERN.test(message)
+      ? formatDisplayError({
+          code: ERROR_CODES.SYSTEM.UNEXPECTED,
+          ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED],
+        })
+      : message;
+    toast(safeMessage, "error");
+  }, [toast]);
+
   const info = useCallback((message: string) => toast(message, "info"), [toast]);
 
+  const errorFromAppError = useCallback((appError: AppError) => {
+    toast(formatDisplayError(appError), "error");
+  }, [toast]);
+
   return (
-    <ToastContext.Provider value={{ toast, success, error, info }}>
+    <ToastContext.Provider value={{ toast, success, error, info, errorFromAppError }}>
       {children}
       {/* Toast container */}
       <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">

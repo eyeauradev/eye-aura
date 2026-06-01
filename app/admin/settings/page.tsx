@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_THEME, type ThemeColors } from "@/contexts/theme-context";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
 
 // ─── Firestore path ───────────────────────────────────────────────────────
 function getSettingsDoc() {
@@ -135,8 +136,10 @@ export default function AdminSettingsPage() {
         await setDoc(getSettingsDoc(), { theme: DEFAULT_THEME }, { merge: true });
         setSuccess("Theme reset to defaults");
         setTimeout(() => setSuccess(""), 3000);
-      } catch (err: any) {
-        setError(err?.message || "Failed to reset");
+      } catch (err: unknown) {
+        const appError = getDisplayError(err, ERROR_CODES.ADMIN.OPERATION_FAILED);
+        logError(appError.code, err, "AdminSettingsPage");
+        setError(formatDisplayError(appError));
       } finally {
         setSaving(false);
       }
@@ -164,8 +167,10 @@ export default function AdminSettingsPage() {
       applyToDOM(settings.theme);
       setSuccess("Settings saved successfully");
       setTimeout(() => setSuccess(""), 3500);
-    } catch (err: any) {
-      setError(err?.message || "Failed to save settings");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, err, "AdminSettingsPage");
+      setError(formatDisplayError(appError));
     } finally {
       setSaving(false);
     }

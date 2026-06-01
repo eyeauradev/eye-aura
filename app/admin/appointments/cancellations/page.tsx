@@ -6,6 +6,8 @@ import { appointmentsService, usersService } from "@/services/firestore";
 import { transactionService } from "@/services/booking/transaction.service";
 import { getAuth } from "firebase/auth";
 import { useToast } from "@/components/ui/toast-provider";
+import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import type { AppError } from "@/lib/errors";
 import { Calendar, Clock, AlertCircle, CheckCircle2, X, ArrowLeft, DollarSign, History } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +21,7 @@ import type { FilterStatus, EnrichedCancellation } from "./filter-utils";
 
 export default function AdminCancellationsPage() {
   const { user } = useAuth();
-  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
+  const { success: toastSuccess, error: toastError, info: toastInfo, errorFromAppError } = useToast();
   const [requests, setRequests] = useState<EnrichedCancellation[]>([]);
   const [filter, setFilter] = useState<FilterStatus>("pending");
   const [loading, setLoading] = useState(true);
@@ -129,17 +131,21 @@ export default function AdminCancellationsPage() {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.error || "Refund request failed");
           }
-        } catch (refundError: any) {
+        } catch (refundError: unknown) {
           console.error("Refund API error:", refundError);
-          toastError("Cancellation approved but refund processing failed: " + (refundError?.message || "Unknown error"));
+          const appError = getDisplayError(refundError, ERROR_CODES.PAYMENT.VERIFICATION_FAILED);
+          logError(appError.code, refundError, "AdminCancellationsPage");
+          errorFromAppError(appError);
         }
       }
 
       // Reload data
       await loadCancellationRequests();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error approving cancellation:", error);
-      toastError(error?.message || "Failed to approve cancellation");
+      const appError = getDisplayError(error, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, error, "AdminCancellationsPage");
+      errorFromAppError(appError);
     } finally {
       setActionLoading(null);
     }
@@ -173,9 +179,11 @@ export default function AdminCancellationsPage() {
 
       // Reload data to reflect updated state
       await loadCancellationRequests();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error issuing refund:", error);
-      toastError("Failed to issue refund: " + (error?.message || "Unknown error"));
+      const appError = getDisplayError(error, ERROR_CODES.PAYMENT.VERIFICATION_FAILED);
+      logError(appError.code, error, "AdminCancellationsPage");
+      errorFromAppError(appError);
     } finally {
       setRefundLoading(null);
     }
@@ -201,9 +209,11 @@ export default function AdminCancellationsPage() {
 
       // Reload data
       await loadCancellationRequests();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error rejecting cancellation:", error);
-      toastError(error?.message || "Failed to reject cancellation");
+      const appError = getDisplayError(error, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, error, "AdminCancellationsPage");
+      errorFromAppError(appError);
     } finally {
       setActionLoading(null);
     }

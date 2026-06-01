@@ -23,6 +23,7 @@ import { staggerContainer, cardEntrance } from "@/lib/motion-variants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { getFirebaseAuth } from "@/services/firebase/client";
+import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
 
 export default function DoctorDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -227,8 +228,10 @@ export default function DoctorDashboard() {
       );
       setPendingRequests(requestsWithPatient);
       setStats((prev) => ({ ...prev, pendingRequests: requests.length }));
-    } catch (err: any) {
-      setRejectError(err.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.DOCTOR.OPERATION_FAILED);
+      logError(appError.code, err, "DoctorDashboard");
+      setRejectError(formatDisplayError(appError));
     } finally {
       setRejectLoading(false);
     }

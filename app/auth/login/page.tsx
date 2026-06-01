@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getDisplayError, formatDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,8 +37,10 @@ export default function LoginPage() {
         console.log("[LoginPage] Email not verified, redirecting to verify-email");
         router.push("/auth/verify-email");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to sign in");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.AUTH.INVALID_CREDENTIAL);
+      logError(appError.code, err, "LoginForm");
+      setError(formatDisplayError(appError));
     }
   };
 
@@ -47,8 +50,10 @@ export default function LoginPage() {
     try {
       await signInWithGoogle();
       router.push("/patient/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Failed to sign in with Google");
+    } catch (err: unknown) {
+      const appError = getDisplayError(err, ERROR_CODES.AUTH.INVALID_CREDENTIAL);
+      logError(appError.code, err, "LoginForm");
+      setError(formatDisplayError(appError));
     }
   };
 
