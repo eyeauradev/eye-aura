@@ -15,6 +15,7 @@ import {
   MessageCircle,
   MoreHorizontal,
   X,
+  Stethoscope,
 } from "lucide-react";
 import {
   FloatingSidebar,
@@ -29,6 +30,7 @@ const sidebarNavItems: NavItem[] = [
   { href: "/patient/dashboard", label: "Dashboard", icon: Home, group: "main" },
   { href: "/patient/appointments", label: "Appointments", icon: Calendar, group: "main" },
   { href: "/patient/assessment", label: "Assessments", icon: Eye, group: "main" },
+  { href: "/patient/recommendations", label: "Recommendations", icon: Stethoscope, group: "main" },
   { href: "/patient/prescriptions", label: "Prescriptions", icon: FileText, group: "main" },
   { href: "/patient/profile", label: "My Account", icon: User, group: "account" },
   { href: "/", label: "Public Home", icon: Globe, group: "external" },

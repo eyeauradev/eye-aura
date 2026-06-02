@@ -37,6 +37,7 @@ const adminNavItems: NavItem[] = [
   { label: "Doctors", href: "/admin/doctors", icon: Stethoscope, group: "main" },
   { label: "Services", href: "/admin/services", icon: ClipboardList, group: "main" },
   { label: "Assessments", href: "/admin/assessments", icon: ClipboardList, group: "main" },
+  { label: "Recommendations", href: "/admin/recommendations", icon: Stethoscope, group: "main" },
   { label: "Appointments", href: "/admin/appointments", icon: Calendar, group: "main" },
   // User & finance
   { label: "Users", href: "/admin/users", icon: Users, group: "management" },

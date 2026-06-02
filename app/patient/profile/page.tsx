@@ -28,23 +28,62 @@ export default function PatientProfilePage() {
     emergencyContact: "",
     emergencyPhone: "",
   });
+  const [phoneError, setPhoneError] = useState("");
+  const [whatsappError, setWhatsappError] = useState("");
+  const [emergencyPhoneError, setEmergencyPhoneError] = useState("");
+
+  // Track original values for dirty checking
+  const [originalData, setOriginalData] = useState(formData);
 
   useEffect(() => {
     if (user) {
-      setFormData({
+      const data = {
         displayName: user.displayName || "",
         phoneNumber: user.phoneNumber || "",
         whatsappNumber: user.whatsappNumber || "",
         emergencyContact: user.emergencyContact || "",
         emergencyPhone: user.emergencyPhone || "",
-      });
+      };
+      setFormData(data);
+      setOriginalData(data);
     }
   }, [user]);
 
+  // Phone validation: must be digits only, 7-15 chars, optional leading +
+  const validatePhone = (value: string): string => {
+    if (!value) return ""; // optional field
+    const cleaned = value.replace(/[\s\-()]/g, "");
+    if (!/^\+?\d{7,15}$/.test(cleaned)) {
+      return "Enter a valid phone number (7-15 digits, optional + prefix)";
+    }
+    return "";
+  };
+
+  // Check if form has unsaved changes
+  const hasChanges =
+    formData.displayName !== originalData.displayName ||
+    formData.phoneNumber !== originalData.phoneNumber ||
+    formData.whatsappNumber !== originalData.whatsappNumber ||
+    formData.emergencyContact !== originalData.emergencyContact ||
+    formData.emergencyPhone !== originalData.emergencyPhone;
+
+  const hasValidationErrors = !!phoneError || !!whatsappError || !!emergencyPhoneError;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate all phone fields before submit
+    const pErr = validatePhone(formData.phoneNumber);
+    const wErr = validatePhone(formData.whatsappNumber);
+    const eErr = validatePhone(formData.emergencyPhone);
+    setPhoneError(pErr);
+    setWhatsappError(wErr);
+    setEmergencyPhoneError(eErr);
+    if (pErr || wErr || eErr) return;
+
     setSaving(true);
     setSuccess(false);
+    setSaveError("");
 
     try {
       await updateUserProfile({
@@ -55,6 +94,7 @@ export default function PatientProfilePage() {
         emergencyPhone: formData.emergencyPhone,
       });
       setSuccess(true);
+      setOriginalData(formData); // Reset dirty tracking
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       const appError = getDisplayError(error, ERROR_CODES.USER.SAVE_FAILED);
@@ -142,9 +182,14 @@ export default function PatientProfilePage() {
                   <Input
                     id="phoneNumber"
                     value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                    placeholder="Enter your phone number"
+                    onChange={(e) => {
+                      setFormData({ ...formData, phoneNumber: e.target.value });
+                      setPhoneError(validatePhone(e.target.value));
+                    }}
+                    placeholder="+91 98765 43210"
+                    className={phoneError ? "border-red-400 focus:ring-red-200" : ""}
                   />
+                  {phoneError && <p className="text-xs text-red-500">{phoneError}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -152,10 +197,15 @@ export default function PatientProfilePage() {
                   <Input
                     id="whatsappNumber"
                     value={formData.whatsappNumber}
-                    onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
-                    placeholder="Enter your WhatsApp number for doctor communication"
+                    onChange={(e) => {
+                      setFormData({ ...formData, whatsappNumber: e.target.value });
+                      setWhatsappError(validatePhone(e.target.value));
+                    }}
+                    placeholder="+91 98765 43210"
+                    className={whatsappError ? "border-red-400 focus:ring-red-200" : ""}
                   />
-                  <p className="text-xs text-muted-foreground">Used for doctor communication and appointment updates</p>
+                  {whatsappError && <p className="text-xs text-red-500">{whatsappError}</p>}
+                  {!whatsappError && <p className="text-xs text-muted-foreground">Used for doctor communication and appointment updates</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -173,9 +223,14 @@ export default function PatientProfilePage() {
                   <Input
                     id="emergencyPhone"
                     value={formData.emergencyPhone}
-                    onChange={(e) => setFormData({ ...formData, emergencyPhone: e.target.value })}
-                    placeholder="Emergency contact phone"
+                    onChange={(e) => {
+                      setFormData({ ...formData, emergencyPhone: e.target.value });
+                      setEmergencyPhoneError(validatePhone(e.target.value));
+                    }}
+                    placeholder="+91 98765 43210"
+                    className={emergencyPhoneError ? "border-red-400 focus:ring-red-200" : ""}
                   />
+                  {emergencyPhoneError && <p className="text-xs text-red-500">{emergencyPhoneError}</p>}
                 </div>
               </div>
 
@@ -191,9 +246,23 @@ export default function PatientProfilePage() {
                 </div>
               )}
 
-              <PremiumButton type="submit" size="lg" disabled={saving} icon={<Save className="h-5 w-5" />}>
-                {saving ? "Saving..." : "Save Changes"}
-              </PremiumButton>
+              {/* Save button — only shown when form has changes */}
+              {hasChanges && (
+                <div className="sticky bottom-4 z-10 pt-4">
+                  <PremiumButton
+                    type="submit"
+                    size="lg"
+                    fullWidth
+                    disabled={saving || hasValidationErrors}
+                    icon={saving ? undefined : <Save className="h-5 w-5" />}
+                  >
+                    {saving ? "Saving..." : hasValidationErrors ? "Fix errors above" : "Save Changes"}
+                  </PremiumButton>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    You have unsaved changes
+                  </p>
+                </div>
+              )}
             </form>
           </DashboardCard>
         </div>

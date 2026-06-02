@@ -104,13 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUserProfile = async (updates: Partial<UserProfile>) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState(prev => ({ ...prev, error: null }));
     try {
       const user = await authService.updateUserProfile(updates);
-      setState({ user, loading: false, error: null });
+      setState(prev => ({ ...prev, user, error: null }));
       return user;
     } catch (error) {
-      setState(prev => ({ ...prev, loading: false, error: error as Error }));
+      setState(prev => ({ ...prev, error: error as Error }));
       throw error;
     }
   };

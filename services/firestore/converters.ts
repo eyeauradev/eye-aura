@@ -20,6 +20,7 @@ import type {
   PaymentDocument,
   VisionAssessmentDocument,
 } from "@/types/firestore";
+import type { ServiceRecommendation } from "@/types/recommendations";
 
 // Timestamp converter helpers
 function toTimestamp(date: Date): Timestamp {
@@ -492,6 +493,58 @@ export const visionAssessmentConverter = {
       createdAt:   fromTimestamp(data.createdAt),
       updatedAt:   fromTimestamp(data.updatedAt),
       expiresAt:   data.expiresAt   ? fromTimestamp(data.expiresAt)   : undefined,
+    };
+  },
+};
+
+// ServiceRecommendation converter
+export const recommendationConverter = {
+  toFirestore: (recommendation: ServiceRecommendation): DocumentData => {
+    const data: DocumentData = {
+      id: recommendation.id,
+      patientId: recommendation.patientId,
+      doctorId: recommendation.doctorId,
+      serviceId: recommendation.serviceId,
+      recommendedSlotStart: toTimestamp(recommendation.recommendedSlotStart),
+      recommendedSlotEnd: toTimestamp(recommendation.recommendedSlotEnd),
+      status: recommendation.status,
+      createdAt: toTimestamp(recommendation.createdAt),
+      updatedAt: toTimestamp(recommendation.updatedAt),
+      expiresAt: toTimestamp(recommendation.expiresAt),
+    };
+
+    if (recommendation.recommendationNote) data.recommendationNote = recommendation.recommendationNote;
+    if (recommendation.reservationId) data.reservationId = recommendation.reservationId;
+    if (recommendation.acceptedAt) data.acceptedAt = toTimestamp(recommendation.acceptedAt);
+    if (recommendation.declinedAt) data.declinedAt = toTimestamp(recommendation.declinedAt);
+    if (recommendation.cancelledAt) data.cancelledAt = toTimestamp(recommendation.cancelledAt);
+    if (recommendation.cancelledBy) data.cancelledBy = recommendation.cancelledBy;
+    if (recommendation.declineReason) data.declineReason = recommendation.declineReason;
+    if (recommendation.bookingId) data.bookingId = recommendation.bookingId;
+
+    return data;
+  },
+  fromFirestore: (snapshot: QueryDocumentSnapshot): ServiceRecommendation => {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      patientId: data.patientId,
+      doctorId: data.doctorId,
+      serviceId: data.serviceId,
+      recommendedSlotStart: fromTimestamp(data.recommendedSlotStart),
+      recommendedSlotEnd: fromTimestamp(data.recommendedSlotEnd),
+      status: data.status,
+      recommendationNote: data.recommendationNote,
+      createdAt: fromTimestamp(data.createdAt),
+      updatedAt: fromTimestamp(data.updatedAt),
+      expiresAt: fromTimestamp(data.expiresAt),
+      reservationId: data.reservationId,
+      acceptedAt: data.acceptedAt ? fromTimestamp(data.acceptedAt) : undefined,
+      declinedAt: data.declinedAt ? fromTimestamp(data.declinedAt) : undefined,
+      cancelledAt: data.cancelledAt ? fromTimestamp(data.cancelledAt) : undefined,
+      cancelledBy: data.cancelledBy,
+      declineReason: data.declineReason,
+      bookingId: data.bookingId,
     };
   },
 };

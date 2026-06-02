@@ -9,6 +9,9 @@ import { doctorAvailabilityService } from "./doctor-availability.service";
 import { doctorBlocksService } from "./doctor-blocks.service";
 import { paymentsService } from "./payments.service";
 import { visionAssessmentsService } from "./vision-assessments.service";
+import { slotReservationService } from "./slot-reservations.service";
+import { recommendationsService } from "./recommendations.service";
+import { recommendationAuditService } from "./recommendation-audit.service";
 
 export {
   usersService,
@@ -22,4 +25,7 @@ export {
   doctorBlocksService,
   paymentsService,
   visionAssessmentsService,
+  slotReservationService,
+  recommendationsService,
+  recommendationAuditService,
 };

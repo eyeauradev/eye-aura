@@ -8,7 +8,13 @@ export type NotificationType =
   | "support_ticket_response"
   | "support_ticket_resolved"
   | "profile_updated"
-  | "general";
+  | "general"
+  | "recommendation_created"
+  | "recommendation_accepted"
+  | "recommendation_declined"
+  | "recommendation_cancelled"
+  | "recommendation_expired"
+  | "recommendation_edited";
 
 export interface Notification {
   id: string;

@@ -263,14 +263,18 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
 
         {/* Confirm match */}
         {!confirmed ? (
-          <Button
-            onClick={handleConfirm}
-            variant="outline"
-            className="w-full border-[#0f4f4b]/25 text-[#0f4f4b] font-semibold rounded-xl"
-          >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            The on-screen card matches my physical card
-          </Button>
+          <>
+            <p className="text-xs text-center text-muted-foreground">
+              Adjust until the on-screen rectangle matches your physical card exactly, then tap below
+            </p>
+            <Button
+              onClick={handleConfirm}
+              className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] text-white font-semibold rounded-xl py-4 text-base shadow-md shadow-[#0f4f4b]/20"
+            >
+              <CheckCircle2 className="h-5 w-5 mr-2" />
+              Confirm — Card sizes match
+            </Button>
+          </>
         ) : (
           <div className="w-full flex items-center gap-2 p-3 rounded-xl bg-[#0f4f4b]/6 border border-[#0f4f4b]/15">
             <CheckCircle2 className="h-4 w-4 text-[#0f4f4b]" />

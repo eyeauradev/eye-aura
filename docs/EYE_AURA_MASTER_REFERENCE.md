@@ -39,6 +39,11 @@ Phases 1-11 completed:
 - ✅ Phase 9: Payment Architecture (Razorpay integration, create-order, verify-payment, refund with after() pattern, admin payments dashboard)
 - ✅ Phase 10: Visual Acuity Assessment System (calibration pipeline, SVG rendering, session flow, timer engine, doctor/admin assignment, service automation)
 - ✅ Phase 11: Premium Design System & Layout Revamp (design tokens, FloatingSidebar, PageTransition, glass header, mobile bottom nav, responsive layouts, Public Home navigation)
+- ✅ Phase 12: Unified Error Handling System (EA-* error codes, centralized lib/errors/ module, Firebase/Firestore/Network/API mappers, global ErrorBoundary, toast integration, full codebase migration)
+- ✅ Phase 13: Immersive Assessment Experience (fullscreen shell, inactivity fade, orientation gate, overflow menu, session persistence, pause/resume)
+- ✅ Phase 14: Far Vision Countdown Timer (10s walk-away countdown before Snellen test, tap to pause/resume)
+- ✅ Phase 15: Bottom Nav "More" Menu (replaced My Account with expandable More drop-up in patient/doctor/admin portals, Home + Profile/Settings options)
+- ✅ Phase 16: Doctor Recommended Services (ServiceRecommendation entity, soft slot reservations, 7-day expiration, Razorpay accept flow, doctor create/edit/cancel, patient accept/decline, admin metrics + table, notifications, audit logging)
 
 ### Finalized Architecture Decisions
 - **NO Firebase Storage** - All data is structured Firestore data
@@ -2625,3 +2630,83 @@ capPx = max(rawCapPx, MIN_CAP_PX)
 fontSize = capPx / CAP_HEIGHT_RATIO
 SVG rendered at exact numeric pixel dimensions (no browser scaling)
 ```
+
+#### 2026-06 — Unified Error Handling System (Phase 12)
+
+**Added**
+- `lib/errors/` module with 7 files: error-codes, error-messages, app-error, firebase-error-mapper, api-error-handler, error-handler, index
+- 30 typed EA-* error codes across 14 categories (AUTH, USER, BOOKING, APPOINTMENT, ASSESSMENT, PAYMENT, PRESCRIPTION, SUPPORT, DOCTOR, ADMIN, FIRESTORE, API, NETWORK, SYSTEM)
+- `getDisplayError()` dispatch chain: isAppError → Firebase Auth → Firestore → Network → fallback
+- `formatDisplayError()` producing `[EA-CODE] Title — Message` format
+- `logError()` structured console logging (production-safe)
+- Global React ErrorBoundary at `components/error-boundary.tsx` with premium fallback UI
+- Toast system extension: `errorFromAppError()` + raw Firebase string guard
+- Backward-compatible `EA` alias + `eaError()` shim
+
+**Migrated**
+- All auth forms (login, signup, forgot-password, verify-email)
+- All booking flows (payment creation, verification, slot conflict, reschedule)
+- Assessment pages (expired, unassigned, invalid link)
+- Admin modules (doctors, support, services, settings, cancellations)
+- Doctor modules (profile, schedule, consultations, requests, dashboard, appointments, prescriptions)
+- Patient modules (appointments, prescriptions, support, dashboard, notifications, requests, profile)
+- Full codebase audit: zero raw `error.message` in display contexts
+
+#### 2026-06 — Immersive Assessment Experience (Phase 13)
+
+**Added**
+- `modules/visual-acuity/immersive/AssessmentImmersiveShell.tsx` — full-viewport wrapper
+- `AssessmentOverflowMenu` — pause, resume, return to details/dashboard, exit
+- `AssessmentOrientationGate` — landscape enforcement for testing
+- `AssessmentFullscreenController` — fullscreen toggle
+- `useInactivityFade` hook — auto-fade top bar after inactivity
+- Session persistence via sessionStorage (survives orientation changes)
+- Compact viewport launch: opens new tab with `?immersive=1` on <1024px
+
+#### 2026-06 — Far Vision Countdown Timer (Phase 14)
+
+**Added**
+- `modules/visual-acuity/steps/CountdownStep.tsx` — 10s animated countdown
+- `"countdown"` phase in TestPhase type
+- Tap to pause/resume; circular progress ring; gold accent when paused
+- Only for far vision (near vision skips — no walk-away needed)
+- Flow: `duration_select → countdown → testing`
+
+#### 2026-06 — Bottom Nav "More" Menu (Phase 15)
+
+**Changed**
+- Patient: swapped Assessment and Dashboard positions; Dashboard is now center elevated button
+- Patient/Doctor/Admin: replaced rightmost nav item with "More" button
+- "More" opens a drop-up popup with: Home (→ /) and Profile/Settings
+- Tap outside or tap again to close
+
+#### 2026-06 — Doctor Recommended Services (Phase 16)
+
+**Added**
+- `types/recommendations.ts` — ServiceRecommendation, SlotReservation, AuditLogEntry, Metrics, Input types
+- `services/firestore/recommendations.service.ts` — CRUD + state machine (PENDING → ACCEPTED/DECLINED/CANCELLED/EXPIRED)
+- `services/firestore/slot-reservations.service.ts` — soft reserve, release, convertToHardBlock, availability check
+- `services/firestore/recommendation-audit.service.ts` — audit trail logging
+- `services/notifications/recommendation-notifications.service.ts` — in-app notification handlers (6 events)
+- `services/email/recommendation-emails.ts` — email templates (6 events)
+- `hooks/useRecommendationExpiration.ts` — client-side expiration trigger
+- API routes: create, edit (PATCH), cancel, accept, decline, list (GET with filters/pagination), metrics, expire-stale
+- Doctor portal: `components/doctor/recommend-service-form.tsx`, patient details page with Recommendations tab + edit/cancel
+- Patient portal: `app/patient/recommendations/page.tsx` (tabs: Pending/Confirmed/Declined/All), dashboard section, Razorpay accept flow, inline decline with reason
+- Admin portal: `app/admin/recommendations/page.tsx` (metrics grid + filterable table + cancel action)
+- Firestore security rules for service_recommendations, slot_reservations, recommendation_audit_log
+- Navigation: "Recommendations" added to patient sidebar and admin sidebar
+
+**Key Design Decisions**
+- Soft slot reservation pattern (not hard-blocked until payment completes)
+- 7-day configurable expiration with client-side trigger on page load
+- Clinical language throughout ("recommended" not "prescribed")
+- Rate limit: max 10 pending recommendations per doctor-patient pair
+- State machine enforced: only PENDING can transition to terminal states
+
+#### 2026-06 — UX Fixes
+
+**Fixed**
+- `contexts/auth-context.tsx`: `updateUserProfile` no longer sets global `loading: true` (was causing layout unmount → "Rendered fewer hooks" crash)
+- `app/patient/profile/page.tsx`: phone number validation (7-15 digits, + prefix optional), save button only shows when form is dirty, disabled when validation errors exist, sticky full-width CTA
+- `modules/visual-acuity/steps/CalibrationStep.tsx`: confirm button restyled from outline to solid primary filled button, added instruction text above

@@ -275,6 +275,55 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Service Recommendations Collection
+    // Doctors create recommendations; patients read their own; admins read all.
+    // State transitions (status changes) are handled server-side via API routes.
+    match /service_recommendations/{recommendationId} {
+      allow read: if signedIn() && request.auth.uid == resource.data.doctorId
+        || signedIn() && request.auth.uid == resource.data.patientId
+        || isAdmin();
+
+      // Doctors can create recommendations for themselves
+      allow create: if isDoctor()
+        && request.resource.data.doctorId == request.auth.uid;
+
+      // Doctors can update their own PENDING recommendations (edits via API)
+      allow update: if isDoctor() && request.auth.uid == resource.data.doctorId
+        || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // Service Recommendations Collection - Allow list for relevant roles
+    match /service_recommendations {
+      allow list: if isDoctor() || isPatient() || isAdmin();
+    }
+
+    // Slot Reservations Collection
+    // Server-side access only (admin SDK via API routes handles all writes).
+    // Clients can read for UI display (e.g., showing slot availability).
+    match /slot_reservations/{reservationId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    // Slot Reservations Collection - Allow list for authenticated users
+    match /slot_reservations {
+      allow list: if signedIn();
+    }
+
+    // Recommendation Audit Log Collection
+    // Admin read-only. All writes happen via admin SDK in API routes.
+    match /recommendation_audit_log/{entryId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // Recommendation Audit Log Collection - Allow list for admins
+    match /recommendation_audit_log {
+      allow list: if isAdmin();
+    }
+
     // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;

@@ -9,7 +9,9 @@ import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import { useToast } from "@/components/ui/toast-provider";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import type { BookingRequestDocument, ServiceDocument, UserDocument } from "@/types/firestore";
+import type { ServiceRecommendation } from "@/types/recommendations";
 import { TYPOGRAPHY, SPACING } from "@/lib/patient-portal/design-tokens";
+import { getFirebaseAuth } from "@/services/firebase/client";
 import {
   Calendar,
   Clock,
@@ -25,6 +27,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Stethoscope,
+  Timer,
 } from "lucide-react";
 import {
   DashboardCard,
@@ -44,6 +48,8 @@ export default function PatientDashboard() {
   const [recentPrescriptions, setRecentPrescriptions] = useState<any[]>([]);
   const [servicesWithDoctors, setServicesWithDoctors] = useState<any[]>([]);
   const [bookingRequests, setBookingRequests] = useState<(BookingRequestDocument & { service?: ServiceDocument; doctor?: UserDocument })[]>([]);
+  const [recommendations, setRecommendations] = useState<(ServiceRecommendation & { doctorName?: string; serviceName?: string })[]>([]);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
 
   // Role-based redirect
   useEffect(() => {
@@ -112,6 +118,37 @@ export default function PatientDashboard() {
         );
         setBookingRequests(enrichedRequests);
 
+        // Load pending recommendations
+        try {
+          const auth = getFirebaseAuth();
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            const idToken = await currentUser.getIdToken();
+            const recResponse = await fetch("/api/recommendations?status=PENDING", {
+              headers: { Authorization: `Bearer ${idToken}` },
+            });
+            if (recResponse.ok) {
+              const recData = await recResponse.json();
+              const recs: ServiceRecommendation[] = recData.recommendations || [];
+              // Enrich with doctor names and service names
+              const enrichedRecs = await Promise.all(
+                recs.map(async (rec) => {
+                  const doctor = await usersService.getById(rec.doctorId);
+                  const service = await servicesService.getById(rec.serviceId);
+                  return {
+                    ...rec,
+                    doctorName: doctor?.displayName || "Doctor",
+                    serviceName: service?.title || "Service",
+                  };
+                })
+              );
+              setRecommendations(enrichedRecs);
+            }
+          }
+        } catch (recError) {
+          console.error("Error loading recommendations:", recError);
+        }
+
         // Load available services with doctors
         const allServices = await servicesService.getAll();
         const activeServices = allServices.filter((s) => s.isActive !== false);
@@ -136,6 +173,36 @@ export default function PatientDashboard() {
 
     loadDashboardData();
   }, [user]);
+
+  const handleDeclineRecommendation = async (id: string) => {
+    try {
+      const auth = getFirebaseAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      const idToken = await currentUser.getIdToken();
+      const res = await fetch(`/api/recommendations/${id}/decline`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        setRecommendations((prev) => prev.filter((r) => r.id !== id));
+        setDecliningId(null);
+      }
+    } catch (err) {
+      console.error("Error declining recommendation:", err);
+    }
+  };
+
+  const getDaysRemaining = (expiresAt: string | Date) => {
+    const expiry = new Date(expiresAt);
+    const now = new Date();
+    const diff = expiry.getTime() - now.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  };
 
   const wellnessTips = [
     {
@@ -370,6 +437,108 @@ export default function PatientDashboard() {
               </div>
             )}
           </DashboardCard>
+
+          {/* Recommended Services */}
+          {recommendations.length > 0 && (
+            <DashboardCard staggerIndex={3}>
+              <SectionHeader
+                title="Recommended Services"
+                className="mt-0 mb-4"
+                action={
+                  <Link href="/patient/recommendations">
+                    <PremiumButton variant="ghost" size="sm" trailingIcon={<ArrowRight className="h-3 w-3" />}>
+                      View All
+                    </PremiumButton>
+                  </Link>
+                }
+              />
+              <div className="flex items-center gap-2 mb-4">
+                <Stethoscope className="h-5 w-5 text-secondary" />
+                <p className="text-sm text-muted-foreground">Recommended by your doctor</p>
+              </div>
+              <div className="space-y-4">
+                {recommendations.slice(0, 3).map((rec) => {
+                  const daysLeft = getDaysRemaining(rec.expiresAt);
+                  return (
+                    <div
+                      key={rec.id}
+                      className="p-4 rounded-2xl bg-card/50 border border-border/30 transition hover:bg-card/70 hover:shadow-md"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-primary truncate">
+                            {rec.serviceName}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Recommended by Dr. {rec.doctorName}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Timer className="h-3.5 w-3.5 text-amber-500" />
+                          <span className="text-xs font-medium text-amber-600">
+                            {daysLeft}d left
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          {new Date(rec.recommendedSlotStart).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                          {" at "}
+                          {new Date(rec.recommendedSlotStart).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      {rec.recommendationNote && (
+                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2 italic">
+                          &ldquo;{rec.recommendationNote}&rdquo;
+                        </p>
+                      )}
+                      {decliningId === rec.id ? (
+                        <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
+                          <p className="text-sm text-foreground flex-1">Decline this recommendation?</p>
+                          <PremiumButton
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDecliningId(null)}
+                          >
+                            Cancel
+                          </PremiumButton>
+                          <PremiumButton
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleDeclineRecommendation(rec.id)}
+                          >
+                            Confirm
+                          </PremiumButton>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Link href={`/patient/recommendations?action=accept&id=${rec.id}`}>
+                            <PremiumButton variant="primary" size="sm">
+                              Pay & Book
+                            </PremiumButton>
+                          </Link>
+                          <PremiumButton
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDecliningId(rec.id)}
+                          >
+                            Decline
+                          </PremiumButton>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </DashboardCard>
+          )}
 
           {/* Available Services */}
           <DashboardCard staggerIndex={3}>
