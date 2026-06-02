@@ -83,6 +83,16 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
         </div>
       </div>
 
+      {/* Near vision tip — device recommendation */}
+      {!isFar && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-start gap-2.5">
+          <span className="text-base leading-none mt-0.5">💡</span>
+          <p className="text-xs text-amber-800 leading-relaxed">
+            For best results, take this near vision test on a phone or a display with high pixel density.
+          </p>
+        </div>
+      )}
+
       {/* Instruction checklist — compact items */}
       <div className="rounded-xl bg-card/80 border border-border p-3 space-y-1.5">
         <p className={cn(TYPOGRAPHY.label)}>

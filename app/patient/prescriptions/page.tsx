@@ -35,7 +35,9 @@ export default function PatientPrescriptionsPage() {
           prescriptionData.map(async (prescription) => {
             try {
               const doctor = await usersService.getById(prescription.doctorId);
-              const appointment = await appointmentsService.getById(prescription.appointmentId);
+              const appointment = prescription.appointmentId
+                ? await appointmentsService.getById(prescription.appointmentId)
+                : null;
               return { ...prescription, doctor, appointment };
             } catch (err) {
               const appError = getDisplayError(err, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);

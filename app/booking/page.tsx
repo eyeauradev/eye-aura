@@ -10,7 +10,7 @@ import type { ServiceDocument, UserDocument, DoctorAvailabilityDocument } from "
 import type { BookingState, BookingStep } from "@/types/booking";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRight, ShieldCheck, Loader2, Stethoscope, Eye, Video, Glasses, AlertCircle } from "lucide-react";
+import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRight, ShieldCheck, Loader2, Stethoscope, Eye, Video, Glasses, AlertCircle, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast-provider";
 
@@ -54,10 +54,19 @@ export default function BookingPage() {
   const [servicesWithDoctors, setServicesWithDoctors] = useState<(ServiceDocument & { doctors: UserDocument[] })[]>([]);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [doctorAvailability, setDoctorAvailability] = useState<DoctorAvailabilityDocument[]>([]);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [additionalServices, setAdditionalServices] = useState<ServiceDocument[]>([]);
 
   useEffect(() => {
     loadServicesWithDoctors();
   }, []);
+
+  // Check WhatsApp number when user loads
+  useEffect(() => {
+    if (!authLoading && user && !user.whatsappNumber) {
+      setShowWhatsAppModal(true);
+    }
+  }, [authLoading, user]);
 
   // Redirect if not authenticated — must be in useEffect, not during render
   useEffect(() => {
@@ -279,6 +288,31 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F2ED]">
+      {/* WhatsApp Number Required — Hard block */}
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-5 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                <MessageCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <h3 className="font-display text-xl text-[#0f4f4b]">WhatsApp Number Required</h3>
+            </div>
+            <p className="text-sm text-[#0f4f4b]/70">
+              You must add your WhatsApp number before booking an appointment. Doctors use WhatsApp to communicate appointment details, share prescriptions, and coordinate care.
+            </p>
+            <p className="text-xs text-red-600 font-semibold">
+              You cannot proceed without a WhatsApp number.
+            </p>
+            <Link href="/patient/profile" className="block">
+              <button className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] text-white text-sm font-bold py-3 rounded-2xl transition-colors">
+                Go to Profile to Add WhatsApp Number
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="sticky top-0 z-30 border-b border-[#0f4f4b]/8 bg-white/80 backdrop-blur-md">
         <div className="mx-auto max-w-3xl px-5 sm:px-8">
@@ -340,6 +374,14 @@ export default function BookingPage() {
             onSelect={handleDoctorSelect}
             selected={state.doctor}
             onBack={handleBack}
+            additionalServices={additionalServices}
+            onToggleAdditionalService={(svc) => {
+              setAdditionalServices((prev) =>
+                prev.some((s) => s.id === svc.id)
+                  ? prev.filter((s) => s.id !== svc.id)
+                  : [...prev, svc]
+              );
+            }}
           />
         )}
 
@@ -453,12 +495,16 @@ function DoctorSelectionStep({
   onSelect,
   selected,
   onBack,
+  additionalServices,
+  onToggleAdditionalService,
 }: {
   service: ServiceDocument | null;
   servicesWithDoctors: (ServiceDocument & { doctors: UserDocument[] })[];
   onSelect: (doctor: UserDocument) => void;
   selected: UserDocument | null;
   onBack: () => void;
+  additionalServices: ServiceDocument[];
+  onToggleAdditionalService: (svc: ServiceDocument) => void;
 }) {
   const serviceWithDoctors = servicesWithDoctors.find((s) => s.id === service?.id);
   const doctors = serviceWithDoctors?.doctors || [];
@@ -471,6 +517,13 @@ function DoctorSelectionStep({
     if (!d.displayName || d.displayName === d.email) return d.email;
     return d.displayName;
   };
+
+  // Find other services from the same doctors (upsell)
+  const otherServices = selected
+    ? servicesWithDoctors.filter(
+        (s) => s.id !== service?.id && s.doctors.some((d) => d.id === selected.id)
+      )
+    : [];
 
   return (
     <div className="space-y-6">
@@ -547,6 +600,64 @@ function DoctorSelectionStep({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Upsell — other services from selected doctor */}
+      {selected && otherServices.length > 0 && (
+        <div className="space-y-3 pt-2">
+          <p className="text-xs font-bold text-[#0f4f4b]/60 uppercase tracking-wider">
+            Also available from this doctor
+          </p>
+          <div className="grid gap-2">
+            {otherServices.map((svc) => {
+              const isAdded = additionalServices.some((s) => s.id === svc.id);
+              const Icon = serviceIcon(svc.type);
+              return (
+                <div
+                  key={svc.id}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border bg-white p-3 transition-all",
+                    isAdded
+                      ? "border-[#b5964d]/40 bg-[#b5964d]/5"
+                      : "border-[#0f4f4b]/10 hover:border-[#0f4f4b]/25"
+                  )}
+                >
+                  <div className="h-8 w-8 rounded-lg bg-[#0f4f4b]/6 flex items-center justify-center shrink-0">
+                    <Icon className="h-4 w-4 text-[#0f4f4b]/60" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-[#0f4f4b] truncate">{svc.title}</p>
+                    <p className="text-[11px] text-[#0f4f4b]/40">
+                      {svc.currency} {svc.price} · {svc.duration} min
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleAdditionalService(svc);
+                    }}
+                    className={cn(
+                      "text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors shrink-0",
+                      isAdded
+                        ? "bg-[#b5964d]/15 text-[#b5964d] hover:bg-[#b5964d]/25"
+                        : "bg-[#0f4f4b]/8 text-[#0f4f4b] hover:bg-[#0f4f4b]/15"
+                    )}
+                  >
+                    {isAdded ? "Remove" : "Add"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          {additionalServices.length > 0 && (
+            <div className="rounded-xl bg-[#b5964d]/8 border border-[#b5964d]/20 px-4 py-2.5">
+              <p className="text-xs font-semibold text-[#b5964d]">
+                +{additionalServices.length} add-on{additionalServices.length > 1 ? "s" : ""} selected · Total add-on: {service?.currency ?? "INR"}{" "}
+                {additionalServices.reduce((sum, s) => sum + s.price, 0)}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

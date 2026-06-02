@@ -98,18 +98,62 @@ export default function DoctorPrescriptionCreatePage() {
   const [patient, setPatient] = useState<UserDocument | null>(null);
   const [formData, setFormData] = useState<PrescriptionFormData>(initialFormData);
   const [showPreview, setShowPreview] = useState(false);
+  const [existingPrescription, setExistingPrescription] = useState<PrescriptionDocument | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [patientResults, setPatientResults] = useState<UserDocument[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<UserDocument | null>(null);
 
   useEffect(() => {
     async function loadAppointment() {
       if (!params.appointmentId) return;
 
+      const appointmentId = params.appointmentId as string;
+
+      // "new" means standalone prescription without appointment
+      if (appointmentId === "new") {
+        setIsStandalone(true);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const apt = await appointmentsService.getById(params.appointmentId as string);
+        const apt = await appointmentsService.getById(appointmentId);
         setAppointment(apt);
         if (apt) {
           const patientData = await usersService.getById(apt.patientId);
           setPatient(patientData);
+
+          // Check if there's an existing prescription to edit
+          if (apt.prescriptionId) {
+            const existing = await prescriptionsService.getById(apt.prescriptionId);
+            if (existing) {
+              setExistingPrescription(existing);
+              // Populate form with existing data
+              setFormData({
+                rightEye: { ...initialEyeData, ...existing.rightEye },
+                leftEye: { ...initialEyeData, ...existing.leftEye },
+                pd: existing.pd || "",
+                nearPD: existing.nearPD || "",
+                nearVisionRight: existing.nearVisionRight ? { ...initialNearVisionData, ...existing.nearVisionRight } : { ...initialNearVisionData },
+                nearVisionLeft: existing.nearVisionLeft ? { ...initialNearVisionData, ...existing.nearVisionLeft } : { ...initialNearVisionData },
+                patientAge: existing.patientAge || "",
+                patientGender: existing.patientGender || "",
+                referredBy: existing.referredBy || "",
+                diagnosis: existing.diagnosis || "",
+                findings: existing.findings || "",
+                medications: existing.medications || "",
+                eyeDrops: existing.eyeDrops || "",
+                exercises: existing.exercises || "",
+                recommendations: existing.recommendations || "",
+                consultationNotes: existing.consultationNotes || "",
+                followUpRequired: existing.followUpRequired || false,
+                followUpDate: existing.followUpDate ? new Date(existing.followUpDate).toISOString().split("T")[0] : "",
+                reviewAfter: existing.reviewAfter || "",
+              });
+            }
+          }
         }
       } catch (error) {
         const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
@@ -143,47 +187,113 @@ export default function DoctorPrescriptionCreatePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!appointment || !user) return;
+    if (!user) return;
+
+    // For standalone, require a patient selection
+    if (isStandalone && !selectedPatient) return;
+    // For appointment-linked, require appointment
+    if (!isStandalone && !appointment) return;
+
+    const targetPatientId = isStandalone ? selectedPatient!.id : appointment!.patientId;
 
     try {
       setSaving(true);
 
-      const prescription: PrescriptionDocument = {
-        id: crypto.randomUUID(),
-        patientId: appointment.patientId,
-        doctorId: user.id,
-        appointmentId: appointment.id,
-        rightEye: formData.rightEye,
-        leftEye: formData.leftEye,
-        pd: formData.pd,
-        nearPD: formData.nearPD,
-        nearVisionRight: formData.nearVisionRight,
-        nearVisionLeft: formData.nearVisionLeft,
-        patientAge: formData.patientAge,
-        patientGender: formData.patientGender,
-        referredBy: formData.referredBy,
-        diagnosis: formData.diagnosis,
-        findings: formData.findings,
-        medications: formData.medications,
-        eyeDrops: formData.eyeDrops,
-        exercises: formData.exercises,
-        recommendations: formData.recommendations,
-        consultationNotes: formData.consultationNotes,
-        reviewAfter: formData.reviewAfter,
-        followUpRequired: formData.followUpRequired,
-        followUpDate: formData.followUpRequired ? new Date(formData.followUpDate) : undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      if (existingPrescription) {
+        // Editing existing prescription — save previous version to history
+        const previousData: Partial<PrescriptionDocument> = {
+          rightEye: existingPrescription.rightEye,
+          leftEye: existingPrescription.leftEye,
+          pd: existingPrescription.pd,
+          nearPD: existingPrescription.nearPD,
+          nearVisionRight: existingPrescription.nearVisionRight,
+          nearVisionLeft: existingPrescription.nearVisionLeft,
+          patientAge: existingPrescription.patientAge,
+          patientGender: existingPrescription.patientGender,
+          referredBy: existingPrescription.referredBy,
+          diagnosis: existingPrescription.diagnosis,
+          findings: existingPrescription.findings,
+          medications: existingPrescription.medications,
+          eyeDrops: existingPrescription.eyeDrops,
+          exercises: existingPrescription.exercises,
+          recommendations: existingPrescription.recommendations,
+          consultationNotes: existingPrescription.consultationNotes,
+          reviewAfter: existingPrescription.reviewAfter,
+          followUpRequired: existingPrescription.followUpRequired,
+          followUpDate: existingPrescription.followUpDate,
+        };
 
-      await prescriptionsService.create(prescription);
+        const updates: Partial<PrescriptionDocument> = {
+          rightEye: formData.rightEye,
+          leftEye: formData.leftEye,
+          pd: formData.pd,
+          nearPD: formData.nearPD,
+          nearVisionRight: formData.nearVisionRight,
+          nearVisionLeft: formData.nearVisionLeft,
+          patientAge: formData.patientAge,
+          patientGender: formData.patientGender,
+          referredBy: formData.referredBy,
+          diagnosis: formData.diagnosis,
+          findings: formData.findings,
+          medications: formData.medications,
+          eyeDrops: formData.eyeDrops,
+          exercises: formData.exercises,
+          recommendations: formData.recommendations,
+          consultationNotes: formData.consultationNotes,
+          reviewAfter: formData.reviewAfter,
+          followUpRequired: formData.followUpRequired,
+          followUpDate: formData.followUpRequired ? new Date(formData.followUpDate) : undefined,
+        };
 
-      // Update appointment with prescription ID
-      await appointmentsService.update(appointment.id, {
-        prescriptionId: prescription.id,
-      });
+        await prescriptionsService.updateWithHistory(
+          existingPrescription.id,
+          updates,
+          previousData,
+          user.id
+        );
 
-      router.push(`/doctor/prescriptions/${prescription.id}`);
+        router.push(`/doctor/prescriptions/${existingPrescription.id}`);
+      } else {
+        // Creating new prescription
+        const prescription: PrescriptionDocument = {
+          id: crypto.randomUUID(),
+          patientId: targetPatientId,
+          doctorId: user.id,
+          ...(appointment ? { appointmentId: appointment.id } : {}),
+          rightEye: formData.rightEye,
+          leftEye: formData.leftEye,
+          pd: formData.pd,
+          nearPD: formData.nearPD,
+          nearVisionRight: formData.nearVisionRight,
+          nearVisionLeft: formData.nearVisionLeft,
+          patientAge: formData.patientAge,
+          patientGender: formData.patientGender,
+          referredBy: formData.referredBy,
+          diagnosis: formData.diagnosis,
+          findings: formData.findings,
+          medications: formData.medications,
+          eyeDrops: formData.eyeDrops,
+          exercises: formData.exercises,
+          recommendations: formData.recommendations,
+          consultationNotes: formData.consultationNotes,
+          reviewAfter: formData.reviewAfter,
+          followUpRequired: formData.followUpRequired,
+          followUpDate: formData.followUpRequired ? new Date(formData.followUpDate) : undefined,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        await prescriptionsService.create(prescription);
+
+        // Update appointment with prescription ID if linked
+        if (appointment) {
+          await appointmentsService.update(appointment.id, {
+            prescriptionId: prescription.id,
+          });
+        }
+
+        router.push(`/doctor/prescriptions/${prescription.id}`);
+      }
     } catch (error) {
       const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
       logError(appError.code, error, "PrescriptionModule");
@@ -204,7 +314,7 @@ export default function DoctorPrescriptionCreatePage() {
     );
   }
 
-  if (!appointment) {
+  if (!appointment && !isStandalone) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="border-primary/10 bg-primary/5">
@@ -231,15 +341,99 @@ export default function DoctorPrescriptionCreatePage() {
               Back to Appointments
             </PremiumButton>
           </Link>
-          <h1 className={TYPOGRAPHY.heading}>Create Prescription</h1>
-          <p className={TYPOGRAPHY.subheading}>{patient?.displayName || "Patient"}</p>
-          <p className="text-sm text-muted-foreground">{patient?.email}</p>
-          {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
+          <h1 className={TYPOGRAPHY.heading}>
+            {existingPrescription ? "Edit Prescription" : "Create Prescription"}
+          </h1>
+          {isStandalone ? (
+            <p className={TYPOGRAPHY.subheading}>Standalone prescription (no appointment)</p>
+          ) : (
+            <>
+              <p className={TYPOGRAPHY.subheading}>{patient?.displayName || "Patient"}</p>
+              <p className="text-sm text-muted-foreground">{patient?.email}</p>
+              {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
+            </>
+          )}
         </div>
         <PremiumButton onClick={() => setShowPreview(!showPreview)} variant="outline" icon={<EyeIcon className="h-4 w-4" />}>
           {showPreview ? "Hide Preview" : "Show Preview"}
         </PremiumButton>
       </div>
+
+      {/* Standalone: Patient Selection */}
+      {isStandalone && (
+        <Card className="border-primary/10">
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-lg">Select Patient</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 p-3 sm:p-6">
+            <div>
+              <label className="block text-sm font-medium text-primary mb-2">Search Patient by Email</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                  placeholder="Enter patient email"
+                  className="flex-1 px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <PremiumButton
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!patientSearch.trim()) return;
+                    try {
+                      const results = await usersService.getAll(50);
+                      const filtered = results.filter(
+                        (u) =>
+                          u.role === "patient" &&
+                          (u.email.toLowerCase().includes(patientSearch.toLowerCase()) ||
+                            (u.displayName?.toLowerCase().includes(patientSearch.toLowerCase()) ?? false))
+                      );
+                      setPatientResults(filtered);
+                    } catch (err) {
+                      console.error("Patient search failed:", err);
+                    }
+                  }}
+                >
+                  Search
+                </PremiumButton>
+              </div>
+            </div>
+            {patientResults.length > 0 && (
+              <div className="space-y-2">
+                {patientResults.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => {
+                      setSelectedPatient(p);
+                      setPatient(p);
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                      selectedPatient?.id === p.id
+                        ? "border-primary bg-primary/5"
+                        : "border-primary/10 hover:bg-primary/5"
+                    }`}
+                  >
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                      {(p.displayName || p.email)[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-primary">{p.displayName || p.email}</p>
+                      <p className="text-xs text-muted-foreground">{p.email}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {selectedPatient && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/20">
+                <Badge className="bg-primary/10 text-primary">Selected</Badge>
+                <span className="text-sm font-medium">{selectedPatient.displayName || selectedPatient.email}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Form */}
@@ -707,7 +901,7 @@ export default function DoctorPrescriptionCreatePage() {
   );
 }
 
-function PrescriptionPreview({ formData, appointment, doctor, patient }: { formData: PrescriptionFormData; appointment: AppointmentDocument; doctor: any; patient: any }) {
+function PrescriptionPreview({ formData, appointment, doctor, patient }: { formData: PrescriptionFormData; appointment: AppointmentDocument | null; doctor: any; patient: any }) {
   return (
     <div className="border border-primary/10 rounded-xl p-8 bg-gradient-to-br from-[#F7F4EF] to-[#DDE5DF]">
       {/* Header */}

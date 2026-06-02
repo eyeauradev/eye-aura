@@ -59,10 +59,12 @@ service cloud.firestore {
         && request.resource.data.onboarding != null;
       
       // Update: 
-      // - Owners can update their own profile fields (not role, isActive, isSuspended)
-      // - Admins can update all fields including role, isActive, isSuspended
-      allow update: if signedIn() && request.auth.uid == userId
-        && !request.resource.diff(resource.data).affectedKeys().hasAny(['role', 'isActive', 'isSuspended', 'onboarding'])
+      // - Owners can update their own profile (cannot change role, isActive, isSuspended)
+      // - Admins can update all fields
+      allow update: if (signedIn() && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.isActive == resource.data.isActive
+        && request.resource.data.isSuspended == resource.data.isSuspended)
         || isAdmin();
       
       allow delete: if isAdmin();

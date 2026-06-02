@@ -259,6 +259,7 @@ class AuthService {
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
           phoneNumber: user.phoneNumber || data.phoneNumber,
+          whatsappNumber: data.whatsappNumber,
           emergencyContact: data.emergencyContact,
           emergencyPhone: data.emergencyPhone,
           isActive: data.isActive ?? true,
@@ -351,19 +352,13 @@ class AuthService {
     try {
       const userRef = doc(this.db, "users", user.uid);
       
-      // If updating profile fields, also mark patient onboarding as completed for patients
+      // Only send safe fields — exclude system fields that could trigger permission issues
+      const { id, email, role, isActive, isSuspended, onboardingCompleted, emailVerified, createdAt, updatedAt, ...safeUpdates } = updates as any;
+      
       const updateData: any = {
-        ...updates,
+        ...safeUpdates,
         updatedAt: serverTimestamp(),
       };
-      
-      // If this is a patient updating their profile, mark patient onboarding as completed
-      if (updates.displayName || updates.phoneNumber || updates.emergencyContact || updates.emergencyPhone) {
-        updateData.onboarding = {
-          patientCompleted: true,
-          doctorCompleted: false,
-        };
-      }
       
       await updateDoc(userRef, updateData);
 

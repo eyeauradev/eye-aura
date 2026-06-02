@@ -10,11 +10,12 @@ import {
   where,
   orderBy,
   limit,
+  arrayUnion,
   QueryConstraint,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/services/firebase/client";
 import { prescriptionConverter } from "./converters";
-import type { PrescriptionDocument } from "@/types/firestore";
+import type { PrescriptionDocument, PrescriptionHistoryEntry } from "@/types/firestore";
 
 const COLLECTION_NAME = "prescriptions";
 
@@ -38,6 +39,32 @@ export class PrescriptionsService {
     const docRef = doc(this.db, COLLECTION_NAME, id);
     await updateDoc(docRef, {
       ...updates,
+      updatedAt: new Date(),
+    });
+    const updated = await this.getById(id);
+    if (!updated) throw new Error("Prescription not found after update");
+    return updated;
+  }
+
+  /**
+   * Update a prescription while preserving the previous version in history.
+   * Used by doctors when editing an existing prescription.
+   */
+  async updateWithHistory(
+    id: string,
+    updates: Partial<PrescriptionDocument>,
+    previousData: Partial<PrescriptionDocument>,
+    savedBy: string
+  ): Promise<PrescriptionDocument> {
+    const docRef = doc(this.db, COLLECTION_NAME, id);
+    const historyEntry: PrescriptionHistoryEntry = {
+      savedAt: new Date(),
+      savedBy,
+      data: previousData,
+    };
+    await updateDoc(docRef, {
+      ...updates,
+      history: arrayUnion(historyEntry),
       updatedAt: new Date(),
     });
     const updated = await this.getById(id);

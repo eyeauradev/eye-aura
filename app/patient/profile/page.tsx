@@ -24,6 +24,7 @@ export default function PatientProfilePage() {
   const [formData, setFormData] = useState({
     displayName: "",
     phoneNumber: "",
+    whatsappNumber: "",
     emergencyContact: "",
     emergencyPhone: "",
   });
@@ -33,6 +34,7 @@ export default function PatientProfilePage() {
       setFormData({
         displayName: user.displayName || "",
         phoneNumber: user.phoneNumber || "",
+        whatsappNumber: user.whatsappNumber || "",
         emergencyContact: user.emergencyContact || "",
         emergencyPhone: user.emergencyPhone || "",
       });
@@ -48,6 +50,7 @@ export default function PatientProfilePage() {
       await updateUserProfile({
         displayName: formData.displayName,
         phoneNumber: formData.phoneNumber,
+        whatsappNumber: formData.whatsappNumber,
         emergencyContact: formData.emergencyContact,
         emergencyPhone: formData.emergencyPhone,
       });
@@ -142,6 +145,17 @@ export default function PatientProfilePage() {
                     onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                     placeholder="Enter your phone number"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                  <Input
+                    id="whatsappNumber"
+                    value={formData.whatsappNumber}
+                    onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
+                    placeholder="Enter your WhatsApp number for doctor communication"
+                  />
+                  <p className="text-xs text-muted-foreground">Used for doctor communication and appointment updates</p>
                 </div>
 
                 <div className="space-y-2">

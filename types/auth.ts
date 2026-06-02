@@ -9,6 +9,7 @@ export interface UserProfile {
   createdAt: Date;
   updatedAt: Date;
   phoneNumber?: string;
+  whatsappNumber?: string;
   emergencyContact?: string;
   emergencyPhone?: string;
   isActive: boolean;

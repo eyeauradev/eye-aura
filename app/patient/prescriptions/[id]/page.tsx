@@ -44,7 +44,9 @@ export default function PrescriptionDetailPage() {
         const doctorData = await usersService.getById(prescriptionData.doctorId);
         setDoctor(doctorData);
 
-        const appointmentData = await appointmentsService.getById(prescriptionData.appointmentId);
+        const appointmentData = prescriptionData.appointmentId
+          ? await appointmentsService.getById(prescriptionData.appointmentId)
+          : null;
         setAppointment(appointmentData);
 
         if (appointmentData) {

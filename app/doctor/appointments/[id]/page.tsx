@@ -50,6 +50,7 @@ export default function DoctorAppointmentDetailPage() {
   const [showApprovalChoiceModal, setShowApprovalChoiceModal] = useState(false);
   const [issuingRefund, setIssuingRefund] = useState(false);
   const [refundError, setRefundError] = useState<string | null>(null);
+  const [unassigning, setUnassigning] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadAppointment() {
@@ -389,6 +390,35 @@ export default function DoctorAppointmentDetailPage() {
   const setReview = (id: string, patch: Partial<ReviewForm>) =>
     setReviews((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { remarks:"", correctedFarR:"", correctedFarL:"", correctedNearR:"", correctedNearL:"" }), ...patch } }));
 
+  const handleUnassignAssessment = async (assessmentId: string) => {
+    if (!user) return;
+    try {
+      setUnassigning(assessmentId);
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/assessments/unassign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ assessmentId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toastError(err.error ?? "Failed to unassign assessment");
+        return;
+      }
+      toastSuccess("Assessment unassigned successfully");
+      // Remove from the list
+      setExistingAssessments((prev) => prev.filter((a) => a.id !== assessmentId));
+    } catch (err) {
+      console.error(err);
+      toastError("Failed to unassign assessment");
+    } finally {
+      setUnassigning(null);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "confirmed":
@@ -606,13 +636,21 @@ export default function DoctorAppointmentDetailPage() {
                 </div>
               )}
 
-              {appointment.status === "completed" && !appointment.prescriptionId && (
+              {(appointment.status === "completed" || appointment.status === "in_progress") && !appointment.prescriptionId && (
                 <Link href={`/doctor/prescriptions/create/${appointment.id}`} className="w-full">
                   <PremiumButton variant="outline" className="w-full">
                     <FileText className="h-4 w-4 mr-2" />
                     Create Prescription
                   </PremiumButton>
                 </Link>
+              )}
+
+              {(appointment.status === "pending" || appointment.status === "confirmed") && !appointment.prescriptionId && (
+                <div className="rounded-xl bg-muted/50 border border-border/50 px-4 py-3">
+                  <p className="text-xs text-muted-foreground text-center">
+                    Complete the consultation first to issue a prescription.
+                  </p>
+                </div>
               )}
 
               {/* Post-approval Issue Refund section */}
@@ -689,6 +727,15 @@ export default function DoctorAppointmentDetailPage() {
                       a.status === "expired"     ? "bg-gray-100 text-gray-500" :
                       "bg-[#b5964d]/12 text-[#b5964d]"
                     }`}>{a.status.replace("_", " ")}</span>
+                    {!done && a.status !== "expired" && (
+                      <button
+                        onClick={() => handleUnassignAssessment(a.id)}
+                        disabled={unassigning === a.id}
+                        className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors disabled:opacity-50"
+                      >
+                        {unassigning === a.id ? "…" : "Unassign"}
+                      </button>
+                    )}
                   </div>
                 </div>
 

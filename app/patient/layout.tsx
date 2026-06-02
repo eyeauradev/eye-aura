@@ -12,6 +12,7 @@ import {
   Eye,
   RefreshCw,
   Globe,
+  MessageCircle,
 } from "lucide-react";
 import {
   FloatingSidebar,
@@ -138,6 +139,20 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
             breadcrumbs={breadcrumbs}
             className="mb-6"
           />
+
+          {/* WhatsApp number missing banner */}
+          {user && !user.whatsappNumber && (
+            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <MessageCircle className="h-4 w-4 text-amber-600 shrink-0" />
+              <p className="text-xs text-amber-800 flex-1">
+                Add your WhatsApp number in{" "}
+                <Link href="/patient/profile" className="font-bold underline underline-offset-2 hover:text-amber-900">
+                  Profile
+                </Link>{" "}
+                for doctor communication
+              </p>
+            </div>
+          )}
 
           <div className={`flex ${SPACING.layoutGap}`}>
             {/* Floating Sidebar — visible at lg+ */}

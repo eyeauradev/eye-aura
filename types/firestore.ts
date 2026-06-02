@@ -8,6 +8,7 @@ export interface UserDocument {
   photoURL?: string;
   role: UserRole;
   phoneNumber?: string;
+  whatsappNumber?: string;
   emergencyContact?: string;
   emergencyPhone?: string;
   
@@ -150,7 +151,8 @@ export type VisionAssessmentStatus =
   | "assigned"
   | "in_progress"
   | "completed"
-  | "expired";
+  | "expired"
+  | "cancelled";
 
 export type AssignedByRole = "doctor" | "admin" | "system";
 
@@ -208,11 +210,19 @@ export interface DoctorSlotDocument {
 }
 
 // Prescriptions Collection
+export interface PrescriptionHistoryEntry {
+  savedAt: Date;
+  savedBy: string; // doctorId
+  data: Partial<PrescriptionDocument>;
+}
+
 export interface PrescriptionDocument {
   id: string;
-  appointmentId: string;
+  appointmentId?: string; // Optional — standalone prescriptions don't require an appointment
   patientId: string;
   doctorId: string;
+  // Edit history — previous versions stored before each update
+  history?: PrescriptionHistoryEntry[];
   // Eye examination data
   rightEye: EyeData;
   leftEye: EyeData;

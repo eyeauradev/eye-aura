@@ -88,11 +88,18 @@ export default function DoctorPrescriptionsPage() {
   return (
     <div className={`flex flex-col ${SPACING.sectionGap}`}>
       {/* Page Header */}
-      <SectionHeader
-        title="Prescriptions"
-        subtitle={`${prescriptions.length} prescription${prescriptions.length !== 1 ? "s" : ""} issued`}
-        className="mt-0"
-      />
+      <div className="flex items-center justify-between">
+        <SectionHeader
+          title="Prescriptions"
+          subtitle={`${prescriptions.length} prescription${prescriptions.length !== 1 ? "s" : ""} issued`}
+          className="mt-0"
+        />
+        <Link href="/doctor/prescriptions/create/new">
+          <PremiumButton icon={<FileText className="h-4 w-4" />}>
+            Create Prescription
+          </PremiumButton>
+        </Link>
+      </div>
 
       {/* Search */}
       <div className="relative max-w-md">

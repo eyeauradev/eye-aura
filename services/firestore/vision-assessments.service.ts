@@ -3,6 +3,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   collection,
   getDocs,
   query,
@@ -47,6 +48,11 @@ export class VisionAssessmentsService {
 
   async updateStatus(id: string, status: VisionAssessmentStatus): Promise<VisionAssessmentDocument> {
     return this.update(id, { status });
+  }
+
+  async delete(id: string): Promise<void> {
+    const ref = doc(this.db, COLLECTION_NAME, id);
+    await deleteDoc(ref);
   }
 
   private async query(constraints: QueryConstraint[]): Promise<VisionAssessmentDocument[]> {
