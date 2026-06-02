@@ -26,6 +26,7 @@ export default function PrescriptionDetailPage() {
   const [doctor, setDoctor] = useState<any>(null);
   const [appointment, setAppointment] = useState<any>(null);
   const [service, setService] = useState<any>(null);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     async function loadPrescription() {
@@ -120,11 +121,12 @@ export default function PrescriptionDetailPage() {
       <div className="rounded-3xl bg-primary p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
           <div className="flex items-center gap-4">
-            {doctor?.photoURL ? (
+            {doctor?.photoURL && !imgError ? (
               <img
                 src={doctor.photoURL}
                 alt={doctor.displayName || "Doctor"}
                 className="h-14 w-14 rounded-2xl object-cover ring-2 ring-primary-foreground/15"
+                onError={() => setImgError(true)}
               />
             ) : (
               <div className="h-14 w-14 rounded-2xl bg-primary-foreground/10 grid place-items-center shrink-0">

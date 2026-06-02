@@ -82,7 +82,7 @@ export default function AssessmentHubPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-8 w-full lg:max-w-2xl">
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-semibold text-foreground mb-1">My Assessments</h1>

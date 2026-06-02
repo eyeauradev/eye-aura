@@ -8,6 +8,9 @@ interface NearTestingStepProps {
   calibration: CalibrationData;
   timerDuration: TimerDuration;
   onComplete: (results: { right: EyeAcuityResult; left: EyeAcuityResult }) => void;
+  onLevelChange?: (info: { notation: string; lineIndex: number; totalLines: number; eye: string }) => void;
+  onTimerUpdate?: (remainingSeconds: number) => void;
+  pauseRequested?: boolean;
 }
 
 const NEAR_CHART: TestingShellChartLine[] = NEAR_VISION_LINES.map((line) => ({

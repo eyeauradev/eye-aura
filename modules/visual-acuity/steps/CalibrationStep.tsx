@@ -133,20 +133,20 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
   };
 
   return (
-    <div className="max-w-lg mx-auto space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#b5964d]/30 bg-[#b5964d]/8 px-4 py-1.5 mb-1">
-          <CreditCard className="h-3.5 w-3.5 text-[#b5964d]" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-[#b5964d]">
+    <div className="max-w-lg mx-auto w-full space-y-4 landscape:space-y-2 py-2">
+      {/* Header — compact */}
+      <div className="text-center space-y-1">
+        <div className="inline-flex items-center gap-2 rounded-full border border-[#b5964d]/30 bg-[#b5964d]/8 px-3 py-1">
+          <CreditCard className="h-3 w-3 text-[#b5964d]" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#b5964d]">
             Screen Calibration
           </span>
         </div>
-        <h2 className="text-2xl font-black text-[#0f4f4b]">Match your physical card</h2>
-        <p className="text-sm text-[#0f4f4b]/60 max-w-xs mx-auto leading-relaxed">
+        <h2 className="text-lg font-black text-[#0f4f4b]">Match your physical card</h2>
+        <p className="text-xs text-[#0f4f4b]/60 max-w-xs mx-auto leading-tight">
           {portrait
-            ? "Hold your bank card vertically next to the rectangle. Adjust until they are exactly the same height."
-            : "Place any bank card, ID, or credit card next to the rectangle below. Adjust until they are exactly the same size."}
+            ? "Hold your card vertically next to the rectangle. Adjust until they match."
+            : "Place any bank card next to the rectangle. Adjust until they match."}
         </p>
       </div>
 
@@ -288,14 +288,14 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
         </div>{/* end controls */}
       </div>{/* end calibration area */}
 
-      {/* Reference */}
-      <div className="rounded-2xl bg-[#b5964d]/6 border border-[#b5964d]/20 p-4">
-        <p className="text-xs font-bold text-[#b5964d] mb-1">ISO/IEC 7810 ID-1 Reference</p>
-        <p className="text-xs text-[#0f4f4b]/60 leading-relaxed">
-          Standard bank card, driving licence, or ID card: 85.60 mm x 53.98 mm (3.370 x 2.125 in).
+      {/* Reference — compact */}
+      <div className="rounded-xl bg-[#b5964d]/6 border border-[#b5964d]/20 p-3">
+        <p className="text-[10px] font-bold text-[#b5964d] mb-0.5">ISO/IEC 7810 ID-1</p>
+        <p className="text-[10px] text-[#0f4f4b]/60 leading-tight">
+          Standard bank card: 85.60 mm x 53.98 mm.
           {portrait
-            ? " Hold it upright (portrait) to match the tall rectangle."
-            : " Any card of this standard may be used for calibration."}
+            ? " Hold it upright to match."
+            : " Any card of this standard works."}
         </p>
       </div>
 
@@ -303,7 +303,7 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
         onClick={handleProceed}
         disabled={!confirmed}
         size="lg"
-        className="w-full h-14 text-base rounded-2xl bg-[#0f4f4b] hover:bg-[#0a3a36] disabled:opacity-40 transition-all"
+        className="w-full h-12 text-sm rounded-xl bg-[#0f4f4b] hover:bg-[#0a3a36] disabled:opacity-40 transition-all"
       >
         Start Testing
         <ArrowRight className="h-4 w-4 ml-2" />

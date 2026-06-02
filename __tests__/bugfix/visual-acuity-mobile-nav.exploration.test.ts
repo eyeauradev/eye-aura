@@ -130,33 +130,31 @@ describe("Calibration bug — useCalibrationSync hook", () => {
 // ─── 4. Mobile layout bug — TestingShell responsive layout ─────────────────
 
 describe("Mobile layout bug — TestingShell responsive layout", () => {
-  test("TestingShell uses responsive classes for mobile 2-row layout", () => {
+  test("TestingShell uses responsive/immersive layout for mobile (no constrained multi-column reading phase)", () => {
     const source = fs.readFileSync(TESTING_SHELL_PATH, "utf-8");
 
-    // The reading phase layout section (the 3-column content row)
-    // should use responsive breakpoint classes to produce a 2-row layout on mobile.
-    // Look for patterns like: md:flex-row, flex-col, md:w-28, etc.
-    const hasResponsiveFlexDirection =
+    // After the immersive experience refactor, the reading phase no longer uses
+    // a multi-column layout at all. Instead, it uses a simple full-width flex
+    // container with SnellenRenderer as the hero element, which inherently
+    // works at all viewport sizes without needing responsive breakpoints.
+    //
+    // Verify: the reading phase uses a mobile-friendly layout approach —
+    // either responsive breakpoints (original fix) OR a single-column
+    // hero layout that works everywhere (immersive refactor).
+    const hasResponsiveLayout =
       source.includes("md:flex-row") ||
-      source.includes("md:flex-col") ||
-      source.includes("sm:flex-row") ||
-      source.includes("lg:flex-row");
-
-    // Also check for responsive width classes on the side columns
-    const hasResponsiveColumnWidth =
-      source.includes("md:w-28") ||
-      source.includes("sm:w-28") ||
-      source.includes("lg:w-28") ||
       source.includes("hidden md:") ||
       source.includes("md:flex-shrink-0");
 
-    // At least one responsive pattern should be present indicating mobile adaptation
-    const hasAnyResponsiveLayout = hasResponsiveFlexDirection || hasResponsiveColumnWidth;
+    const hasImmersiveHeroLayout =
+      source.includes("flex flex-col items-center justify-center w-full h-full") &&
+      source.includes("flex-1 w-full");
 
-    // EXPECTED (correct): true — responsive classes should exist for mobile layout
-    // ACTUAL on unfixed code: false — uses unconditional "flex items-center" with
-    // fixed "w-28 flex-shrink-0" columns, no responsive breakpoints (FAILS)
-    expect(hasAnyResponsiveLayout).toBe(true);
+    // At least one mobile-friendly pattern must be present
+    const hasMobileFriendlyLayout = hasResponsiveLayout || hasImmersiveHeroLayout;
+
+    // EXPECTED: true — layout works well on mobile
+    expect(hasMobileFriendlyLayout).toBe(true);
   });
 
   test("TestingShell does NOT use unconditional fixed w-28 columns without responsive override", () => {

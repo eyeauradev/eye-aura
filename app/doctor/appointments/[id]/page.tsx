@@ -310,8 +310,9 @@ export default function DoctorAppointmentDetailPage() {
     return timeDiff < 15 * 60 * 1000 && timeDiff > -60 * 60 * 1000;
   };
 
-  const handleAssignAssessment = async () => {
-    if (!appointment || !user || assigningTypes.length === 0) return;
+  const handleAssignAssessment = async (types?: VisionAssessmentType[]) => {
+    const typesToAssign = types ?? assigningTypes;
+    if (!appointment || !user || typesToAssign.length === 0) return;
     try {
       setAssigning(true);
       const idToken = await getAuth().currentUser?.getIdToken();
@@ -323,7 +324,7 @@ export default function DoctorAppointmentDetailPage() {
         },
         body: JSON.stringify({
           patientId:       appointment.patientId,
-          assessmentTypes: assigningTypes,
+          assessmentTypes: typesToAssign,
           assignedRole:    "doctor",
           doctorId:        user.id,
           appointmentId:   appointment.id,
@@ -838,40 +839,38 @@ export default function DoctorAppointmentDetailPage() {
             </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
-            <div className="flex gap-2">
-              {([["far", Eye, "Far Vision", "3m Snellen"], ["near", BookOpen, "Near Vision", "40cm chart"]] as const).map(
-                ([type, Icon, label, sub]) => (
-                  <button
-                    key={type}
-                    onClick={() => toggleType(type)}
-                    className={`flex-1 flex flex-col items-center gap-1 rounded-xl border-2 p-3 transition-all ${
-                      assigningTypes.includes(type)
-                        ? "border-[#0f4f4b] bg-[#0f4f4b]/6"
-                        : "border-[#0f4f4b]/15 bg-white hover:border-[#0f4f4b]/30"
-                    }`}
-                  >
-                    <Icon className={`h-5 w-5 ${assigningTypes.includes(type) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/40"}`} />
-                    <span className={`text-xs font-bold ${assigningTypes.includes(type) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/50"}`}>{label}</span>
-                    <span className="text-[10px] text-[#0f4f4b]/40">{sub}</span>
-                  </button>
-                )
-              )}
-            </div>
-
             {assignSuccess && (
               <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
                 <CheckCircle2 className="h-4 w-4" /> Assessment assigned — patient will see it in their portal
               </div>
             )}
 
-            <PremiumButton
-              onClick={handleAssignAssessment}
-              disabled={assigning || assigningTypes.length === 0}
-              className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl"
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              {assigning ? "Assigning…" : `Assign ${assigningTypes.map((t) => t === "far" ? "Far" : "Near").join(" + ")} Assessment`}
-            </PremiumButton>
+            <div className="grid grid-cols-3 gap-2">
+              <PremiumButton
+                onClick={() => handleAssignAssessment(["far"])}
+                disabled={assigning}
+                className="bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-xs px-2"
+              >
+                <Eye className="h-4 w-4 mr-1.5 shrink-0" />
+                Assign Far
+              </PremiumButton>
+              <PremiumButton
+                onClick={() => handleAssignAssessment(["near"])}
+                disabled={assigning}
+                className="bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-xs px-2"
+              >
+                <BookOpen className="h-4 w-4 mr-1.5 shrink-0" />
+                Assign Near
+              </PremiumButton>
+              <PremiumButton
+                onClick={() => handleAssignAssessment(["far", "near"])}
+                disabled={assigning}
+                className="bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-xs px-2"
+              >
+                <Zap className="h-4 w-4 mr-1.5 shrink-0" />
+                Assign Both
+              </PremiumButton>
+            </div>
           </CardContent>
         </Card>
       </div>

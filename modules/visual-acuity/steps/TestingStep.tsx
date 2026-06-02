@@ -8,6 +8,9 @@ interface TestingStepProps {
   calibration: CalibrationData;
   timerDuration: TimerDuration;
   onComplete: (results: { right: EyeAcuityResult; left: EyeAcuityResult }) => void;
+  onLevelChange?: (info: { notation: string; lineIndex: number; totalLines: number; eye: string }) => void;
+  onTimerUpdate?: (remainingSeconds: number) => void;
+  pauseRequested?: boolean;
 }
 
 const FAR_CHART: TestingShellChartLine[] = SNELLEN_LINES.map((line) => ({

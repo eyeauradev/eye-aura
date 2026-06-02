@@ -6,10 +6,20 @@ import { useAuth } from "@/contexts/auth-context";
 import { visionAssessmentsService } from "@/services/firestore";
 import type { VisionAssessmentDocument } from "@/types/firestore";
 import { AcuitySession } from "@/modules/visual-acuity/AcuitySession";
-import { Lock, ArrowLeft, RefreshCw } from "lucide-react";
+import {
+  AssessmentFullscreenController,
+} from "@/modules/visual-acuity/immersive";
+import { Lock, ArrowLeft, RefreshCw, Eye } from "lucide-react";
 import Link from "next/link";
 import { ERROR_CODES, ERROR_MESSAGES, logError } from "@/lib/errors";
 import type { AppError } from "@/lib/errors";
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Viewport width threshold for compact/immersive launch mode. */
+const COMPACT_VIEWPORT_BREAKPOINT = 1024;
 
 const TYPE_LABEL: Record<string, string> = {
   far:  "Far Vision Assessment",
@@ -24,11 +34,29 @@ export default function VisualAcuityPage() {
   // ?type= lets the hub force a specific test for legacy combined-type docs
   const typeParam = searchParams.get("type") as "far" | "near" | null;
 
+  // Detect immersive mode from URL param (set when compact viewport opens new tab)
+  const isImmersiveMode = searchParams.get("immersive") === "1";
+
   const [checking, setChecking]           = useState(true);
   const [assessment, setAssessment]       = useState<VisionAssessmentDocument | null>(null);
   const [pageError, setPageError]         = useState<AppError | null>(null);
   const [nextHref, setNextHref]           = useState<string | undefined>(undefined);
   const [nextLabel, setNextLabel]         = useState<string | undefined>(undefined);
+  const [launchedNewTab, setLaunchedNewTab] = useState(false);
+
+  // ── Compact viewport: open new tab with ?immersive=1 ────────────────────
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isImmersiveMode) return; // Already in immersive new tab
+
+    const isCompactViewport = window.innerWidth < COMPACT_VIEWPORT_BREAKPOINT;
+    if (isCompactViewport) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("immersive", "1");
+      window.open(url.toString(), "_blank");
+      setLaunchedNewTab(true);
+    }
+  }, [isImmersiveMode]);
 
   useEffect(() => {
     if (!user) return;
@@ -132,6 +160,29 @@ export default function VisualAcuityPage() {
     );
   }
 
+  // ── Original tab after launching immersive new tab ────────────────────────
+  if (launchedNewTab) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 px-4">
+        <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+          <Eye className="h-7 w-7 text-muted-foreground" />
+        </div>
+        <div>
+          <p className="font-bold text-foreground text-lg mb-1">Assessment Opened</p>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Your assessment has been opened in a new window for the best immersive experience.
+          </p>
+        </div>
+        <Link
+          href="/patient/assessment"
+          className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to My Assessments
+        </Link>
+      </div>
+    );
+  }
+
   if (pageError || !assessment) {
     const displayError = pageError ?? {
       code: ERROR_CODES.ASSESSMENT.NOT_ASSIGNED,
@@ -163,7 +214,7 @@ export default function VisualAcuityPage() {
   // If ?type= is in the URL (legacy combined docs), use that type only
   const effectiveTypes = typeParam ? [typeParam] : assessment.assessmentTypes;
 
-  return (
+  const sessionElement = (
     <AcuitySession
       key={`${assessment.id}-${typeParam ?? "auto"}`}
       assessmentId={assessment.id}
@@ -172,4 +223,19 @@ export default function VisualAcuityPage() {
       nextAssessmentLabel={nextLabel}
     />
   );
+
+  // ── Immersive mode (new tab on compact viewport): no PatientLayout chrome ─
+  if (isImmersiveMode) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#f8f9fa]" style={{ height: "100dvh" }}>
+        <AssessmentFullscreenController>
+          {sessionElement}
+        </AssessmentFullscreenController>
+      </div>
+    );
+  }
+
+  // ── Large viewport (≥ 1024px): render in-place; AssessmentImmersiveShell ─
+  // handles the z-50 fixed overlay internally within AcuitySession
+  return sessionElement;
 }

@@ -2,7 +2,6 @@
 
 import { Timer, ArrowRight } from "lucide-react";
 import { AssessmentActionButton } from "@/components/premium/assessment-wrapper";
-import { TYPOGRAPHY } from "@/lib/design-tokens";
 import { cn } from "@/lib/utils";
 import type { TimerDuration, TestType } from "./types";
 
@@ -29,21 +28,20 @@ export function DurationSelector({
   const label = testType === "far" ? "letters" : "text";
 
   return (
-    <div className="max-w-lg mx-auto space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/8 flex items-center justify-center">
-          <Timer className="h-7 w-7 text-primary" />
+    <div className="max-w-lg mx-auto w-full space-y-4 landscape:space-y-2 py-2">
+      {/* Header — compact */}
+      <div className="text-center space-y-1">
+        <div className="mx-auto h-10 w-10 rounded-xl bg-primary/8 flex items-center justify-center">
+          <Timer className="h-5 w-5 text-primary" />
         </div>
-        <h2 className={cn(TYPOGRAPHY.heading)}>Reading Duration</h2>
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-          Each set of {label} will be visible for this long before automatically
-          advancing to the next level. Your doctor can advise the best setting.
+        <h2 className="text-lg font-bold text-foreground">Reading Duration</h2>
+        <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-tight">
+          Each set of {label} will be visible for this long before advancing.
         </p>
       </div>
 
-      {/* Options */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Options — compact grid */}
+      <div className="grid grid-cols-4 landscape:grid-cols-4 gap-2">
         {OPTIONS.map(({ value, label: lbl, detail }) => {
           const isSelected = selected === value;
           return (
@@ -51,14 +49,14 @@ export function DurationSelector({
               key={value}
               onClick={() => onSelect(value)}
               className={cn(
-                "flex flex-col items-center gap-2 p-5 rounded-2xl border text-center transition-all",
+                "flex flex-col items-center gap-1 p-3 landscape:p-2 rounded-xl border text-center transition-all",
                 isSelected
                   ? "bg-primary border-primary text-primary-foreground"
                   : "bg-card border-border hover:border-primary/30 hover:bg-primary/3"
               )}
             >
               {/* Circular timer visual */}
-              <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
                 <circle cx="24" cy="24" r="19" fill="none"
                   className={isSelected ? "stroke-primary-foreground/25" : "stroke-border"}
                   strokeWidth="3.5"
@@ -78,13 +76,13 @@ export function DurationSelector({
                 </text>
               </svg>
               <p className={cn(
-                "text-sm font-bold",
+                "text-xs font-bold",
                 isSelected ? "text-primary-foreground" : "text-foreground"
               )}>
                 {lbl}
               </p>
               <p className={cn(
-                "text-xs leading-snug",
+                "text-[10px] leading-snug hidden landscape:hidden sm:block",
                 isSelected ? "text-primary-foreground/70" : "text-muted-foreground"
               )}>
                 {detail}
@@ -94,13 +92,11 @@ export function DurationSelector({
         })}
       </div>
 
-      {/* Context note */}
-      <div className="rounded-xl bg-primary/4 border border-border p-4 flex items-start gap-3">
-        <Timer className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          The timer starts automatically as soon as each line appears. Press
-          <strong className="text-foreground"> Unable to Read</strong> if you cannot read
-          the {label} before the timer expires. You can also pause at any time.
+      {/* Context note — compact */}
+      <div className="rounded-lg bg-primary/4 border border-border p-3 flex items-start gap-2">
+        <Timer className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Timer starts automatically. Press <strong className="text-foreground">Unable to Read</strong> if needed. You can pause at any time.
         </p>
       </div>
 

@@ -42,35 +42,31 @@ const CALIBRATION_STEP_PATH = path.join(
 
 // ─── 1. Desktop layout preservation ────────────────────────────────────────
 
-describe("Preservation — Desktop 3-column layout in TestingShell", () => {
+describe("Preservation — Immersive reading phase layout in TestingShell", () => {
   /**
    * **Validates: Requirements 3.1**
    *
-   * The TestingShell reading phase uses a 3-column layout with:
-   * - flex items-center container
-   * - Left column: w-28 (eye info)
-   * - Center column: flex-1 (Snellen chart)
-   * - Right column: w-28 (timer/distance)
-   *
-   * This structure must remain for desktop viewports after the fix.
+   * After the immersive experience refactor, TestingShell reading phase:
+   * - Removed 3-column desktop layout (moved chrome to ImmersiveTopBar)
+   * - SnellenRenderer is the hero element with flex-1 full-width layout
+   * - Uses "flex flex-col items-center justify-center w-full h-full" as wrapper
+   * - Preserves SnellenRenderer with same props (letters, exactHeightMm, calibration)
    */
-  test("TestingShell source contains the 3-column layout structure (flex items-center with w-28 columns)", () => {
+  test("TestingShell source uses immersive hero layout with SnellenRenderer as primary content", () => {
     const source = fs.readFileSync(TESTING_SHELL_PATH, "utf-8");
 
     // Verify the flex container for the reading phase exists
-    expect(source).toContain("flex items-center");
+    expect(source).toContain("flex flex-col items-center justify-center w-full h-full");
 
-    // Verify left column uses w-28 fixed width
-    expect(source).toContain("w-28");
+    // Verify SnellenRenderer is rendered with calibration props
+    expect(source).toContain("SnellenRenderer");
+    expect(source).toContain("effectiveCalibration");
 
-    // Verify flex-shrink-0 is used to prevent column compression
-    expect(source).toContain("flex-shrink-0");
-
-    // Verify center column uses flex-1 for flexible width
+    // Verify center uses flex-1 for hero element sizing
     expect(source).toContain("flex-1");
 
-    // Verify the reading phase layout has the min-height constraint
-    expect(source).toContain("min-h-[180px]");
+    // Verify the reading phase no longer constrains with max-w-2xl
+    expect(source).not.toContain("max-w-2xl mx-auto space-y-4");
   });
 });
 

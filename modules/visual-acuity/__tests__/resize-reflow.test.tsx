@@ -11,20 +11,17 @@
  *
  *   (A) Resize does not perturb timer state. Mounting `TestingShell`,
  *       advancing fake timers to mid-letter 2, and dispatching a
- *       `window.resize` MUST NOT alter the active line index. The displayed
- *       remaining time MUST stay within ±1 second (one render-tick of slop)
- *       of its pre-resize value.
+ *       `window.resize` MUST NOT alter the active line index. The SnellenRenderer
+ *       SVG node must remain the same (same key = same letter index).
  *
  *   (B) Layout change does not change `SnellenRenderer` SVG dimensions.
  *       Mutating the wrapper element's inline `width` style MUST NOT alter
  *       the rendered SVG's numeric `width` / `height` attributes
  *       (calibrated optotype size is independent of layout box).
  *
- *   (C) Global progress bar uses compositor-friendly properties. The fill
- *       inside `[data-testid="va-global-progress"]` MUST animate with
- *       `transform: scaleX(...)` (NOT animated `width: …%`). The per-letter
- *       ring's animated `<circle>` MUST use `stroke-dashoffset` for its
- *       transition.
+ *   (C) [REMOVED] Global progress bar and timer ring chrome have moved to
+ *       ImmersiveTopBar (parent shell). These sub-properties are no longer
+ *       testable within TestingShell in isolation.
  *
  *   (D) `SnellenRenderer` is not remounted on resize. The DOM node
  *       reference for the chart `<svg>` MUST be byte-identical (`===`)
@@ -114,56 +111,23 @@ function clickReady() {
 }
 
 /** Read "Level X / N" → return the 0-based line index (X - 1). */
-function readLineIndex(): number {
-  const allSpans = Array.from(document.querySelectorAll("span"));
-  for (const span of allSpans) {
-    if ((span.textContent ?? "").trim() === "Level") {
-      const sibling = span.parentElement?.querySelector(
-        "span.text-4xl",
-      ) as HTMLSpanElement | null;
-      if (sibling) {
-        const n = Number((sibling.textContent ?? "").trim());
-        if (Number.isFinite(n)) return n - 1;
-      }
-    }
-  }
-  throw new Error("Level number span not found in DOM");
-}
+// NOTE: Level display has been removed from TestingShell reading phase (moved
+// to ImmersiveTopBar). Timer state preservation is now verified by SVG node
+// stability (same key = same letterIndex).
 
 /** Read the integer rendered inside the per-letter ring's `<text>` element. */
-function readDisplayedRemaining(): number {
-  const texts = document.querySelectorAll("svg text");
-  for (const node of Array.from(texts)) {
-    const raw = (node.textContent ?? "").trim();
-    if (/^\d+$/.test(raw)) return Number(raw);
-  }
-  throw new Error("countdown <text> not found in DOM");
-}
+// NOTE: Timer ring has been removed from TestingShell reading phase (moved to
+// ImmersiveTopBar). No countdown <text> exists in the reading phase DOM.
 
 /**
- * Find the SnellenRenderer's `<svg>`. The reading phase contains exactly two
- * SVGs: (1) the chart (calibration-driven `width` / `height`), and (2) the
- * 88×88 timer ring. Filter the timer ring out by its exact dimensions.
+ * Find the SnellenRenderer's `<svg>`. After chrome removal, the reading phase
+ * contains only ONE SVG — the chart (calibration-driven `width` / `height`).
  */
 function findChartSvg(): SVGSVGElement {
   const svgs = Array.from(document.querySelectorAll("svg"));
-  const chart = svgs.find(
-    (s) =>
-      s.getAttribute("width") !== "88" || s.getAttribute("height") !== "88",
-  );
-  if (!chart) throw new Error("SnellenRenderer chart <svg> not found");
-  return chart as SVGSVGElement;
-}
-
-/** Find the timer ring SVG (88×88). */
-function findRingSvg(): SVGSVGElement {
-  const svgs = Array.from(document.querySelectorAll("svg"));
-  const ring = svgs.find(
-    (s) =>
-      s.getAttribute("width") === "88" && s.getAttribute("height") === "88",
-  );
-  if (!ring) throw new Error("Timer ring <svg> not found");
-  return ring as SVGSVGElement;
+  if (svgs.length === 0) throw new Error("SnellenRenderer chart <svg> not found");
+  // After chrome removal, the only SVG in the reading phase IS the chart.
+  return svgs[0] as SVGSVGElement;
 }
 
 /** Dispatch a `window.resize` to a target inner width. */
@@ -190,7 +154,7 @@ afterEach(() => {
 // ─── (A) Resize does not perturb timer state ───────────────────────────────
 
 describe("(A) Resize does not perturb timer state", () => {
-  test("lineIndex is preserved and remaining drifts ≤ 1s across a window.resize", () => {
+  test("SnellenRenderer SVG node is stable across a window.resize (same letterIndex = same key = same node)", () => {
     mountShell(5);
     act(() => clickReady());
 
@@ -201,27 +165,25 @@ describe("(A) Resize does not perturb timer state", () => {
       vi.advanceTimersByTime(7_500);
     });
 
-    const indexBefore = readLineIndex();
-    const remainingBefore = readDisplayedRemaining();
-
-    // Sanity: we ARE on letter 2.
-    expect(indexBefore).toBe(1);
+    // After chrome removal, we verify timer state preservation by checking
+    // that the SnellenRenderer SVG node reference is stable (same key means
+    // same letterIndex — React's reconciler won't replace the node).
+    const svgBefore = findChartSvg();
+    const widthBefore = svgBefore.getAttribute("width");
+    const heightBefore = svgBefore.getAttribute("height");
 
     act(() => {
       dispatchResize(768);
     });
 
-    const indexAfter = readLineIndex();
-    const remainingAfter = readDisplayedRemaining();
+    const svgAfter = findChartSvg();
 
-    // lineIndex must be unchanged: a viewport change MUST NOT advance the
-    // assessment.
-    expect(indexAfter).toBe(indexBefore);
-
-    // Allow ±1s drift (one ceil-rounded render tick) — the resize itself
-    // does not advance fake timers, but the pre/post-snapshot reads bracket
-    // the resize call so a single second boundary may be crossed.
-    expect(Math.abs(remainingAfter - remainingBefore)).toBeLessThanOrEqual(1);
+    // Strict reference equality: the SVG node did not change, meaning
+    // the letterIndex (part of the key) was not perturbed by resize.
+    expect(svgAfter).toBe(svgBefore);
+    // Dimensions also stable (calibration unchanged by viewport).
+    expect(svgAfter.getAttribute("width")).toBe(widthBefore);
+    expect(svgAfter.getAttribute("height")).toBe(heightBefore);
   });
 });
 
@@ -262,54 +224,11 @@ describe("(B) Layout change does not change SnellenRenderer SVG dimensions", () 
   });
 });
 
-// ─── (C) Global progress bar uses compositor-friendly properties ───────────
-
-describe("(C) Global progress bar uses compositor-friendly properties", () => {
-  test("global bar fill animates with transform: scaleX, not width", () => {
-    mountShell(5);
-    act(() => clickReady());
-
-    const bar = document.querySelector(
-      '[data-testid="va-global-progress"]',
-    ) as HTMLElement | null;
-    expect(bar).not.toBeNull();
-
-    // The fill is the (only) child div of the progress bar.
-    const fill = bar!.querySelector("div") as HTMLElement | null;
-    expect(fill).not.toBeNull();
-
-    const transform = fill!.style.transform ?? "";
-    const styleAttr = fill!.getAttribute("style") ?? "";
-
-    // Either the parsed inline style or the raw style attribute MUST contain
-    // a scaleX transform. We do NOT assert anything about width — width may
-    // be set to "100%" as a static value, but it MUST NOT be the animated
-    // dimension.
-    const usesScaleX =
-      transform.startsWith("scaleX(") || /scaleX\(/.test(styleAttr);
-    expect(usesScaleX).toBe(true);
-  });
-
-  test("per-letter ring uses stroke-dashoffset for its animation", () => {
-    mountShell(5);
-    act(() => clickReady());
-
-    const ring = findRingSvg();
-    // The ring contains two <circle>s: the static track and the animated
-    // arc (which has strokeLinecap="round"). The animated one is the
-    // SECOND circle in source order.
-    const circles = Array.from(ring.querySelectorAll("circle"));
-    expect(circles.length).toBeGreaterThanOrEqual(2);
-
-    const animated = circles[1] as SVGCircleElement;
-    const styleAttr = animated.getAttribute("style") ?? "";
-
-    // The transition declaration MUST mention stroke-dashoffset. We do NOT
-    // assert anything about animated `r`, `cx`, or `cy` — those would
-    // trigger layout / paint, defeating compositor-friendliness.
-    expect(/stroke-dashoffset/.test(styleAttr)).toBe(true);
-  });
-});
+// ─── (C) [REMOVED] Chrome animation tests ─────────────────────────────────
+// Progress bar and timer ring have moved from TestingShell to ImmersiveTopBar.
+// These sub-properties are no longer testable within TestingShell in isolation.
+// They should be tested as part of AssessmentImmersiveShell / ImmersiveTopBar
+// integration tests instead.
 
 // ─── (D) SnellenRenderer is not remounted on resize ────────────────────────
 

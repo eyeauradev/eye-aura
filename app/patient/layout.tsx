@@ -130,7 +130,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
       {/* Main layout content */}
       <div className="relative z-10">
         {/* 12-column responsive grid with max-w-7xl centered container */}
-        <div className={`mx-auto max-w-7xl ${SPACING.pageX} ${SPACING.pageY}`}>
+        <div className={`mx-auto lg:max-w-7xl ${SPACING.pageX} ${SPACING.pageY}`}>
           {/* Premium Header — inside the same container for alignment */}
           <PremiumHeader
             title={pageTitle}

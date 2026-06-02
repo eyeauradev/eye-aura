@@ -49,46 +49,46 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
   const allDone = acknowledged.size === instructions.length;
 
   return (
-    <div className="max-w-lg mx-auto space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="mx-auto h-14 w-14 rounded-2xl bg-primary flex items-center justify-center">
+    <div className="max-w-lg mx-auto w-full space-y-4 landscape:space-y-2 py-2">
+      {/* Header — compact in landscape */}
+      <div className="text-center space-y-1">
+        <div className="mx-auto h-10 w-10 landscape:h-8 landscape:w-8 rounded-xl bg-primary flex items-center justify-center">
           {isFar
-            ? <Ruler className="h-7 w-7 text-primary-foreground" />
-            : <BookOpen className="h-7 w-7 text-primary-foreground" />
+            ? <Ruler className="h-5 w-5 landscape:h-4 landscape:w-4 text-primary-foreground" />
+            : <BookOpen className="h-5 w-5 landscape:h-4 landscape:w-4 text-primary-foreground" />
           }
         </div>
-        <h2 className={cn(TYPOGRAPHY.heading)}>Before We Begin</h2>
-        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+        <h2 className="text-lg font-bold text-foreground">Before We Begin</h2>
+        <p className="text-xs text-muted-foreground max-w-xs mx-auto">
           {isFar
-            ? "Far vision test at 3 metres. Please confirm each preparation step."
-            : "Near vision test at 35–40 cm. Please confirm each preparation step."}
+            ? "Far vision test at 3 metres. Confirm each step."
+            : "Near vision test at 35–40 cm. Confirm each step."}
         </p>
       </div>
 
-      {/* Distance callout */}
-      <div className="rounded-2xl border border-border bg-primary/5 p-4 flex items-center gap-4">
-        <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shrink-0 font-black text-primary-foreground text-lg">
+      {/* Distance callout — compact */}
+      <div className="rounded-xl border border-border bg-primary/5 p-3 flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shrink-0 font-black text-primary-foreground text-sm">
           {isFar ? "3m" : "40cm"}
         </div>
         <div>
-          <p className={cn(TYPOGRAPHY.body, "font-semibold text-sm")}>
+          <p className="font-semibold text-xs text-foreground">
             {isFar ? "Testing distance: 3 metres" : "Viewing distance: ~40 cm"}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+          <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
             {isFar
-              ? "Stand 3 metres from your screen. This is fixed for clinical accuracy."
-              : "Hold device at comfortable reading distance — roughly arm's length."}
+              ? "Stand 3 metres from your screen."
+              : "Hold device at comfortable reading distance."}
           </p>
         </div>
       </div>
 
-      {/* Instruction checklist */}
-      <div className="rounded-2xl bg-card/80 border border-border p-5 space-y-3">
+      {/* Instruction checklist — compact items */}
+      <div className="rounded-xl bg-card/80 border border-border p-3 space-y-1.5">
         <p className={cn(TYPOGRAPHY.label)}>
           Preparation Checklist
         </p>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {instructions.map((text, i) => {
             const done = acknowledged.has(i);
             return (
@@ -96,18 +96,18 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
                 key={i}
                 onClick={() => toggle(i)}
                 className={cn(
-                  "w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all",
+                  "w-full flex items-start gap-2 p-2 rounded-lg border text-left transition-all",
                   done
                     ? "bg-primary/6 border-primary/20"
                     : "bg-transparent border-border hover:bg-muted/50"
                 )}
               >
                 {done
-                  ? <CheckCircle2 className="h-5 w-5 shrink-0 text-primary mt-0.5" />
-                  : <Circle className="h-5 w-5 shrink-0 text-muted-foreground mt-0.5" />
+                  ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                  : <Circle className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
                 }
                 <span className={cn(
-                  "text-sm leading-relaxed",
+                  "text-xs leading-snug",
                   done ? "text-foreground font-medium" : "text-muted-foreground"
                 )}>
                   {text}
@@ -117,8 +117,8 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
           })}
         </div>
         {!allDone && (
-          <p className="text-xs text-accent-foreground font-medium pl-1">
-            Tap each item to confirm you have read it.
+          <p className="text-[10px] text-accent-foreground font-medium pl-1">
+            Tap each item to confirm.
           </p>
         )}
       </div>
