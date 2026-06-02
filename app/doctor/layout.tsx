@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import {
   LayoutDashboard,
@@ -16,6 +16,9 @@ import {
   LogOut,
   RefreshCw,
   Home,
+  MoreHorizontal,
+  Globe,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloatingSidebar, PageTransition } from "@/components/premium";
@@ -39,12 +42,11 @@ const doctorNavItems: NavItem[] = [
 
 /** Subset of nav items shown in the mobile bottom navigation bar */
 const mobileNavItems: NavItem[] = [
-  { label: "Public Home", href: "/", icon: Home, group: "home" },
   { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard },
   { label: "Appointments", href: "/doctor/appointments", icon: Calendar },
   { label: "Requests", href: "/doctor/requests", icon: Bell },
   { label: "Patients", href: "/doctor/patients", icon: Users },
-  { label: "Profile", href: "/doctor/profile", icon: UserCircle },
+  { label: "More", href: "__more__", icon: MoreHorizontal },
 ];
 
 /**
@@ -73,6 +75,20 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut, loading } = useAuth();
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu on outside click
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [moreMenuOpen]);
 
   useEffect(() => {
     if (!loading && user && !user.emailVerified) {
@@ -195,7 +211,49 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
           <div className="flex items-center justify-around px-2 py-2">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
-              const isActive = isActiveRoute(pathname, item.href);
+              const isMore = item.href === "__more__";
+              const isActive = !isMore && isActiveRoute(pathname, item.href);
+
+              if (isMore) {
+                return (
+                  <div key="more" className="relative flex flex-col items-center" ref={moreMenuRef}>
+                    {moreMenuOpen && (
+                      <div className="absolute bottom-full mb-2 right-0 w-48 bg-card border border-border/40 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
+                        <Link
+                          href="/"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                        >
+                          <Globe className="h-4 w-4 text-primary" />
+                          Home
+                        </Link>
+                        <Link
+                          href="/doctor/profile"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                        >
+                          <UserCircle className="h-4 w-4 text-primary" />
+                          Profile
+                        </Link>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                      className={cn(
+                        "flex flex-col items-center gap-0.5 px-3 py-2 min-h-[44px] justify-center",
+                        RADIUS.interactive,
+                        "transition-colors duration-200",
+                        moreMenuOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {moreMenuOpen ? <X className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                      <span className="text-[10px] font-medium leading-tight text-center">
+                        {moreMenuOpen ? "Close" : item.label}
+                      </span>
+                    </button>
+                  </div>
+                );
+              }
 
               return (
                 <Link

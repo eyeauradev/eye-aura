@@ -1,8 +1,8 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import {
   Home,
@@ -13,6 +13,8 @@ import {
   RefreshCw,
   Globe,
   MessageCircle,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import {
   FloatingSidebar,
@@ -33,11 +35,11 @@ const sidebarNavItems: NavItem[] = [
 ];
 
 const mobileNavItems = [
-  { href: "/patient/dashboard", label: "Dashboard", icon: Home },
+  { href: "/patient/assessment", label: "Assessments", icon: Eye },
   { href: "/patient/appointments", label: "Appointments", icon: Calendar },
-  { href: "/patient/assessment", label: "Assessments", icon: Eye, isCenter: true },
+  { href: "/patient/dashboard", label: "Dashboard", icon: Home, isCenter: true },
   { href: "/patient/prescriptions", label: "Prescriptions", icon: FileText },
-  { href: "/patient/profile", label: "My Account", icon: User },
+  { href: "__more__", label: "More", icon: MoreHorizontal },
 ];
 
 /** Derive breadcrumbs from the current pathname */
@@ -102,6 +104,20 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   const firstName = user?.displayName?.split(" ")[0] || "Patient";
   const breadcrumbs = getBreadcrumbs(pathname);
   const pageTitle = getPageTitle(pathname);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu on outside click
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [moreMenuOpen]);
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -180,9 +196,49 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
           <div className="flex items-end py-1.5">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
-              const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isMore = item.href === "__more__";
+              const isActive = !isMore &&
+                (pathname === item.href || pathname.startsWith(`${item.href}/`));
               const isCenter = item.isCenter;
+
+              if (isMore) {
+                return (
+                  <div key="more" className="relative flex-1" ref={moreMenuRef}>
+                    {/* Drop-up menu */}
+                    {moreMenuOpen && (
+                      <div className="absolute bottom-full mb-2 right-0 w-48 bg-card border border-border/40 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
+                        <Link
+                          href="/"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                        >
+                          <Globe className="h-4 w-4 text-primary" />
+                          Home
+                        </Link>
+                        <Link
+                          href="/patient/profile"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                        >
+                          <User className="h-4 w-4 text-primary" />
+                          My Account
+                        </Link>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                      className={`w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-xl transition-colors duration-200 ${
+                        moreMenuOpen ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    >
+                      {moreMenuOpen ? <X className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                      <span className="text-[9px] font-medium leading-tight text-center">
+                        {moreMenuOpen ? "Close" : item.label}
+                      </span>
+                    </button>
+                  </div>
+                );
+              }
 
               return (
                 <Link

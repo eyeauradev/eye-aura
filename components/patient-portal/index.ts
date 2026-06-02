@@ -14,4 +14,5 @@ export {
   QuickActionsPanel,
   PageTransition,
   MotionWrapper,
+  HeaderLogo,
 } from "@/components/premium";

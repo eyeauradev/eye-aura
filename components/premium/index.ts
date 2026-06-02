@@ -48,3 +48,6 @@ export type { PremiumInputProps } from "./premium-input";
 
 export { AssessmentWrapper, AssessmentActionButton } from "./assessment-wrapper";
 export type { AssessmentWrapperProps, AssessmentStage, AssessmentActionButtonProps } from "./assessment-wrapper";
+
+export { HeaderLogo } from "./header-logo";
+export type { HeaderLogoProps } from "./header-logo";

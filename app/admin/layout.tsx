@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -20,6 +20,8 @@ import {
   ClipboardList,
   Stethoscope,
   Home,
+  MoreHorizontal,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloatingSidebar, PageTransition } from "@/components/premium";
@@ -44,14 +46,34 @@ const adminNavItems: NavItem[] = [
   { label: "Settings", href: "/admin/settings", icon: Settings, group: "settings" },
 ];
 
-/** Bottom nav items — subset for mobile */
-const mobileNavItems = adminNavItems.slice(0, 5);
+/** Bottom nav items — subset for mobile (last item is "More" with drop-up) */
+const mobileNavItems = [
+  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { label: "Doctors", href: "/admin/doctors", icon: Stethoscope },
+  { label: "Services", href: "/admin/services", icon: ClipboardList },
+  { label: "Appointments", href: "/admin/appointments", icon: Calendar },
+  { label: "More", href: "__more__", icon: MoreHorizontal },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu on outside click
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [moreMenuOpen]);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "admin")) {
@@ -234,7 +256,53 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.href);
+            const isMore = item.href === "__more__";
+            const active = !isMore && isActive(item.href);
+
+            if (isMore) {
+              return (
+                <div key="more" className="relative flex-1 flex flex-col items-center justify-center" ref={moreMenuRef}>
+                  {moreMenuOpen && (
+                    <div className="absolute bottom-full mb-2 right-0 w-48 bg-card border border-border/40 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
+                      <Link
+                        href="/"
+                        onClick={() => setMoreMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                      >
+                        <Globe className="h-4 w-4 text-primary" />
+                        Home
+                      </Link>
+                      <Link
+                        href="/admin/settings"
+                        onClick={() => setMoreMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                      >
+                        <Settings className="h-4 w-4 text-primary" />
+                        Settings
+                      </Link>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-0.5 min-h-[56px] px-1 py-2 transition-colors duration-200",
+                      moreMenuOpen ? "text-primary" : "text-muted-foreground hover:text-primary"
+                    )}
+                  >
+                    <div className={cn(
+                      "flex items-center justify-center h-[44px] w-[44px] rounded-2xl transition-colors duration-200",
+                      moreMenuOpen ? "bg-primary/[0.10]" : ""
+                    )}>
+                      {moreMenuOpen ? <X className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                    </div>
+                    <span className="text-[10px] leading-tight text-center">
+                      {moreMenuOpen ? "Close" : item.label}
+                    </span>
+                  </button>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={item.href}

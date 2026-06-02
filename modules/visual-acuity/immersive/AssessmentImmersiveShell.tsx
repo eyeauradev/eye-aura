@@ -65,7 +65,7 @@ function ImmersiveTopBar({ timerDisplay, progressDisplay, isIdle }: ImmersiveTop
         transition: "opacity 300ms ease",
       }}
     >
-      {/* Timer — left side (Issue 7: slightly larger and bolder) */}
+      {/* Timer — left side */}
       <div
         className="text-[20px] font-semibold text-slate-700 tabular-nums"
         aria-label={`Timer: ${timerDisplay}`}
