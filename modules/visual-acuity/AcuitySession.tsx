@@ -9,6 +9,7 @@ import { DurationSelector } from "./DurationSelector";
 import { TestingStep } from "./steps/TestingStep";
 import { NearTestingStep } from "./steps/NearTestingStep";
 import { ResultsStep } from "./steps/ResultsStep";
+import { CountdownStep } from "./steps/CountdownStep";
 import { AssessmentImmersiveShell, AssessmentOrientationGate } from "./immersive";
 import type {
   TestPhase,
@@ -26,6 +27,7 @@ const PHASE_LABELS: Record<TestPhase, string> = {
   instructions:    "Preparation",
   calibration:     "Calibration",
   duration_select: "Duration",
+  countdown:       "Get Ready",
   testing:         "Testing",
   results:         "Results",
 };
@@ -35,6 +37,7 @@ const PHASE_ORDER: TestPhase[] = [
   "instructions",
   "calibration",
   "duration_select",
+  "countdown",
   "testing",
   "results",
 ];
@@ -137,7 +140,7 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
     setPhase("duration_select");
   };
 
-  const handleDurationContinue = () => setPhase("testing");
+  const handleDurationContinue = () => setPhase(testType === "far" ? "countdown" : "testing");
 
   const handleTestComplete = async (eyeResults: { right: EyeAcuityResult; left: EyeAcuityResult }) => {
     if (!calibration) return;
@@ -299,6 +302,10 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
             onContinue={handleDurationContinue}
           />
         </AssessmentOrientationGate>
+      )}
+
+      {phase === "countdown" && (
+        <CountdownStep seconds={10} onComplete={() => setPhase("testing")} />
       )}
 
       {phase === "testing" && calibration && testType === "far" && (

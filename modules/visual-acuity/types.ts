@@ -17,6 +17,7 @@ export type TestPhase =
   | "instructions"
   | "calibration"
   | "duration_select"
+  | "countdown"
   | "testing"
   | "results";
 
