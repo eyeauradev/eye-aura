@@ -324,6 +324,46 @@ service cloud.firestore {
       allow list: if isAdmin();
     }
 
+    // Audit Logs Collection (assessment audit entries)
+    // Written by client-side assessmentAuditService. Doctors can write their own entries.
+    // Admin can read all. Doctors can read entries they authored.
+    match /audit_logs/{entryId} {
+      allow read: if isDoctor() && resource.data.actor == request.auth.uid
+        || isAdmin();
+
+      allow create: if isDoctorOrAdmin()
+        && request.resource.data.actor == request.auth.uid;
+
+      allow update, delete: if false;
+    }
+
+    // Audit Logs Collection - Allow list for admins and doctors
+    match /audit_logs {
+      allow list: if isDoctor() || isAdmin();
+    }
+
+    // Notifications Collection
+    // Users can read and update (mark as read) their own notifications.
+    // Written by client-side notificationDeliveryService or admin SDK.
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && request.auth.uid == resource.data.userId
+        || isAdmin();
+
+      allow create: if isDoctorOrAdmin();
+
+      allow update: if signedIn() && request.auth.uid == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['read'])
+        || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // Notifications Collection - Allow list for authenticated users
+    match /notifications {
+      allow list: if signedIn();
+    }
+
     // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;

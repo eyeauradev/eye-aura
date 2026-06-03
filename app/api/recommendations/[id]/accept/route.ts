@@ -43,10 +43,10 @@ export async function POST(
       );
     }
 
-    // Validate PENDING status
-    if (recommendation.status !== "PENDING") {
+    // Validate PENDING or RECOMMENDED status (both require payment to confirm)
+    if (recommendation.status !== "PENDING" && recommendation.status !== "RECOMMENDED") {
       return NextResponse.json(
-        { error: "Only PENDING recommendations can be accepted" },
+        { error: "Only PENDING or RECOMMENDED recommendations can be accepted" },
         { status: 400 }
       );
     }

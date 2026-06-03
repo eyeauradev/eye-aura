@@ -126,7 +126,7 @@ export default function PatientRecommendationsPage() {
             setAcceptingId(null);
             return;
           }
-          if (found.status !== "PENDING") {
+          if (found.status !== "PENDING" && found.status !== "RECOMMENDED") {
             setAcceptError("This recommendation is no longer pending.");
             setAcceptingId(null);
             return;
@@ -233,7 +233,7 @@ export default function PatientRecommendationsPage() {
               }
 
               const acceptData = await acceptRes.json();
-              setAcceptSuccess(`Booking confirmed! Reference: ${acceptData.bookingRequestId}`);
+              setAcceptSuccess("Booking confirmed! Your appointment has been scheduled.");
               setAcceptingId(null);
               // Refresh recommendations after a short delay
               setTimeout(() => {
@@ -293,10 +293,17 @@ export default function PatientRecommendationsPage() {
       if (!currentUser) return;
       const idToken = await currentUser.getIdToken();
 
-      const statusParam = activeTab === "all" ? "" : activeTab === "confirmed" ? "ACCEPTED" : activeTab.toUpperCase();
-      const url = statusParam
-        ? `/api/recommendations?status=${statusParam}`
-        : "/api/recommendations";
+      let url: string;
+      if (activeTab === "all") {
+        url = "/api/recommendations";
+      } else if (activeTab === "pending") {
+        // Pending tab shows both PENDING and RECOMMENDED (both need payment)
+        url = "/api/recommendations";
+      } else if (activeTab === "confirmed") {
+        url = "/api/recommendations?status=ACCEPTED";
+      } else {
+        url = `/api/recommendations?status=${activeTab.toUpperCase()}`;
+      }
 
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${idToken}` },
@@ -304,7 +311,12 @@ export default function PatientRecommendationsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        const recs: ServiceRecommendation[] = data.recommendations || [];
+        let recs: ServiceRecommendation[] = data.recommendations || [];
+
+        // Filter for pending tab: show PENDING + RECOMMENDED (both awaiting payment)
+        if (activeTab === "pending") {
+          recs = recs.filter((r) => r.status === "PENDING" || r.status === "RECOMMENDED");
+        }
 
         // Enrich with doctor and service names
         const enriched = await Promise.all(
@@ -365,6 +377,7 @@ export default function PatientRecommendationsPage() {
   const getStatusVariant = (status: string): "pending" | "confirmed" | "cancelled" | "completed" => {
     switch (status) {
       case "PENDING": return "pending";
+      case "RECOMMENDED": return "pending";
       case "ACCEPTED": return "confirmed";
       case "DECLINED": return "cancelled";
       case "CANCELLED": return "cancelled";
@@ -525,7 +538,8 @@ function RecommendationCard({
   getDaysRemaining,
   getStatusVariant,
 }: RecommendationCardProps) {
-  const isPending = rec.status === "PENDING";
+  const isPending = rec.status === "PENDING" || rec.status === "RECOMMENDED";
+  const isRecommended = rec.status === "RECOMMENDED";
   const daysLeft = isPending ? getDaysRemaining(rec.expiresAt) : 0;
 
   return (
@@ -551,7 +565,7 @@ function RecommendationCard({
               </div>
             )}
             <StatusBadge variant={getStatusVariant(rec.status)} size="sm">
-              {rec.status === "ACCEPTED" ? "Confirmed" : rec.status.charAt(0) + rec.status.slice(1).toLowerCase()}
+              {rec.status === "ACCEPTED" ? "Confirmed" : rec.status === "RECOMMENDED" ? "Awaiting Payment" : rec.status.charAt(0) + rec.status.slice(1).toLowerCase()}
             </StatusBadge>
           </div>
         </div>
@@ -593,11 +607,11 @@ function RecommendationCard({
         )}
 
         {/* Status-specific info */}
-        {rec.status === "ACCEPTED" && rec.bookingId && (
+        {rec.status === "ACCEPTED" && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-green-50 border border-green-200 mb-3">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <span className="text-sm text-green-700">
-              Booking confirmed — Reference: {rec.bookingId}
+              Booking confirmed — Your appointment has been scheduled
             </span>
           </div>
         )}

@@ -1,5 +1,5 @@
 // Recommendation Status Types
-export type RecommendationStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED";
+export type RecommendationStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED" | "RECOMMENDED";
 
 // ServiceRecommendation Interface
 export interface ServiceRecommendation {

@@ -10,6 +10,9 @@ import { appointmentsService } from "@/services/firestore";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
 import { usersService } from "@/services/firestore";
 import type { AppointmentDocument, BookingRequestDocument } from "@/types/firestore";
+import { RecentPatientCard, type RecentPatientData } from "@/components/doctor/recent-patient-card";
+import { RecommendServiceDialog } from "@/components/doctor/recommend-service-dialog";
+import { AssignAssessmentDialog } from "@/components/doctor/assign-assessment-dialog";
 import {
   MetricCard,
   DashboardCard,
@@ -32,7 +35,7 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [todayAppointments, setTodayAppointments] = useState<(AppointmentDocument & { patient?: any })[]>([]);
-  const [recentPatients, setRecentPatients] = useState<{ name: string; lastVisit: string; status: "active" | "completed" | "pending" }[]>([]);
+  const [recentPatients, setRecentPatients] = useState<RecentPatientData[]>([]);
   const [pendingRequests, setPendingRequests] = useState<(BookingRequestDocument & { patient?: any })[]>([]);
   const [stats, setStats] = useState({
     totalPatients: 0,
@@ -44,6 +47,11 @@ export default function DoctorDashboard() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectLoading, setRejectLoading] = useState(false);
   const [rejectError, setRejectError] = useState<string | null>(null);
+
+  // Dialog state for Recent Patient quick actions
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [showRecommendDialog, setShowRecommendDialog] = useState(false);
+  const [showAssessmentDialog, setShowAssessmentDialog] = useState(false);
 
   // Role-based redirect
   useEffect(() => {
@@ -110,7 +118,7 @@ export default function DoctorDashboard() {
       const uniquePatientIds = new Set(allAppointments.map((apt) => apt.patientId));
 
       // Build recent patients list (last 5 unique patients)
-      const patientMap = new Map<string, { name: string; lastVisit: string; status: "active" | "completed" | "pending" }>();
+      const patientMap = new Map<string, RecentPatientData>();
       const sortedAppointments = [...allAppointments].sort(
         (a, b) => new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime()
       );
@@ -126,12 +134,17 @@ export default function DoctorDashboard() {
             cancelled: "completed",
           };
           patientMap.set(apt.patientId, {
+            patientId: apt.patientId,
             name: patient?.displayName || "Patient",
-            lastVisit: new Date(apt.scheduledFor).toLocaleDateString("en-US", {
+            age: null,
+            gender: null,
+            lastAppointmentDate: new Date(apt.scheduledFor).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
               year: "numeric",
             }),
+            lastAssessmentDate: null,
+            upcomingAppointment: null,
             status: statusMap[apt.status] || "pending",
           });
         }
@@ -404,28 +417,25 @@ export default function DoctorDashboard() {
         />
         {recentPatients.length > 0 ? (
           <motion.div
-            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${SPACING.cardGap}`}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-4"
             variants={shouldReduceMotion ? undefined : staggerContainer}
             initial={shouldReduceMotion ? false : "hidden"}
             animate="visible"
           >
-            {recentPatients.map((patient, index) => (
-              <DashboardCard key={`patient-${index}`} staggerIndex={index}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Users className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground text-sm truncate">{patient.name}</p>
-                      <p className="text-xs text-muted-foreground">Last visit: {patient.lastVisit}</p>
-                    </div>
-                  </div>
-                  <StatusBadge variant={patient.status} size="sm">
-                    {patient.status}
-                  </StatusBadge>
-                </div>
-              </DashboardCard>
+            {recentPatients.map((patient) => (
+              <RecentPatientCard
+                key={patient.patientId}
+                patient={patient}
+                doctorId={user!.id}
+                onRecommendService={(pid) => {
+                  setSelectedPatientId(pid);
+                  setShowRecommendDialog(true);
+                }}
+                onAssignAssessment={(pid) => {
+                  setSelectedPatientId(pid);
+                  setShowAssessmentDialog(true);
+                }}
+              />
             ))}
           </motion.div>
         ) : (
@@ -522,6 +532,30 @@ export default function DoctorDashboard() {
           </>
         )}
       </div>
+
+      {/* Recommend Service and Assign Assessment Dialogs */}
+      {selectedPatientId && (
+        <>
+          <RecommendServiceDialog
+            open={showRecommendDialog}
+            onClose={() => {
+              setShowRecommendDialog(false);
+              setSelectedPatientId(null);
+            }}
+            patientId={selectedPatientId}
+            doctorId={user!.id}
+          />
+          <AssignAssessmentDialog
+            open={showAssessmentDialog}
+            onClose={() => {
+              setShowAssessmentDialog(false);
+              setSelectedPatientId(null);
+            }}
+            patientId={selectedPatientId}
+            doctorId={user!.id}
+          />
+        </>
+      )}
 
       {/* Rejection Dialog */}
       <Dialog

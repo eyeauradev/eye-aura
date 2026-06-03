@@ -36,6 +36,7 @@ const doctorNavItems: NavItem[] = [
   { label: "Requests", href: "/doctor/requests", icon: Bell, group: "main" },
   { label: "Patients", href: "/doctor/patients", icon: Users, group: "main" },
   { label: "Prescriptions", href: "/doctor/prescriptions", icon: FileText, group: "main" },
+  { label: "Recommendations", href: "/doctor/recommendations", icon: Globe, group: "main" },
   { label: "Slots", href: "/doctor/slots", icon: Clock, group: "main" },
   { label: "Profile", href: "/doctor/profile", icon: UserCircle, group: "account" },
 ];
@@ -220,11 +221,35 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                     {moreMenuOpen && (
                       <div className="absolute bottom-full mb-2 right-0 w-48 bg-card border border-border/40 rounded-2xl shadow-xl backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-200">
                         <Link
-                          href="/"
+                          href="/doctor/prescriptions"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                        >
+                          <FileText className="h-4 w-4 text-primary" />
+                          Prescriptions
+                        </Link>
+                        <Link
+                          href="/doctor/recommendations"
                           onClick={() => setMoreMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
                         >
                           <Globe className="h-4 w-4 text-primary" />
+                          Recommendations
+                        </Link>
+                        <Link
+                          href="/doctor/slots"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                        >
+                          <Clock className="h-4 w-4 text-primary" />
+                          Slots
+                        </Link>
+                        <Link
+                          href="/"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                        >
+                          <Home className="h-4 w-4 text-primary" />
                           Home
                         </Link>
                         <Link

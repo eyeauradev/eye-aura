@@ -79,12 +79,26 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut, loading } = useAuth();
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && user && !user.emailVerified) {
       router.push("/auth/verify-email");
     }
   }, [user, loading, router]);
+
+  // Close more menu on outside click
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [moreMenuOpen]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -106,20 +120,6 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   const firstName = user?.displayName?.split(" ")[0] || "Patient";
   const breadcrumbs = getBreadcrumbs(pathname);
   const pageTitle = getPageTitle(pathname);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
-
-  // Close more menu on outside click
-  useEffect(() => {
-    if (!moreMenuOpen) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
-        setMoreMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [moreMenuOpen]);
 
   return (
     <div className="relative min-h-screen bg-background">

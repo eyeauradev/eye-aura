@@ -14,7 +14,9 @@ export type NotificationType =
   | "recommendation_declined"
   | "recommendation_cancelled"
   | "recommendation_expired"
-  | "recommendation_edited";
+  | "recommendation_edited"
+  | "assessment_assigned"
+  | "assessment_completed";
 
 export interface Notification {
   id: string;

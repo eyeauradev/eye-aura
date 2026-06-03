@@ -119,7 +119,7 @@ export type ServiceType =
   | "digital_eye_strain_guidance";
 
 // Vision Assessment Types
-export type VisionAssessmentType = "far" | "near";
+export type VisionAssessmentType = "far" | "near" | "color_vision" | "contrast_sensitivity" | "custom";
 
 export type AssessmentTriggerMode = "instant" | "before_appointment";
 
@@ -156,6 +156,8 @@ export type VisionAssessmentStatus =
 
 export type AssignedByRole = "doctor" | "admin" | "system";
 
+export type AssignmentTiming = "now" | "schedule_later";
+
 export interface VisionAssessmentDocument {
   id: string;
   patientId: string;
@@ -168,6 +170,10 @@ export interface VisionAssessmentDocument {
   assessmentTypes: VisionAssessmentType[];
   status: VisionAssessmentStatus;
   autoAssigned: boolean;
+  // Scheduling fields (for "Schedule Later" assignments)
+  scheduledFor?: Date;        // When "Schedule Later" is used
+  instructions?: string;      // Doctor-provided guidance (max 500 chars)
+  assignmentTiming?: AssignmentTiming; // "now" or "schedule_later"
   // Results (populated after patient completes)
   resultFar?: {
     rightEye: string;

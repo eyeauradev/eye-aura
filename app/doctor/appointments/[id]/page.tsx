@@ -15,8 +15,11 @@ import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { RecommendServiceDialog } from "@/components/doctor/recommend-service-dialog";
+import { AssignAssessmentDialog } from "@/components/doctor/assign-assessment-dialog";
 
 import Link from "next/link";
+import { PatientSummaryCard } from "@/components/doctor/patient-summary-card";
 
 const SNELLEN_OPTIONS = ["20/200","20/100","20/70","20/50","20/40","20/30","20/25","20/20","20/15"];
 
@@ -45,6 +48,8 @@ export default function DoctorAppointmentDetailPage() {
   const [assignSuccess, setAssignSuccess] = useState(false);
   const [reviews, setReviews] = useState<Record<string, ReviewForm>>({});
   const [savingReview, setSavingReview] = useState<string | null>(null);
+  const [showRecommendDialog, setShowRecommendDialog] = useState(false);
+  const [showAssessmentDialog, setShowAssessmentDialog] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [showApprovalChoiceModal, setShowApprovalChoiceModal] = useState(false);
@@ -488,6 +493,12 @@ export default function DoctorAppointmentDetailPage() {
         </div>
       </div>
 
+      {/* Patient Summary Card — above the fold on desktop, full-width on mobile */}
+      <PatientSummaryCard
+        patientId={appointment.patientId}
+        className="w-full lg:max-w-sm"
+      />
+
       {/* Appointment Info */}
       
         <div className="grid gap-6 lg:grid-cols-2">
@@ -652,6 +663,62 @@ export default function DoctorAppointmentDetailPage() {
                   </p>
                 </div>
               )}
+
+              {/* ─── Quick Action Cards (Prescription, Recommend Service, Assign Assessment) ─── */}
+              {(() => {
+                const canInteract = appointment.status !== "cancelled" && !(appointment.status === "completed" && !appointment.followUpRequired);
+                return (
+                  <div className="border-t border-primary/10 pt-3 mt-3">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {/* Create Prescription card */}
+                      <Link href={`/doctor/prescriptions/create/${appointment.id}`} className="block">
+                        <PremiumButton
+                          variant="outline"
+                          className="w-full"
+                          icon={<FileText className="h-4 w-4" />}
+                          disabled={!canInteract}
+                        >
+                          Create Prescription
+                        </PremiumButton>
+                      </Link>
+
+                      {/* Recommend Service card */}
+                      <PremiumButton
+                        variant="outline"
+                        className="w-full"
+                        icon={<BookOpen className="h-4 w-4" />}
+                        disabled={!canInteract}
+                        onClick={() => {
+                          try {
+                            setShowRecommendDialog(true);
+                          } catch {
+                            toastError("Could not open action. Please try again.");
+                          }
+                        }}
+                      >
+                        Recommend Service
+                      </PremiumButton>
+
+                      {/* Assign Assessment card */}
+                      <PremiumButton
+                        variant="outline"
+                        className="w-full"
+                        icon={<Eye className="h-4 w-4" />}
+                        disabled={!canInteract}
+                        onClick={() => {
+                          try {
+                            setShowAssessmentDialog(true);
+                          } catch {
+                            toastError("Could not open action. Please try again.");
+                          }
+                        }}
+                      >
+                        Assign Assessment
+                      </PremiumButton>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Post-approval Issue Refund section */}
               {appointment.status === "cancelled" && (() => {
@@ -1116,6 +1183,24 @@ export default function DoctorAppointmentDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ─── Recommend Service Dialog ─── */}
+      <RecommendServiceDialog
+        open={showRecommendDialog}
+        onClose={() => setShowRecommendDialog(false)}
+        patientId={appointment.patientId}
+        doctorId={user?.id || ""}
+        appointmentId={appointment.id}
+      />
+
+      {/* ─── Assign Assessment Dialog ─── */}
+      <AssignAssessmentDialog
+        open={showAssessmentDialog}
+        onClose={() => setShowAssessmentDialog(false)}
+        patientId={appointment.patientId}
+        doctorId={user?.id || ""}
+        appointmentId={appointment.id}
+      />
     </div>
   );
 }

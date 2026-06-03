@@ -132,6 +132,7 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │   │   ├── /prescriptions/create/[appointmentId]/page.tsx
 │   │   ├── /profile/page.tsx
 │   │   ├── /schedule/page.tsx              # Weekly availability config (modular components)
+│   │   ├── /recommendations/page.tsx       # Doctor's recommendation history with status filters
 │   │   └── /slots/page.tsx                 # Custom week-view calendar + block management
 │   ├── /admin                              # Admin module (role-guarded)
 │   │   ├── layout.tsx
@@ -183,6 +184,12 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │   │   ├── TimeRangeRow.tsx                # Single HH:mm start/end row with remove button
 │   │   ├── UnavailableBlockCard.tsx        # Add block form (date + start/end + reason)
 │   │   └── AvailabilityPreview.tsx         # Read-only 7-day schedule summary
+│   ├── /doctor                             # Doctor portal shared components
+│   │   ├── recommend-service-dialog.tsx    # Shared recommendation modal (PremiumModal wrapper)
+│   │   ├── assign-assessment-dialog.tsx    # Shared assessment assignment modal
+│   │   ├── patient-summary-card.tsx        # Patient info card for appointment details
+│   │   ├── recent-patient-card.tsx         # Enhanced patient card with inline quick actions
+│   │   └── recommend-service-form.tsx      # Standalone recommendation form (used in patient detail)
 │   └── /prescription
 │       └── PrescriptionTemplate.tsx        # Branded prescription HTML layout
 │
@@ -241,7 +248,13 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 │   ├── /email
 │   │   └── email.service.ts                # Client: calls /api/emails/* (hides RESEND_API_KEY)
 │   └── /notifications
-│       └── notifications.service.ts
+│       ├── notifications.service.ts              # Generic notification CRUD
+│       ├── recommendation-notifications.service.ts  # Recommendation lifecycle notification builders
+│       ├── assessment-notifications.service.ts   # Assessment lifecycle notification builders
+│       └── notification-delivery.service.ts      # Retry with exponential backoff (3 attempts)
+│
+├── /services/audit
+│   └── assessment-audit.service.ts              # Audit entry builder + Firestore persistence
 │
 ├── /lib
 │   ├── utils.ts                            # cn() = clsx + tailwind-merge
@@ -3015,6 +3028,86 @@ Firestore security rules are deployed via Firebase CLI, NOT via the app. This se
 # 21. CHANGELOG
 
 This section tracks major architectural changes to the Eye Aura codebase.
+
+## 2026-06 (Doctor Portal Quick Actions & Service Recommendations Enhancement)
+
+### Doctor Portal Quick Actions
+- **Change**: Added quick action buttons (Recommend Service, Assign Assessment) to Appointment Details and Recent Patients dashboard
+- **New Components**:
+  - `components/doctor/recommend-service-dialog.tsx` — Shared modal for service recommendations with "Perform During Current Appointment" override
+  - `components/doctor/assign-assessment-dialog.tsx` — Shared modal for assessment assignment (5 types, flexible timing)
+  - `components/doctor/patient-summary-card.tsx` — Patient info card embedded in appointment details
+  - `components/doctor/recent-patient-card.tsx` — Enhanced patient card with inline quick actions
+- **New Pages**:
+  - `/doctor/recommendations` — Doctor's recommendation history with status filters
+- **Key Features**:
+  - "Perform During Current Appointment" workflow: skips slot validation, block checks, and reservation creation when doctor accommodates service within existing appointment
+  - Shared dialog components: RecommendServiceDialog and AssignAssessmentDialog used from Appointment Details, Patient Profile, and Recent Patient Cards
+  - Recent Patients redesign: larger cards (min 180px×320px) with View Profile, Prescription, Recommend Service, Assign Assessment buttons
+  - Patient Summary Card in appointment details: profile photo, name, contact info, "View Full Profile" link
+- **Files Changed**:
+  - `app/doctor/appointments/[id]/page.tsx` — Added PatientSummaryCard + Quick Action buttons + dialog state
+  - `app/doctor/dashboard/page.tsx` — Replaced compact cards with RecentPatientCard + dialog integration
+  - `app/doctor/layout.tsx` — Added "Recommendations" nav item + expanded mobile More menu
+  - `app/doctor/recommendations/page.tsx` — New recommendations history page
+  - `app/patient/recommendations/page.tsx` — Updated to handle RECOMMENDED status, show "Pay & Book" for all pending types, user-friendly confirmation messages
+  - `app/patient/layout.tsx` — Fixed React hooks order violation (useState after conditional returns)
+- **Impact**: Doctors can complete most patient-related workflows without navigating away from their current screen
+
+### Service Recommendations System Updates
+- **Change**: Extended recommendation API with "same appointment slot" override
+- **New Fields on `service_recommendations`**: `sameAppointmentSlot` (boolean), `sourceAppointmentId` (string)
+- **New Status**: `RECOMMENDED` added to `RecommendationStatus` type — used for same-appointment-slot recommendations
+- **Backend Behavior** (`POST /api/recommendations/create`):
+  - When `sameAppointmentSlot: true`: skips future-date validation, slot duration check, hard block checks, soft reservation conflict checks, does NOT create a slot reservation
+  - Status set to `RECOMMENDED` instead of `PENDING`
+  - Rate limiting still applies (max 10 pending per doctor-patient pair)
+- **Accept Endpoint** (`POST /api/recommendations/[id]/accept`): Now accepts both `PENDING` and `RECOMMENDED` statuses
+- **Patient Experience**: Both `PENDING` and `RECOMMENDED` items show in Pending tab with "Pay & Book" button — all require payment to confirm
+- **Files Changed**:
+  - `app/api/recommendations/create/route.ts` — Added sameAppointmentSlot logic
+  - `app/api/recommendations/[id]/accept/route.ts` — Allow RECOMMENDED status acceptance
+  - `types/recommendations.ts` — Added "RECOMMENDED" to RecommendationStatus
+
+### Extended Assessment Types & Scheduling
+- **Change**: Extended VisionAssessmentType and added assessment scheduling
+- **New Types**: `"color_vision" | "contrast_sensitivity" | "custom"` added to VisionAssessmentType
+- **New Fields on `vision_assessments`**: `scheduledFor`, `instructions`, `assignmentTiming` ("now" | "schedule_later")
+- **Type Mapping**: `lib/assessment-type-mapping.ts` — maps UI types (Distance Visual Acuity, Near Vision, etc.) to Firestore types
+- **API Update** (`POST /api/assessments/assign`):
+  - Accepts extended assessment types and `assignmentTiming` field
+  - Server-side future date validation for "schedule_later"
+  - Triggers assessment notification (fire-and-forget)
+  - Creates audit entry (fire-and-forget, non-blocking)
+- **Files Changed**:
+  - `types/firestore.ts` — Extended VisionAssessmentType, added AssignmentTiming, scheduling fields
+  - `lib/assessment-type-mapping.ts` — New mapping utility
+  - `app/api/assessments/assign/route.ts` — Extended endpoint
+
+### Assessment Notifications & Audit Services
+- **New Services**:
+  - `services/notifications/assessment-notifications.service.ts` — Builder pattern for assessment_assigned/assessment_completed notifications
+  - `services/notifications/notification-delivery.service.ts` — Retry with exponential backoff (1s, 2s, 4s), persists as "undelivered" after 3 failures
+  - `services/audit/assessment-audit.service.ts` — Builds and persists audit entries to Firestore `audit_logs` collection, with 60s retry on failure
+- **New Types**:
+  - `types/audit.ts` — AuditEntryBase, AssessmentAuditAction, AssessmentAuditEntry
+  - `types/notifications.ts` — Added "assessment_assigned" | "assessment_completed"
+
+### Firestore Rules & Indexes Update
+- **New Collections Covered**:
+  - `audit_logs` — Doctors create own entries, admin reads all, no updates/deletes
+  - `notifications` — Users read/update-read-status own, doctors/admin create, admin deletes
+- **New Indexes**:
+  - `service_recommendations`: doctorId+createdAt, patientId+createdAt, doctorId+patientId+status, status+expiresAt
+  - `slot_reservations`: doctorId+status+start
+  - `notifications`: userId+createdAt, userId+read+createdAt
+  - `audit_logs`: action+timestamp, patientId+timestamp
+- **Files Changed**: `firestore.rules`, `firestore.indexes.json`
+
+### Configuration Fixes
+- **next.config.ts**: Added `lh3.googleusercontent.com` and `firebasestorage.googleapis.com` to image remote patterns
+- **PatientSummaryCard**: Switched from `next/image` to plain `<img>` for user photos (consistent with rest of codebase)
+- **.env.local**: Fixed placeholder `NEXT_PUBLIC_RAZORPAY_KEY_ID` (was `rzp_test_xxxxx`, now actual test key)
 
 ## 2026-05 (Visual Acuity Assessment Module)
 

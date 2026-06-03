@@ -32,7 +32,15 @@ export async function POST(req: NextRequest) {
     const db = getAdminDb();
 
     const body = await req.json();
-    const { patientId, serviceId, recommendedSlotStart, recommendedSlotEnd, recommendationNote } = body;
+    const {
+      patientId,
+      serviceId,
+      recommendedSlotStart,
+      recommendedSlotEnd,
+      recommendationNote,
+      sameAppointmentSlot,
+      sourceAppointmentId,
+    } = body;
 
     // Validate required fields
     if (!patientId || !serviceId || !recommendedSlotStart || !recommendedSlotEnd) {
@@ -45,12 +53,14 @@ export async function POST(req: NextRequest) {
     const slotStart = new Date(recommendedSlotStart);
     const slotEnd = new Date(recommendedSlotEnd);
 
-    // Validate slot is in the future
-    if (slotStart <= new Date()) {
-      return NextResponse.json(
-        { error: "Recommended slot must be in the future" },
-        { status: 400 }
-      );
+    // Skip time-in-future validation when using same appointment slot
+    if (!sameAppointmentSlot) {
+      if (slotStart <= new Date()) {
+        return NextResponse.json(
+          { error: "Recommended slot must be in the future" },
+          { status: 400 }
+        );
+      }
     }
 
     if (slotEnd <= slotStart) {
@@ -76,13 +86,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate slot duration matches service duration
-    const slotDurationMinutes = (slotEnd.getTime() - slotStart.getTime()) / 60000;
-    if (slotDurationMinutes !== service.duration) {
-      return NextResponse.json(
-        { error: `Slot duration (${slotDurationMinutes}min) does not match service duration (${service.duration}min)` },
-        { status: 400 }
-      );
+    // Skip duration validation for same appointment slot (service may differ from slot duration)
+    if (!sameAppointmentSlot) {
+      const slotDurationMinutes = (slotEnd.getTime() - slotStart.getTime()) / 60000;
+      if (slotDurationMinutes !== service.duration) {
+        return NextResponse.json(
+          { error: `Slot duration (${slotDurationMinutes}min) does not match service duration (${service.duration}min)` },
+          { status: 400 }
+        );
+      }
     }
 
     // Rate limit: max 10 pending recommendations per doctor-patient pair
@@ -103,82 +115,90 @@ export async function POST(req: NextRequest) {
     // Sanitize recommendation note
     const sanitizedNote = recommendationNote ? sanitizeNote(recommendationNote) : undefined;
 
-    // Check slot availability (soft reservations + hard blocks)
-    // Check hard blocks
-    const blocksSnap = await db
-      .collection("doctor_blocks")
-      .where("doctorId", "==", doctor.uid)
-      .where("start", "<", slotEnd)
-      .get();
-    const hasBlock = blocksSnap.docs.some((d) => {
-      const blockData = d.data();
-      const blockEnd = blockData.end?.toDate ? blockData.end.toDate() : new Date(blockData.end);
-      return blockEnd > slotStart;
-    });
-    if (hasBlock) {
-      return NextResponse.json(
-        { error: "Time slot conflicts with an existing block" },
-        { status: 409 }
-      );
-    }
+    let reservationId: string | null = null;
 
-    // Check active soft reservations
-    const reservationsSnap = await db
-      .collection("slot_reservations")
-      .where("doctorId", "==", doctor.uid)
-      .where("status", "==", "active")
-      .where("start", "<", slotEnd)
-      .get();
-    const hasOverlap = reservationsSnap.docs.some((d) => {
-      const resData = d.data();
-      const resEnd = resData.end?.toDate ? resData.end.toDate() : new Date(resData.end);
-      return resEnd > slotStart;
-    });
-    if (hasOverlap) {
-      return NextResponse.json(
-        { error: "Time slot conflicts with an existing reservation" },
-        { status: 409 }
-      );
-    }
+    // Skip all slot validation and reservation when sameAppointmentSlot is true
+    if (!sameAppointmentSlot) {
+      // Check hard blocks
+      const blocksSnap = await db
+        .collection("doctor_blocks")
+        .where("doctorId", "==", doctor.uid)
+        .where("start", "<", slotEnd)
+        .get();
+      const hasBlock = blocksSnap.docs.some((d) => {
+        const blockData = d.data();
+        const blockEnd = blockData.end?.toDate ? blockData.end.toDate() : new Date(blockData.end);
+        return blockEnd > slotStart;
+      });
+      if (hasBlock) {
+        return NextResponse.json(
+          { error: "Time slot conflicts with an existing block" },
+          { status: 409 }
+        );
+      }
 
-    // Create soft reservation
-    const reservationId = `res_${doctor.uid}_${Date.now()}`;
-    await db.collection("slot_reservations").doc(reservationId).set({
-      id: reservationId,
-      doctorId: doctor.uid,
-      recommendationId: "", // Will be updated after recommendation creation
-      start: slotStart,
-      end: slotEnd,
-      status: "active",
-      createdAt: new Date(),
-    });
+      // Check active soft reservations
+      const reservationsSnap = await db
+        .collection("slot_reservations")
+        .where("doctorId", "==", doctor.uid)
+        .where("status", "==", "active")
+        .where("start", "<", slotEnd)
+        .get();
+      const hasOverlap = reservationsSnap.docs.some((d) => {
+        const resData = d.data();
+        const resEnd = resData.end?.toDate ? resData.end.toDate() : new Date(resData.end);
+        return resEnd > slotStart;
+      });
+      if (hasOverlap) {
+        return NextResponse.json(
+          { error: "Time slot conflicts with an existing reservation" },
+          { status: 409 }
+        );
+      }
+
+      // Create soft reservation
+      reservationId = `res_${doctor.uid}_${Date.now()}`;
+      await db.collection("slot_reservations").doc(reservationId).set({
+        id: reservationId,
+        doctorId: doctor.uid,
+        recommendationId: "", // Will be updated after recommendation creation
+        start: slotStart,
+        end: slotEnd,
+        status: "active",
+        createdAt: new Date(),
+      });
+    }
 
     // Create recommendation
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
     const recommendationId = `rec_${patientId}_${doctor.uid}_${Date.now()}`;
 
-    const recommendation = {
+    const recommendation: Record<string, unknown> = {
       id: recommendationId,
       patientId,
       doctorId: doctor.uid,
       serviceId,
       recommendedSlotStart: slotStart,
       recommendedSlotEnd: slotEnd,
-      status: "PENDING",
+      status: sameAppointmentSlot ? "RECOMMENDED" : "PENDING",
       recommendationNote: sanitizedNote || null,
-      reservationId,
+      reservationId: reservationId || null,
       expiresAt,
       createdAt: now,
       updatedAt: now,
+      sameAppointmentSlot: sameAppointmentSlot || false,
+      sourceAppointmentId: sourceAppointmentId || null,
     };
 
     await db.collection("service_recommendations").doc(recommendationId).set(recommendation);
 
-    // Link reservation with recommendation
-    await db.collection("slot_reservations").doc(reservationId).update({
-      recommendationId,
-    });
+    // Link reservation with recommendation (only if reservation was created)
+    if (reservationId) {
+      await db.collection("slot_reservations").doc(reservationId).update({
+        recommendationId,
+      });
+    }
 
     return NextResponse.json({ recommendation }, { status: 201 });
   } catch (error: any) {
