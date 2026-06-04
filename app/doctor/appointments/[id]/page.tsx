@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { appointmentsService, prescriptionsService, usersService, visionAssessmentsService } from "@/services/firestore";
+import { appointmentsService, prescriptionsService, usersService, visionAssessmentsService, servicesService } from "@/services/firestore";
 import { transactionService } from "@/services/booking/transaction.service";
 import { getAuth } from "firebase/auth";
-import type { AppointmentDocument, PrescriptionDocument, UserDocument, VisionAssessmentDocument, VisionAssessmentType, RefundDecision } from "@/types/firestore";
+import type { AppointmentDocument, PrescriptionDocument, UserDocument, VisionAssessmentDocument, VisionAssessmentType, RefundDecision, ServiceDocument } from "@/types/firestore";
+import { getEffectiveServiceIds } from "@/lib/booking/compatibility";
 import { isRefundEligible } from "@/lib/refund-eligibility";
 import { useToast } from "@/components/ui/toast-provider";
 import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
@@ -39,6 +40,7 @@ export default function DoctorAppointmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<AppointmentDocument | null>(null);
   const [patient, setPatient] = useState<UserDocument | null>(null);
+  const [bookedServices, setBookedServices] = useState<ServiceDocument[]>([]);
   const [prescriptions, setPrescriptions] = useState<PrescriptionDocument[]>([]);
   const [updating, setUpdating] = useState(false);
   const [notes, setNotes] = useState("");
@@ -70,6 +72,14 @@ export default function DoctorAppointmentDetailPage() {
           setNotes(apt.notes || "");
           const patientData = await usersService.getById(apt.patientId);
           setPatient(patientData);
+
+          // Fetch booked services
+          const serviceIds = getEffectiveServiceIds(apt);
+          const svcResults = await Promise.all(
+            serviceIds.map((id) => servicesService.getById(id))
+          );
+          setBookedServices(svcResults.filter(Boolean) as ServiceDocument[]);
+
           if (apt.prescriptionId) {
             const prescription = await prescriptionsService.getById(apt.prescriptionId);
             if (prescription) setPrescriptions([prescription]);
@@ -539,6 +549,30 @@ export default function DoctorAppointmentDetailPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Platform</p>
                     <p className="font-medium text-primary capitalize">{appointment.consultationPlatform}</p>
+                  </div>
+                </div>
+              )}
+              {/* Booked Services */}
+              {bookedServices.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <Zap className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {bookedServices.length === 1 ? "Service" : "Services"}
+                    </p>
+                    {bookedServices.map((svc) => (
+                      <div key={svc.id} className="flex items-center gap-2 mt-1">
+                        <p className="font-medium text-primary">{svc.title}</p>
+                        <span className="text-xs text-muted-foreground">
+                          ({svc.duration} min · ₹{svc.price})
+                        </span>
+                      </div>
+                    ))}
+                    {bookedServices.length > 1 && (
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Total: {bookedServices.reduce((s, svc) => s + svc.duration, 0)} min · ₹{bookedServices.reduce((s, svc) => s + svc.price, 0)}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

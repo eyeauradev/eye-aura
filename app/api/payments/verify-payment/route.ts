@@ -83,17 +83,37 @@ export async function POST(req: NextRequest) {
     // Create booking_request — this is the authoritative creation point.
     // Appointments are NOT created here. The doctor must accept the request first.
     const bookingRequestId = `${patient.uid}_${payment.doctorId}_${Date.now()}`;
+
+    // Resolve serviceIds from payment document (supports both multi-service and legacy single-service)
+    const serviceIds: string[] = Array.isArray(payment.serviceIds) && payment.serviceIds.length > 0
+      ? payment.serviceIds
+      : [payment.serviceId];
+
+    // Fetch service documents to calculate combined duration
+    const serviceDocRefs = serviceIds.map((id: string) => db.collection("services").doc(id));
+    const serviceDocs = await db.getAll(...serviceDocRefs);
+
+    let combinedDuration = 0;
+    for (const serviceDoc of serviceDocs) {
+      if (serviceDoc.exists) {
+        const serviceData = serviceDoc.data()!;
+        combinedDuration += serviceData.duration || 0;
+      }
+    }
+
     await db.collection("booking_requests").doc(bookingRequestId).set({
       id: bookingRequestId,
       patientId: patient.uid,
       doctorId: payment.doctorId,
-      serviceId: payment.serviceId,
+      serviceId: serviceIds[0],
+      serviceIds,
       requestedTime: payment.requestedTime,
       status: "pending",
       notes: payment.notes || null,
       paymentId,
       paymentStatus: "completed",
       paymentAmount: payment.amount,
+      combinedDuration,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

@@ -27,11 +27,33 @@ export async function POST(req: NextRequest) {
     const patient = await verifyPatientToken(req);
 
     const body = await req.json();
-    const { doctorId, serviceId, requestedTime, notes, amount, currency } = body;
+    const { doctorId, serviceId, serviceIds: rawServiceIds, requestedTime, notes, amount, currency } = body;
 
-    if (!doctorId || !serviceId || !requestedTime || !amount) {
+    // Resolve serviceIds: prefer serviceIds array, fall back to [serviceId] for backward compatibility
+    const serviceIds: string[] = Array.isArray(rawServiceIds) && rawServiceIds.length > 0
+      ? rawServiceIds
+      : serviceId
+        ? [serviceId]
+        : [];
+
+    if (!doctorId || !requestedTime || !amount) {
       return NextResponse.json(
-        { error: "Missing required fields: doctorId, serviceId, requestedTime, amount" },
+        { error: "Missing required fields: doctorId, requestedTime, amount" },
+        { status: 400 }
+      );
+    }
+
+    // Validate serviceIds is a non-empty array of strings
+    if (serviceIds.length === 0) {
+      return NextResponse.json(
+        { error: "At least one service must be specified (serviceIds or serviceId)" },
+        { status: 400 }
+      );
+    }
+
+    if (!serviceIds.every((id: unknown) => typeof id === "string" && id.length > 0)) {
+      return NextResponse.json(
+        { error: "serviceIds must be an array of non-empty strings" },
         { status: 400 }
       );
     }
@@ -42,13 +64,63 @@ export async function POST(req: NextRequest) {
 
     const db = getAdminDb();
 
+    // Validate all services exist and are active
+    const serviceDocRefs = serviceIds.map((id: string) => db.collection("services").doc(id));
+    const serviceDocs = await db.getAll(...serviceDocRefs);
+
+    const services: { id: string; price: number; currency: string; isActive: boolean }[] = [];
+    for (let i = 0; i < serviceDocs.length; i++) {
+      const doc = serviceDocs[i];
+      if (!doc.exists) {
+        return NextResponse.json(
+          { error: `Service not found: ${serviceIds[i]}` },
+          { status: 400 }
+        );
+      }
+      const data = doc.data()!;
+      if (data.isActive === false) {
+        return NextResponse.json(
+          { error: `Service is not active: ${serviceIds[i]}` },
+          { status: 400 }
+        );
+      }
+      services.push({
+        id: doc.id,
+        price: data.price,
+        currency: data.currency || "INR",
+        isActive: data.isActive,
+      });
+    }
+
+    // Validate all service currencies match
+    const firstCurrency = services[0].currency;
+    const currencyMismatch = services.find((s) => s.currency !== firstCurrency);
+    if (currencyMismatch) {
+      return NextResponse.json(
+        { error: `Currency mismatch: service ${currencyMismatch.id} uses ${currencyMismatch.currency}, expected ${firstCurrency}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate amount equals the sum of all service prices (server-side price verification)
+    const expectedAmount = services.reduce((sum, s) => sum + s.price, 0);
+    if (Math.abs(amount - expectedAmount) > 0.01) {
+      return NextResponse.json(
+        { error: `Amount mismatch: expected ${expectedAmount}, received ${amount}` },
+        { status: 400 }
+      );
+    }
+
+    // Set serviceId to serviceIds[0] for backward compatibility
+    const primaryServiceId = serviceIds[0];
+
     // Idempotency: if a pending payment already exists for the same order parameters,
     // reuse it to prevent double-charging for the same booking attempt.
     const existing = await db
       .collection("payments")
       .where("userId", "==", patient.uid)
       .where("doctorId", "==", doctorId)
-      .where("serviceId", "==", serviceId)
+      .where("serviceId", "==", primaryServiceId)
       .where("status", "==", "pending")
       .limit(1)
       .get();
@@ -78,11 +150,12 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         amount: Math.round(amount * 100), // INR → paise
-        currency: currency || "INR",
+        currency: currency || firstCurrency,
         receipt: `ea_${patient.uid.slice(-8)}_${Date.now().toString(36)}`,
         notes: {
           patient_id: patient.uid,
-          service_id: serviceId,
+          service_id: primaryServiceId,
+          service_ids: serviceIds.join(","),
           doctor_id: doctorId,
         },
       }),
@@ -104,9 +177,10 @@ export async function POST(req: NextRequest) {
       id: paymentDocId,
       userId: patient.uid,
       doctorId,
-      serviceId,
+      serviceId: primaryServiceId,
+      serviceIds,
       amount,
-      currency: currency || "INR",
+      currency: currency || firstCurrency,
       status: "pending",
       razorpayOrderId: rzpOrder.id,
       requestedTime: new Date(requestedTime),

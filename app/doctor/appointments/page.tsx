@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
-import { appointmentsService, usersService } from "@/services/firestore";
-import type { AppointmentDocument, UserDocument } from "@/types/firestore";
+import { appointmentsService, usersService, servicesService } from "@/services/firestore";
+import type { AppointmentDocument, UserDocument, ServiceDocument } from "@/types/firestore";
+import { getEffectiveServiceIds } from "@/lib/booking/compatibility";
 import { Calendar, Clock, Users, Video, FileText, Search, X } from "lucide-react";
 import {
   DashboardCard,
@@ -35,6 +36,7 @@ export default function DoctorAppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<AppointmentDocument[]>([]);
   const [patientCache, setPatientCache] = useState<Record<string, UserDocument>>({});
+  const [serviceCache, setServiceCache] = useState<Record<string, ServiceDocument>>({});
   const [activeFilter, setActiveFilter] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [animationKey, setAnimationKey] = useState(0);
@@ -61,6 +63,24 @@ export default function DoctorAppointmentsPage() {
           if (p) cache[id] = p;
         });
         setPatientCache(cache);
+
+        // Fetch service details for all unique service IDs
+        const allServiceIds = new Set<string>();
+        doctorAppointments.forEach((a) => {
+          const ids = getEffectiveServiceIds(a);
+          ids.forEach((id) => allServiceIds.add(id));
+        });
+        const svcEntries = await Promise.all(
+          [...allServiceIds].map(async (id) => {
+            const s = await servicesService.getById(id);
+            return [id, s] as [string, ServiceDocument | null];
+          })
+        );
+        const svcCache: Record<string, ServiceDocument> = {};
+        svcEntries.forEach(([id, s]) => {
+          if (s) svcCache[id] = s;
+        });
+        setServiceCache(svcCache);
       } catch (error) {
         console.error("Error loading appointments:", error);
       } finally {
@@ -196,6 +216,7 @@ export default function DoctorAppointmentsPage() {
                 key={appointment.id}
                 appointment={appointment}
                 patient={patientCache[appointment.patientId]}
+                services={getEffectiveServiceIds(appointment).map((id) => serviceCache[id]).filter(Boolean) as ServiceDocument[]}
                 canJoin={canJoinConsultation(appointment)}
                 staggerIndex={index}
                 mapStatusToVariant={mapStatusToVariant}
@@ -222,18 +243,23 @@ export default function DoctorAppointmentsPage() {
 function AppointmentCard({
   appointment,
   patient,
+  services,
   canJoin,
   staggerIndex,
   mapStatusToVariant,
 }: {
   appointment: AppointmentDocument;
   patient?: UserDocument;
+  services: ServiceDocument[];
   canJoin: boolean;
   staggerIndex: number;
   mapStatusToVariant: (status: string) => "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
 }) {
   const appointmentDate = new Date(appointment.scheduledFor);
   const isPast = appointmentDate < new Date() && appointment.status !== "completed";
+  const serviceLabel = services.length > 0
+    ? services.map((s) => s.title).join(", ")
+    : appointment.consultationPlatform?.replace("_", " ") || "Consultation";
 
   return (
     <DashboardCard
@@ -262,7 +288,7 @@ function AppointmentCard({
             {/* Appointment type & metadata */}
             <div className="flex flex-wrap items-center gap-3 mt-1.5">
               <span className={TYPOGRAPHY.label}>
-                {appointment.consultationPlatform?.replace("_", " ") || "Consultation"}
+                {serviceLabel}
               </span>
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Calendar className="h-3.5 w-3.5" />

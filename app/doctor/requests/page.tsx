@@ -7,6 +7,7 @@ import { usersService, servicesService } from "@/services/firestore";
 import { getFirebaseAuth } from "@/services/firebase/client";
 import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
 import type { BookingRequestDocument, BookingRequestStatus, ServiceDocument, UserDocument } from "@/types/firestore";
+import { getEffectiveServiceIds } from "@/lib/booking/compatibility";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
 
-type EnrichedRequest = BookingRequestDocument & { patient?: UserDocument | null; service?: ServiceDocument | null };
+type EnrichedRequest = BookingRequestDocument & { patient?: UserDocument | null; service?: ServiceDocument | null; services?: ServiceDocument[] };
 
 const STATUS_TABS: { key: BookingRequestStatus | "all"; label: string }[] = [
   { key: "pending", label: "Pending" },
@@ -63,11 +64,14 @@ export default function DoctorRequestsPage() {
       const all = await bookingRequestsService.getByDoctorId(user.id);
       const enriched = await Promise.all(
         all.map(async (req) => {
-          const [patient, service] = await Promise.all([
-            usersService.getById(req.patientId),
-            servicesService.getById(req.serviceId),
-          ]);
-          return { ...req, patient, service };
+          const patient = await usersService.getById(req.patientId);
+          // Fetch all services for multi-service bookings
+          const serviceIds = getEffectiveServiceIds(req);
+          const services = (await Promise.all(
+            serviceIds.map((id) => servicesService.getById(id))
+          )).filter(Boolean) as ServiceDocument[];
+          const service = services[0] || null;
+          return { ...req, patient, service, services };
         })
       );
       setRequests(enriched);
@@ -297,13 +301,29 @@ export default function DoctorRequestsPage() {
                             })}
                           </span>
                         </div>
-                        {request.service && (
+                        {request.services && request.services.length > 0 && (
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <Clock className="h-4 w-4 shrink-0" />
-                            <span>{request.service.title} · {request.service.duration} min</span>
+                            <span>
+                              {request.services.length === 1
+                                ? `${request.services[0].title} · ${request.services[0].duration} min`
+                                : `${request.services.length} services · ${request.services.reduce((s, svc) => s + svc.duration, 0)} min`}
+                            </span>
                           </div>
                         )}
                       </div>
+
+                      {/* Multi-service breakdown */}
+                      {request.services && request.services.length > 1 && (
+                        <div className="rounded-xl bg-primary/5 border border-primary/10 px-3 py-2 space-y-1">
+                          {request.services.map((svc) => (
+                            <div key={svc.id} className="flex items-center justify-between text-xs">
+                              <span className="text-foreground font-medium">{svc.title}</span>
+                              <span className="text-muted-foreground">{svc.duration} min · ₹{svc.price}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Notes */}
                       {request.notes && (

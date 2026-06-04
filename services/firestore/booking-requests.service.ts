@@ -13,10 +13,11 @@ import {
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/services/firebase/client";
 import { appointmentConverter } from "./converters";
-import type { BookingRequestDocument, BookingRequestStatus, VisionAssessmentDocument } from "@/types/firestore";
+import type { BookingRequestDocument, BookingRequestStatus, VisionAssessmentDocument, ServiceDocument } from "@/types/firestore";
 import type { AppointmentDocument } from "@/types/firestore";
 import { doctorBlocksService } from "./doctor-blocks.service";
 import { servicesService } from "./index";
+import { getEffectiveServiceIds } from "@/lib/booking/compatibility";
 
 const COLLECTION_NAME = "booking_requests";
 const APPOINTMENTS_COLLECTION = "appointments";
@@ -119,9 +120,23 @@ export class BookingRequestsService {
     const request = await this.getById(id);
     if (!request) throw new Error("Booking request not found");
 
-    // Get the service to determine duration
-    const service = await servicesService.getById(request.serviceId);
-    const duration = service?.duration || 30; // Default to 30 minutes if service not found
+    // Determine the effective service IDs (supports multi-service and backward compat)
+    const serviceIds = getEffectiveServiceIds(request);
+
+    // Fetch all services and calculate combined duration
+    // If combinedDuration is already stored on the booking request, use it directly
+    let combinedDuration: number;
+    let services: (ServiceDocument | null)[] = [];
+
+    if (request.combinedDuration) {
+      combinedDuration = request.combinedDuration;
+      // Still fetch services for assessment automation
+      services = await Promise.all(serviceIds.map((sid) => servicesService.getById(sid)));
+    } else {
+      // Fetch all services and sum their durations
+      services = await Promise.all(serviceIds.map((sid) => servicesService.getById(sid)));
+      combinedDuration = services.reduce((sum, s) => sum + (s?.duration || 30), 0);
+    }
 
     // Create an appointment document
     const appointmentId = `${request.patientId}_${request.doctorId}_${Date.now()}`;
@@ -130,7 +145,9 @@ export class BookingRequestsService {
       id: appointmentId,
       patientId: request.patientId,
       doctorId: request.doctorId,
-      serviceId: request.serviceId,
+      serviceId: serviceIds[0], // Backward compatibility: first service ID
+      serviceIds, // All service IDs for multi-service support
+      combinedDuration, // Total scheduled duration
       slotId: "", // Will be generated based on the requested time
       status: "confirmed",
       scheduledFor: request.requestedTime,
@@ -142,9 +159,9 @@ export class BookingRequestsService {
 
     await setDoc(appointmentDoc.withConverter(appointmentConverter), appointment);
 
-    // Create a doctor block for the appointment time to prevent double-booking
+    // Create a doctor block for the appointment time using combined duration
     const appointmentTime = new Date(request.requestedTime);
-    const endTime = new Date(appointmentTime.getTime() + duration * 60000);
+    const endTime = new Date(appointmentTime.getTime() + combinedDuration * 60000);
     await doctorBlocksService.create({
       doctorId: request.doctorId,
       start: appointmentTime,
@@ -152,32 +169,34 @@ export class BookingRequestsService {
       reason: "Accepted booking request",
     });
 
-    // Assessment automation: if service has automation enabled with instant trigger, auto-assign vision assessments
-    if (service?.assessmentAutomation?.enabled && service.assessmentAutomation.triggerMode === "instant") {
-      try {
-        const autoId = crypto.randomUUID();
-        const now = new Date();
-        const autoAssessment: VisionAssessmentDocument = {
-          id: autoId,
-          patientId: request.patientId,
-          doctorId: request.doctorId,
-          appointmentId,
-          serviceId: request.serviceId,
-          assignedBy: request.doctorId,
-          assignedRole: "system",
-          overrideUsed: false,
-          assessmentTypes: service.assessmentAutomation.assessmentTypes,
-          status: "assigned",
-          autoAssigned: true,
-          createdAt: now,
-          updatedAt: now,
-          expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
-        };
-        const assessmentRef = doc(this.db, "vision_assessments", autoId);
-        await setDoc(assessmentRef, autoAssessment);
-      } catch (autoErr) {
-        // Non-fatal: log but don't block acceptance
-        console.warn("[acceptRequest] auto-assign failed:", autoErr);
+    // Assessment automation: iterate over each service and trigger automation for those that have it enabled
+    for (const service of services) {
+      if (service?.assessmentAutomation?.enabled && service.assessmentAutomation.triggerMode === "instant") {
+        try {
+          const autoId = crypto.randomUUID();
+          const now = new Date();
+          const autoAssessment: VisionAssessmentDocument = {
+            id: autoId,
+            patientId: request.patientId,
+            doctorId: request.doctorId,
+            appointmentId,
+            serviceId: service.id,
+            assignedBy: request.doctorId,
+            assignedRole: "system",
+            overrideUsed: false,
+            assessmentTypes: service.assessmentAutomation.assessmentTypes,
+            status: "assigned",
+            autoAssigned: true,
+            createdAt: now,
+            updatedAt: now,
+            expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+          };
+          const assessmentRef = doc(this.db, "vision_assessments", autoId);
+          await setDoc(assessmentRef, autoAssessment);
+        } catch (autoErr) {
+          // Non-fatal: log but don't block acceptance
+          console.warn("[acceptRequest] auto-assign failed for service", service.id, ":", autoErr);
+        }
       }
     }
 

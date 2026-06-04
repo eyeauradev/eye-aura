@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRight, ShieldCheck, Loader2, Stethoscope, Eye, Video, Glasses, AlertCircle, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast-provider";
+import { computeServiceCompatibility, computeBookingSummary, computeDoctorIntersection } from "@/lib/booking/compatibility";
 
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -43,6 +44,7 @@ export default function BookingPage() {
   const { errorFromAppError } = useToast();
   const [state, setState] = useState<BookingState>({
     currentStep: 0,
+    selectedServices: [],
     service: null,
     doctor: null,
     slot: null,
@@ -96,13 +98,31 @@ export default function BookingPage() {
     }
   };
 
-  const handleServiceSelect = (service: ServiceDocument) => {
-    setState({ ...state, service, doctor: null });
-    setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
+  const handleServiceToggle = (service: ServiceDocument) => {
+    setState((prev) => {
+      const isAlreadySelected = prev.selectedServices.some((s) => s.id === service.id);
+      const updatedServices = isAlreadySelected
+        ? prev.selectedServices.filter((s) => s.id !== service.id)
+        : [...prev.selectedServices, service];
+      return {
+        ...prev,
+        selectedServices: updatedServices,
+        // Keep service field in sync for backward compat (first selected or null)
+        service: updatedServices.length > 0 ? updatedServices[0] : null,
+        // Reset doctor when services change (doctor may not serve new combination)
+        doctor: null,
+      };
+    });
+  };
+
+  const handleServiceContinue = () => {
+    if (state.selectedServices.length > 0) {
+      setState((prev) => ({ ...prev, currentStep: 1 }));
+    }
   };
 
   const handleDoctorSelect = async (doctor: UserDocument) => {
-    setState({ ...state, doctor });
+    setState((prev) => ({ ...prev, doctor }));
     
     // Load doctor's availability
     try {
@@ -113,8 +133,12 @@ export default function BookingPage() {
       logError(appError.code, error, "BookingPage");
       errorFromAppError(appError);
     }
-    
-    setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
+  };
+
+  const handleDoctorContinue = () => {
+    if (state.doctor) {
+      setState((prev) => ({ ...prev, currentStep: 2 }));
+    }
   };
 
   const handleTimeSelect = (time: Date) => {
@@ -128,8 +152,11 @@ export default function BookingPage() {
 
   const handleConfirm = async () => {
     if (!state.service || !state.doctor || !selectedTime || !user) return;
+    if (state.selectedServices.length === 0) return;
 
     setState((prev) => ({ ...prev, loading: true, error: null }));
+
+    const { totalPrice, currency } = computeBookingSummary(state.selectedServices);
 
     // 1. Get Firebase ID token for authenticated API calls
     const auth = getFirebaseAuth();
@@ -157,11 +184,12 @@ export default function BookingPage() {
         },
         body: JSON.stringify({
           doctorId: state.doctor.id,
-          serviceId: state.service.id,
+          serviceId: state.selectedServices[0].id, // backward compat
+          serviceIds: state.selectedServices.map((s) => s.id),
           requestedTime: selectedTime.toISOString(),
           notes: state.notes || null,
-          amount: state.service.price,
-          currency: state.service.currency || "INR",
+          amount: totalPrice,
+          currency: currency,
         }),
       });
 
@@ -199,12 +227,16 @@ export default function BookingPage() {
 
     // 4. Open Razorpay checkout — waits for user to complete or dismiss
     await new Promise<void>((resolve) => {
+      const razorpayDescription = state.selectedServices.length > 1
+        ? `${state.selectedServices.length} services`
+        : state.selectedServices[0]?.title ?? state.service?.title;
+
       const options: RazorpayOptions = {
         key: orderData.keyId,
         amount: orderData.amount, // Already in paise from Razorpay order
         currency: orderData.currency,
         name: "Eye Aura",
-        description: state.service?.title,
+        description: razorpayDescription,
         order_id: orderData.orderId,
         handler: async (response) => {
           // 5. Verify payment signature server-side — creates booking_request
@@ -362,18 +394,21 @@ export default function BookingPage() {
         {state.currentStep === 0 && (
           <ServiceSelectionStep
             servicesWithDoctors={servicesWithDoctors}
-            onSelect={handleServiceSelect}
-            selected={state.service}
+            selectedServices={state.selectedServices}
+            onToggle={handleServiceToggle}
+            onContinue={handleServiceContinue}
           />
         )}
 
         {state.currentStep === 1 && (
           <DoctorSelectionStep
+            selectedServices={state.selectedServices}
             service={state.service}
             servicesWithDoctors={servicesWithDoctors}
             onSelect={handleDoctorSelect}
             selected={state.doctor}
             onBack={handleBack}
+            onContinue={handleDoctorContinue}
             additionalServices={additionalServices}
             onToggleAdditionalService={(svc) => {
               setAdditionalServices((prev) =>
@@ -391,6 +426,9 @@ export default function BookingPage() {
             onSelect={handleTimeSelect}
             selected={selectedTime}
             onBack={handleBack}
+            bookingDuration={state.selectedServices.length > 0
+              ? state.selectedServices.reduce((sum, s) => sum + s.duration, 0)
+              : state.service?.duration ?? 30}
           />
         )}
 
@@ -406,6 +444,7 @@ export default function BookingPage() {
         {state.currentStep === 4 && (
           <ConfirmationStep
             service={state.service}
+            selectedServices={state.selectedServices}
             doctor={state.doctor}
             selectedTime={selectedTime}
             notes={state.notes}
@@ -429,36 +468,61 @@ function serviceIcon(type: string) {
 
 function ServiceSelectionStep({
   servicesWithDoctors,
-  onSelect,
-  selected,
+  selectedServices,
+  onToggle,
+  onContinue,
 }: {
   servicesWithDoctors: (ServiceDocument & { doctors: UserDocument[] })[];
-  onSelect: (service: ServiceDocument) => void;
-  selected: ServiceDocument | null;
+  selectedServices: ServiceDocument[];
+  onToggle: (service: ServiceDocument) => void;
+  onContinue: () => void;
 }) {
+  // Compute compatibility map based on current selection
+  const compatibilityMap = useMemo(
+    () => computeServiceCompatibility(selectedServices, servicesWithDoctors),
+    [selectedServices, servicesWithDoctors]
+  );
+
+  // Compute summary for selected services
+  const summary = useMemo(
+    () => computeBookingSummary(selectedServices),
+    [selectedServices]
+  );
+
+  const selectedIds = new Set(selectedServices.map((s) => s.id));
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-2xl text-[#0f4f4b]">Choose Your Service</h2>
-        <p className="mt-1.5 text-sm text-[#0f4f4b]/55">Select the consultation type that fits your needs</p>
+        <h2 className="font-display text-2xl text-[#0f4f4b]">Choose Your Services</h2>
+        <p className="mt-1.5 text-sm text-[#0f4f4b]/55">Select one or more consultations to combine into a single appointment</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         {servicesWithDoctors.map((service) => {
           const Icon = serviceIcon(service.type);
-          const active = selected?.id === service.id;
+          const isSelected = selectedIds.has(service.id);
+          const compatibility = compatibilityMap.get(service.id);
+          const isDisabled = !isSelected && compatibility !== undefined && !compatibility.compatible;
+
           return (
             <div
               key={service.id}
-              onClick={() => onSelect(service)}
+              onClick={() => {
+                if (!isDisabled) onToggle(service);
+              }}
+              title={isDisabled ? "No common doctor available for this combination" : undefined}
               className={cn(
-                "group relative cursor-pointer rounded-2xl border bg-white p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
-                active
+                "group relative rounded-2xl border bg-white p-5 transition-all duration-200",
+                isDisabled
+                  ? "opacity-50 pointer-events-none border-[#0f4f4b]/8 cursor-not-allowed"
+                  : "cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:translate-y-0",
+                isSelected
                   ? "border-[#0f4f4b] shadow-sm shadow-[#0f4f4b]/10 ring-1 ring-[#0f4f4b]/20"
-                  : "border-[#0f4f4b]/12 hover:border-[#0f4f4b]/30"
+                  : !isDisabled && "border-[#0f4f4b]/12 hover:border-[#0f4f4b]/30"
               )}
             >
-              {active && (
+              {isSelected && (
                 <div className="absolute top-4 right-4 h-5 w-5 rounded-full bg-[#0f4f4b] flex items-center justify-center">
                   <Check className="h-3 w-3 text-white" />
                 </div>
@@ -485,29 +549,66 @@ function ServiceSelectionStep({
           );
         })}
       </div>
+
+      {/* Summary bar and Continue button */}
+      {selectedServices.length > 0 && (
+        <div className="sticky bottom-4 mt-6 rounded-2xl border border-[#0f4f4b]/15 bg-white p-4 shadow-lg shadow-[#0f4f4b]/5">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm font-semibold text-[#0f4f4b]">
+              {selectedServices.length} service{selectedServices.length > 1 ? "s" : ""} selected · Total: ₹{summary.totalPrice}
+            </p>
+            <Button
+              onClick={onContinue}
+              className="bg-[#0f4f4b] hover:bg-[#0a3a36] text-white font-bold px-6 py-2.5 rounded-xl"
+            >
+              Continue <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function DoctorSelectionStep({
+  selectedServices,
   service,
   servicesWithDoctors,
   onSelect,
   selected,
   onBack,
+  onContinue,
   additionalServices,
   onToggleAdditionalService,
 }: {
+  selectedServices: ServiceDocument[];
   service: ServiceDocument | null;
   servicesWithDoctors: (ServiceDocument & { doctors: UserDocument[] })[];
   onSelect: (doctor: UserDocument) => void;
   selected: UserDocument | null;
   onBack: () => void;
+  onContinue: () => void;
   additionalServices: ServiceDocument[];
   onToggleAdditionalService: (svc: ServiceDocument) => void;
 }) {
-  const serviceWithDoctors = servicesWithDoctors.find((s) => s.id === service?.id);
-  const doctors = serviceWithDoctors?.doctors || [];
+  // Compute doctors that can serve ALL selected services (intersection)
+  const validDoctorIds = useMemo(
+    () => new Set(computeDoctorIntersection(selectedServices)),
+    [selectedServices]
+  );
+
+  // Get all unique doctors from services with doctors data, filtered by intersection
+  const doctors = useMemo(() => {
+    const doctorMap = new Map<string, UserDocument>();
+    for (const svc of servicesWithDoctors) {
+      for (const doc of svc.doctors) {
+        if (validDoctorIds.has(doc.id)) {
+          doctorMap.set(doc.id, doc);
+        }
+      }
+    }
+    return [...doctorMap.values()];
+  }, [servicesWithDoctors, validDoctorIds]);
 
   const getInitial = (d: UserDocument) => {
     const name = d.displayName || d.email || "D";
@@ -521,9 +622,13 @@ function DoctorSelectionStep({
   // Find other services from the same doctors (upsell)
   const otherServices = selected
     ? servicesWithDoctors.filter(
-        (s) => s.id !== service?.id && s.doctors.some((d) => d.id === selected.id)
+        (s) => !selectedServices.some((sel) => sel.id === s.id) && s.doctors.some((d) => d.id === selected.id)
       )
     : [];
+
+  const serviceLabel = selectedServices.length === 1
+    ? selectedServices[0].title
+    : `${selectedServices.length} services`;
 
   return (
     <div className="space-y-6">
@@ -531,7 +636,7 @@ function DoctorSelectionStep({
         <div className="min-w-0">
           <h2 className="font-display text-2xl text-[#0f4f4b]">Choose Your Doctor</h2>
           <p className="mt-1.5 text-sm text-[#0f4f4b]/55 truncate">
-            Select a specialist for <span className="font-semibold">{service?.title}</span>
+            Select a specialist for <span className="font-semibold">{serviceLabel}</span>
           </p>
         </div>
         <button
@@ -547,8 +652,14 @@ function DoctorSelectionStep({
           <div className="h-14 w-14 rounded-2xl bg-[#0f4f4b]/6 flex items-center justify-center mx-auto mb-4">
             <User className="h-7 w-7 text-[#0f4f4b]/30" />
           </div>
-          <p className="text-sm font-semibold text-[#0f4f4b]/60 mb-1">No doctors available yet</p>
-          <p className="text-xs text-[#0f4f4b]/40">Please try a different service or contact support</p>
+          <p className="text-sm font-semibold text-[#0f4f4b]/60 mb-1">No single doctor provides all selected services</p>
+          <p className="text-xs text-[#0f4f4b]/40 mb-4">Please go back and adjust your service selection</p>
+          <button
+            onClick={onBack}
+            className="text-xs font-bold text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-4 py-2 hover:bg-[#0f4f4b]/5 transition-colors"
+          >
+            <ChevronLeft className="h-3.5 w-3.5 inline mr-1" /> Back to Services
+          </button>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -660,6 +771,20 @@ function DoctorSelectionStep({
           )}
         </div>
       )}
+
+      {/* Continue button for Step 2 */}
+      {selected && (
+        <div className="sticky bottom-4 mt-6 rounded-2xl border border-[#0f4f4b]/15 bg-white p-4 shadow-lg shadow-[#0f4f4b]/5">
+          <div className="flex items-center justify-end">
+            <Button
+              onClick={onContinue}
+              className="bg-[#0f4f4b] hover:bg-[#0a3a36] text-white font-bold px-6 py-2.5 rounded-xl"
+            >
+              Continue <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -669,11 +794,13 @@ function TimeSelectionStep({
   onSelect,
   selected,
   onBack,
+  bookingDuration,
 }: {
   doctorAvailability: DoctorAvailabilityDocument[];
   onSelect: (time: Date) => void;
   selected: Date | null;
   onBack: () => void;
+  bookingDuration: number;
 }) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(selected ? new Date(selected.toDateString()) : null);
   const [currentMonth, setCurrentMonth] = useState<Date>(() => {
@@ -715,10 +842,12 @@ function TimeSelectionStep({
           let slotStart = new Date(current);
           slotStart.setHours(sh, sm, 0, 0);
 
-          while (slotStart.getTime() + avail.duration * 60000 <= endTime.getTime()) {
+          // Use combined booking duration: only show slot if the full duration fits
+          while (slotStart.getTime() + bookingDuration * 60000 <= endTime.getTime()) {
             if (slotStart > new Date()) {
               daySlots.push(new Date(slotStart));
             }
+            // Step by the doctor's base slot duration for granularity
             slotStart = new Date(slotStart.getTime() + avail.duration * 60000);
           }
         });
@@ -731,7 +860,7 @@ function TimeSelectionStep({
     }
 
     return result;
-  }, [doctorAvailability]);
+  }, [doctorAvailability, bookingDuration]);
 
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -941,6 +1070,7 @@ function NotesStep({
 
 function ConfirmationStep({
   service,
+  selectedServices,
   doctor,
   selectedTime,
   notes,
@@ -950,6 +1080,7 @@ function ConfirmationStep({
   error,
 }: {
   service: ServiceDocument | null;
+  selectedServices: ServiceDocument[];
   doctor: UserDocument | null;
   selectedTime: Date | null;
   notes: string;
@@ -961,6 +1092,8 @@ function ConfirmationStep({
   const doctorName = doctor?.displayName && doctor.displayName !== doctor.email
     ? doctor.displayName
     : doctor?.email ?? "Doctor";
+
+  const { totalPrice, totalDuration, currency } = computeBookingSummary(selectedServices);
 
   return (
     <div className="space-y-5">
@@ -989,9 +1122,38 @@ function ConfirmationStep({
         </div>
 
         <div className="p-5 space-y-3">
-          {/* 4 summary rows */}
+          {/* Services - itemized breakdown */}
+          <div className="py-2.5 border-b border-[#0f4f4b]/6">
+            <span className="text-xs font-semibold text-[#0f4f4b]/45 uppercase tracking-wider">Services</span>
+            <div className="mt-2 space-y-2">
+              {selectedServices.map((svc) => (
+                <div key={svc.id} className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[#0f4f4b] truncate">{svc.title}</p>
+                    <p className="text-xs text-[#0f4f4b]/40">{svc.duration} min</p>
+                  </div>
+                  <span className="text-sm font-semibold text-[#0f4f4b] shrink-0">
+                    {svc.currency} {svc.price}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {/* Combined totals */}
+            {selectedServices.length > 1 && (
+              <div className="flex items-center justify-between gap-3 mt-3 pt-2 border-t border-dashed border-[#0f4f4b]/10">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-[#0f4f4b]/70">Combined Total</p>
+                  <p className="text-xs text-[#0f4f4b]/40">{totalDuration} min total</p>
+                </div>
+                <span className="text-sm font-bold text-[#b5964d] shrink-0">
+                  {currency} {totalPrice}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Doctor, Date, Time rows */}
           {[
-            { label: "Service",     value: service?.title,    sub: `${service?.duration} min session` },
             { label: "Doctor",      value: doctorName,        sub: doctor?.email },
             { label: "Date",        value: selectedTime?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }), sub: undefined },
             { label: "Time",        value: selectedTime?.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }), sub: undefined },
@@ -1019,7 +1181,7 @@ function ConfirmationStep({
             <div>
               <p className="text-xs text-[#0f4f4b]/50 font-semibold mb-0.5">Amount Due</p>
               <p className="font-display text-2xl font-bold text-[#b5964d]">
-                {service?.currency} {service?.price}
+                {currency} {totalPrice}
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-[#0f4f4b]/45">
@@ -1052,7 +1214,7 @@ function ConfirmationStep({
         {loading ? (
           <><Loader2 className="h-4 w-4 animate-spin" /> Processing payment…</>
         ) : (
-          <><ShieldCheck className="h-4 w-4" /> Pay {service?.currency} {service?.price} &amp; Submit Request</>
+          <><ShieldCheck className="h-4 w-4" /> Pay {currency} {totalPrice} &amp; Submit Request</>
         )}
       </button>
     </div>

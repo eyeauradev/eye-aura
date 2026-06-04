@@ -259,9 +259,12 @@ Eye Aura is purpose-built for eye wellness — not a generic telemedicine wrappe
 ├── /lib
 │   ├── utils.ts                            # cn() = clsx + tailwind-merge
 │   ├── design-tokens.ts                    # Premium design system tokens (GLASS, SHADOWS, TYPOGRAPHY, SPACING, RADIUS, DEPTH_LAYERS, RESPONSIVE_SPACING)
+│   ├── assessment-type-mapping.ts          # ExtendedAssessmentType ↔ VisionAssessmentType mapping
 │   ├── auth-server.ts                      # getServerSession(), requireRole(), isAdmin()
 │   ├── firebase-admin.ts                   # Alternative admin init (used by PDF route)
-│   └── send-email.ts                       # Server-side Resend email sender
+│   ├── send-email.ts                       # Server-side Resend email sender
+│   └── /booking
+│       └── compatibility.ts                # Multi-service compatibility: doctor intersection, service compatibility, booking summary
 │
 ├── /types
 │   ├── auth.ts                             # UserRole, UserProfile, AuthState, credentials
@@ -3028,6 +3031,86 @@ Firestore security rules are deployed via Firebase CLI, NOT via the app. This se
 # 21. CHANGELOG
 
 This section tracks major architectural changes to the Eye Aura codebase.
+
+## 2026-06 (Multi-Service Booking & Doctor Information Enhancements)
+
+### Multi-Service Booking Wizard
+- **Change**: Redesigned the 5-step booking wizard to support selecting multiple compatible services in a single booking
+- **New Module**: `lib/booking/compatibility.ts` — Pure functions for service compatibility computation
+  - `computeDoctorIntersection(services)` — Returns intersection of doctorIds across all selected services
+  - `computeServiceCompatibility(selected, all)` — Marks incompatible services (those that don't share a common doctor with current selection)
+  - `computeBookingSummary(services)` — Sums prices and durations, returns combined total
+  - `getEffectiveServiceIds(doc)` — Backward-compatible fallback: returns `serviceIds ?? [serviceId]`
+- **Step 1 (Service Selection) Redesign**:
+  - Multi-select: toggle services on/off instead of single-select auto-advance
+  - Compatibility logic: incompatible services greyed out with tooltip ("No common doctor available for this combination")
+  - Summary bar: shows "N services selected · Total: ₹X"
+  - Explicit "Continue" button (replaces auto-advance)
+- **Step 2 (Doctor Selection) Redesign**:
+  - Only shows doctors who provide ALL selected services (intersection filtering)
+  - Explicit "Continue" button (replaces auto-advance on doctor click)
+  - "Also available from this doctor" section: can add more services to selection
+- **Step 3 (Time Selection) Duration-Aware**:
+  - Slot availability now uses combined service duration (not single service duration)
+  - Only shows slots where the full combined duration fits within the time range
+  - Slot stepping still uses doctor's base slot duration for granularity
+- **Step 5 (Confirmation & Payment)**:
+  - Itemized breakdown showing each service with price and duration
+  - Combined total displayed prominently
+  - Single Razorpay order for combined amount
+  - Sends `serviceIds` array to payment API
+- **Data Model Changes** (backward-compatible additions):
+  - `BookingRequestDocument`: added `serviceIds?: string[]`, `combinedDuration?: number`
+  - `AppointmentDocument`: added `serviceIds?: string[]`, `combinedDuration?: number`
+  - `PaymentDocument`: added `serviceIds?: string[]`
+  - `BookingState`: added `selectedServices: ServiceDocument[]`
+  - All existing `serviceId` fields preserved for backward compatibility
+- **Payment API Updates**:
+  - `POST /api/payments/create-order`: accepts `serviceIds[]`, validates all services exist/active, validates currencies match, verifies `amount` = sum of service prices server-side
+  - `POST /api/payments/verify-payment`: stores `serviceIds` on booking request, calculates `combinedDuration`
+  - `acceptRequest()` in booking-requests.service: uses `combinedDuration` for doctor block, creates appointment with `serviceIds`, triggers assessment automation for each service
+- **No Data Migration Needed**: Documents without `serviceIds` fallback to `[serviceId]` via `getEffectiveServiceIds()`
+- **Files Changed**:
+  - `app/booking/page.tsx` — Major refactor: multi-select, compatibility, continue buttons, combined payment
+  - `lib/booking/compatibility.ts` — New module
+  - `types/booking.ts` — Added `selectedServices` to BookingState
+  - `types/firestore.ts` — Added `serviceIds`, `combinedDuration` to 3 document interfaces
+  - `app/api/payments/create-order/route.ts` — Multi-service validation + pricing
+  - `app/api/payments/verify-payment/route.ts` — Stores serviceIds + combinedDuration
+  - `services/firestore/booking-requests.service.ts` — Combined duration blocks + multi-service automation
+- **Impact**: Patients can book multiple compatible services (same doctor) in one appointment with combined payment
+
+### Doctor Booking Information Enhancement
+- **Change**: Added service details to doctor-facing appointment views and booking requests
+- **Appointments List** (`/doctor/appointments`):
+  - Now fetches and displays actual service name(s) instead of generic "Consultation"
+  - Multi-service bookings show comma-separated service titles
+  - Uses `getEffectiveServiceIds()` for backward compatibility
+- **Appointment Details** (`/doctor/appointments/[id]`):
+  - New "Services" section in Consultation Details card
+  - Shows each booked service with title, duration, and price
+  - Multi-service: itemized list + combined total
+- **Booking Requests** (`/doctor/requests`):
+  - Multi-service requests show "N services · X min" summary
+  - Expandable breakdown card listing each service with duration and price
+  - Uses `getEffectiveServiceIds()` for backward compatibility
+- **Files Changed**:
+  - `app/doctor/appointments/page.tsx` — Service fetching + display in cards
+  - `app/doctor/appointments/[id]/page.tsx` — Booked Services section
+  - `app/doctor/requests/page.tsx` — Multi-service breakdown display
+
+### Patient Recommendations Payment Flow Fix
+- **Change**: `RECOMMENDED` status recommendations now show "Pay & Book" button (same as PENDING)
+- **Issue**: Recommendations with "Perform During Current Appointment" had status `RECOMMENDED` which wasn't recognized as needing payment
+- **Fix**: Patient recommendations page treats both `PENDING` and `RECOMMENDED` as requiring payment action
+- **Accept endpoint updated**: Allows accepting both `PENDING` and `RECOMMENDED` status recommendations
+- **Confirmation message**: Changed from showing internal booking reference ID to user-friendly "Your appointment has been scheduled"
+- **Files Changed**: `app/patient/recommendations/page.tsx`, `app/api/recommendations/[id]/accept/route.ts`
+
+### Patient Layout Hooks Fix
+- **Issue**: React hooks order violation in `app/patient/layout.tsx` — `useState`/`useRef` placed after conditional early returns
+- **Fix**: Moved all hooks above early return statements
+- **Impact**: Patient portal no longer crashes on page load
 
 ## 2026-06 (Doctor Portal Quick Actions & Service Recommendations Enhancement)
 

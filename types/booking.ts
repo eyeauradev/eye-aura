@@ -15,6 +15,8 @@ export interface BookingStep {
 
 export interface BookingState {
   currentStep: number;
+  selectedServices: ServiceDocument[];
+  /** @deprecated Use selectedServices instead. Will be removed after booking page migration (task 5). */
   service: ServiceDocument | null;
   doctor: UserDocument | null;
   slot: DoctorSlotDocument | null;

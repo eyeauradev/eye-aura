@@ -60,6 +60,8 @@ export interface AppointmentDocument {
   patientId: string;
   doctorId: string;
   serviceId: string;
+  serviceIds?: string[];       // All service IDs for the appointment (multi-service booking)
+  combinedDuration?: number;   // Total scheduled duration in minutes (sum of all service durations)
   slotId: string;
   status: AppointmentStatus;
   notes?: string;
@@ -386,6 +388,7 @@ export interface PaymentDocument {
   userId: string;               // Patient UID
   doctorId: string;             // Doctor UID
   serviceId: string;            // Service UID
+  serviceIds?: string[];        // All service IDs being paid for (multi-service booking)
   amount: number;               // Amount in INR (human-readable, e.g. 500)
   currency: string;             // "INR"
   status: PaymentStatus;
@@ -468,6 +471,8 @@ export interface BookingRequestDocument {
   patientId: string;
   doctorId: string;
   serviceId: string;
+  serviceIds?: string[];       // All selected service IDs (multi-service booking)
+  combinedDuration?: number;   // Total duration in minutes (sum of all service durations)
   requestedTime: Date; // Patient's preferred time
   proposedTime?: Date; // Doctor's proposed time (for reschedule)
   status: BookingRequestStatus;
