@@ -60,10 +60,14 @@ class AuthService {
 
         await this.createUserProfile(newUserProfile);
         console.log("[AuthService] Firestore document created for email sign-in user");
+
+        await this.setSessionCookie();
         return newUserProfile;
       }
 
       console.log("[AuthService] User document exists in Firestore");
+
+      await this.setSessionCookie();
       return userProfile;
     } catch (error) {
       console.error("[AuthService] Email sign-in error:", error);
@@ -101,10 +105,14 @@ class AuthService {
 
         await this.createUserProfile(newUserProfile);
         console.log("[AuthService] Firestore document created for Google sign-in user");
+
+        await this.setSessionCookie();
         return newUserProfile;
       }
 
       console.log("[AuthService] User document exists in Firestore");
+
+      await this.setSessionCookie();
       return userProfile;
     } catch (error) {
       console.error("[AuthService] Google sign-in error:", error);
@@ -191,6 +199,7 @@ class AuthService {
 
   async signOut(): Promise<void> {
     try {
+      await fetch('/api/auth/session', { method: 'DELETE' });
       await firebaseSignOut(this.auth);
     } catch (error) {
       throw this.handleError(error);
@@ -367,6 +376,20 @@ class AuthService {
       return profile;
     } catch (error) {
       throw this.handleError(error);
+    }
+  }
+
+  private async setSessionCookie(): Promise<void> {
+    try {
+      const idToken = await this.auth.currentUser!.getIdToken();
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      console.log("[AuthService] Session cookie set successfully");
+    } catch (error) {
+      console.error("[AuthService] Failed to set session cookie:", error);
     }
   }
 

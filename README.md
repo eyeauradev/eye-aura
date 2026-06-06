@@ -189,6 +189,8 @@ firebase deploy --only firestore:indexes
 1. **Public Signup**: Always creates patient accounts via email or Google
 2. **Doctor Onboarding**: Requires valid invite token from admin
 3. **Role Assignment**: Patients cannot escalate role; only admins can assign roles
+4. **Session Management**: After sign-in, a `__session` HTTP-only cookie is set via `/api/auth/session`. The middleware reads this cookie to protect routes server-side. The cookie is refreshed on each `onAuthStateChanged` event and cleared on sign-out.
+5. **Sign-Out**: Available in each module's profile page (Patient: `/patient/profile`, Doctor: `/doctor/profile`). Clears the session cookie and Firebase auth state, then redirects to login.
 
 ## Folder Structure
 
@@ -251,6 +253,10 @@ Add all variables from `.env.example` to Vercel project settings.
 - Doctor signup requires valid invite token
 - Google sign-in automatically creates Firestore documents
 - Email sign-in automatically creates Firestore documents
+- Session cookie (`__session`) is set after sign-in via `/api/auth/session` API route
+- Middleware validates the `__session` cookie for protected route access
+- Sign-out is available in each module's profile/account page
+- Sign-out clears the session cookie and Firebase auth state
 
 ### Environment Variables
 
@@ -272,7 +278,6 @@ Firebase Storage is not currently used in the application. The `storageBucket` c
 
 - Node.js version must be >=18.18.0 for Next.js 15
 - Build fails on older Node.js versions (documented in package.json engines field)
-
 ## Support
 
 For deployment issues, see [DEPLOYMENT_GUIDE.md](./docs/DEPLOYMENT_GUIDE.md).

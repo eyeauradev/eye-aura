@@ -4,7 +4,7 @@ import type { UserProfile, UserRole } from "@/types/auth";
 
 export async function getServerSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("auth-token")?.value;
+  const token = cookieStore.get("__session")?.value;
 
   if (!token) {
     return null;

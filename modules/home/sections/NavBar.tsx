@@ -14,7 +14,7 @@ const links = [
   { label: "About", href: "#founder" },
 ];
 
-export function NavBar({ user }: { user: any }) {
+export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -52,7 +52,12 @@ export function NavBar({ user }: { user: any }) {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            {user ? (
+            {loading ? (
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-20 animate-pulse rounded-xl bg-[#0f4f4b]/8" />
+                <div className="h-10 w-36 animate-pulse rounded-xl bg-[#0f4f4b]/8" />
+              </div>
+            ) : user ? (
               <Link href={`/${user.role}/dashboard`}
                 className="rounded-xl bg-[#0f4f4b] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0a3a36]"
               >Dashboard</Link>
@@ -107,12 +112,32 @@ export function NavBar({ user }: { user: any }) {
             </div>
 
             <div className="flex flex-col gap-3 px-8 pb-12">
-              <Link href="/booking" onClick={() => setOpen(false)}
-                className="flex h-14 items-center justify-center rounded-2xl bg-[#1a9e98] text-base font-semibold text-white"
-              >Book Consultation</Link>
-              <Link href="/auth/login" onClick={() => setOpen(false)}
-                className="flex h-14 items-center justify-center rounded-2xl border border-white/20 text-base font-medium text-white/70"
-              >Sign In</Link>
+              {loading ? (
+                <div className="flex flex-col gap-3">
+                  <div className="h-14 animate-pulse rounded-2xl bg-white/10" />
+                  <div className="h-14 animate-pulse rounded-2xl bg-white/5" />
+                </div>
+              ) : user ? (
+                <>
+                  <Link href={`/${user.role}/dashboard`} onClick={() => setOpen(false)}
+                    className="flex h-14 items-center justify-center rounded-2xl bg-[#1a9e98] text-base font-semibold text-white"
+                  >Go to Dashboard</Link>
+                  {user.role === "patient" && (
+                    <Link href="/booking" onClick={() => setOpen(false)}
+                      className="flex h-14 items-center justify-center rounded-2xl border border-white/20 text-base font-medium text-white/70"
+                    >Book Consultation</Link>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Link href="/booking" onClick={() => setOpen(false)}
+                    className="flex h-14 items-center justify-center rounded-2xl bg-[#1a9e98] text-base font-semibold text-white"
+                  >Book Consultation</Link>
+                  <Link href="/auth/login" onClick={() => setOpen(false)}
+                    className="flex h-14 items-center justify-center rounded-2xl border border-white/20 text-base font-medium text-white/70"
+                  >Sign In</Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}

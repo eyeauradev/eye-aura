@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
-import { Save, Bell, CheckCircle, User } from "lucide-react";
+import { Save, CheckCircle, User, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,8 +18,10 @@ import {
 } from "@/components/patient-portal";
 
 export default function PatientProfilePage() {
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateUserProfile, signOut } = useAuth();
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [success, setSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -292,62 +296,39 @@ export default function PatientProfilePage() {
             </div>
           </DashboardCard>
 
-          {/* Notification Preferences */}
-          <DashboardCard disableHover staggerIndex={2}>
-            <SectionHeader title="Notifications" className="mt-0 mb-4" />
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-foreground">Email Notifications</span>
-                </div>
-                <div className="h-6 w-11 rounded-full bg-secondary relative cursor-pointer">
-                  <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-card" />
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-foreground">Appointment Reminders</span>
-                </div>
-                <div className="h-6 w-11 rounded-full bg-secondary relative cursor-pointer">
-                  <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-card" />
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-foreground">Prescription Alerts</span>
-                </div>
-                <div className="h-6 w-11 rounded-full bg-secondary relative cursor-pointer">
-                  <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-card" />
-                </div>
-              </div>
-            </div>
-          </DashboardCard>
 
-          {/* Preferred Consultation */}
-          <GlassPanel padding="md">
-            <SectionHeader title="Preferred Consultation" className="mt-0 mb-4" />
-            <div className="space-y-3">
-              <div className="p-3 rounded-2xl bg-card/50 border border-border/50 cursor-pointer hover:bg-card/80 transition">
-                <p className="text-sm font-bold text-foreground">Video Consultation</p>
-                <p className="text-xs text-muted-foreground">Face-to-face digital care</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-card/50 border border-border/50 cursor-pointer hover:bg-card/80 transition">
-                <p className="text-sm font-bold text-foreground">Voice Consultation</p>
-                <p className="text-xs text-muted-foreground">Audio-only session</p>
-              </div>
-            </div>
-          </GlassPanel>
 
           {/* Support */}
           <GlassPanel padding="md">
             <p className="text-sm font-bold text-muted-foreground mb-3">Need Help?</p>
-            <PremiumButton variant="outline" size="lg" fullWidth>
-              Contact Support
-            </PremiumButton>
+            <Link href="/patient/support">
+              <PremiumButton variant="outline" size="lg" fullWidth>
+                Contact Support
+              </PremiumButton>
+            </Link>
           </GlassPanel>
+
+          {/* Sign Out */}
+          <DashboardCard disableHover>
+            <PremiumButton
+              variant="outline"
+              size="lg"
+              fullWidth
+              disabled={signingOut}
+              icon={<LogOut className="h-5 w-5" />}
+              onClick={async () => {
+                setSigningOut(true);
+                try {
+                  await signOut();
+                  router.push("/auth/login");
+                } catch {
+                  setSigningOut(false);
+                }
+              }}
+            >
+              {signingOut ? "Signing out..." : "Sign Out"}
+            </PremiumButton>
+          </DashboardCard>
         </div>
       </div>
     </div>

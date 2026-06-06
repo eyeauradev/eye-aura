@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { usersService } from "@/services/firestore";
 import type { UserDocument } from "@/types/firestore";
-import { User, Mail, Phone, Calendar, Save } from "lucide-react";
+import { User, Mail, Phone, Calendar, Save, LogOut } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
@@ -13,10 +14,12 @@ import { useToast } from "@/components/ui/toast-provider";
 
 
 export default function DoctorProfilePage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
   const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [profile, setProfile] = useState<UserDocument | null>(null);
   const [formData, setFormData] = useState({
     displayName: "",
@@ -61,6 +64,16 @@ export default function DoctorProfilePage() {
       errorFromAppError(appError);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.push("/auth/login");
+    } catch {
+      setSigningOut(false);
     }
   };
 
@@ -165,6 +178,28 @@ export default function DoctorProfilePage() {
           </CardContent>
         </Card>
       
+
+      {/* Sign Out */}
+      <Card className="border-destructive/20">
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-lg">Sign Out</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Sign out of your account on this device.
+          </p>
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-destructive/30 text-destructive hover:bg-destructive/5 transition-colors duration-200 disabled:opacity-50"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              {signingOut ? "Signing out..." : "Sign Out"}
+            </span>
+          </button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

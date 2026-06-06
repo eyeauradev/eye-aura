@@ -35,11 +35,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             const userProfile = await authService.getCurrentUserProfile();
             setState({ user: userProfile, loading: false, error: null });
+
+            // Sync session cookie with fresh ID token (handles token refresh)
+            try {
+              const idToken = await firebaseUser.getIdToken();
+              await fetch("/api/auth/session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idToken }),
+              });
+            } catch {
+              // Non-critical: cookie sync failure shouldn't break auth state
+              console.error("[AuthContext] Failed to sync session cookie");
+            }
           } catch (error) {
             setState({ user: null, loading: false, error: error as Error });
           }
         } else {
           setState({ user: null, loading: false, error: null });
+
+          // Clear stale session cookie
+          try {
+            await fetch("/api/auth/session", { method: "DELETE" });
+          } catch {
+            // Non-critical: cookie clear failure shouldn't break auth state
+            console.error("[AuthContext] Failed to clear session cookie");
+          }
         }
       }
     );

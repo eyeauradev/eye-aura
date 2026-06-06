@@ -15,11 +15,11 @@ import { FinalCTA } from "@/modules/home/sections/FinalCTA";
 import { FooterSection } from "@/modules/home/sections/FooterSection";
 
 export function LandingPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   return (
     <main className="overflow-x-hidden bg-[#f7f3ee]">
-      <NavBar user={user} />
+      <NavBar user={user} loading={loading} />
       <HeroSection user={user} />
       <FounderStory />
       <ProblemSection />

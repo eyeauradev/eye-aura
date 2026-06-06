@@ -13,7 +13,6 @@ import {
   FileText,
   Clock,
   UserCircle,
-  LogOut,
   RefreshCw,
   Home,
   MoreHorizontal,
@@ -75,7 +74,7 @@ function isConsultationRoute(pathname: string): boolean {
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, signOut, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -96,11 +95,6 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
       router.push("/auth/verify-email");
     }
   }, [user, loading, router]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = "/auth/login";
-  };
 
   if (loading) {
     return (
@@ -163,18 +157,6 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
               <span className="text-sm text-muted-foreground hidden sm:block">
                 {user?.displayName || "Doctor"}
               </span>
-              <button
-                onClick={handleSignOut}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2",
-                  RADIUS.interactive,
-                  "border border-border text-foreground",
-                  "hover:bg-muted/50 transition-colors duration-200"
-                )}
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline text-sm font-medium">Sign Out</span>
-              </button>
             </div>
           </div>
         </div>

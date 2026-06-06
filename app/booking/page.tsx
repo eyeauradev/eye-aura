@@ -348,18 +348,21 @@ export default function BookingPage() {
       {/* Header */}
       <div className="sticky top-0 z-30 border-b border-[#0f4f4b]/8 bg-white/80 backdrop-blur-md">
         <div className="mx-auto max-w-3xl px-5 sm:px-8">
-          <div className="py-4 flex items-center gap-6">
-            <Link href="/patient/dashboard" className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b]/60 hover:text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-3 py-2 hover:border-[#0f4f4b]/40 transition-colors">
-              <ChevronLeft className="h-3.5 w-3.5" /> Back
-            </Link>
-            <div className="min-w-0">
-              <h1 className="font-display text-xl text-[#0f4f4b] leading-none">Book Consultation</h1>
-              <p className="text-xs text-[#0f4f4b]/45 mt-0.5">
-                {STEPS[state.currentStep]?.title} · Step {state.currentStep + 1} of {STEPS.length}
-              </p>
+          <div className="py-4 space-y-3">
+            {/* Top row: Back + Title */}
+            <div className="flex items-center gap-4">
+              <Link href="/patient/dashboard" className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b]/60 hover:text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-3 py-2 hover:border-[#0f4f4b]/40 transition-colors">
+                <ChevronLeft className="h-3.5 w-3.5" /> Back
+              </Link>
+              <div className="min-w-0">
+                <h1 className="font-display text-xl text-[#0f4f4b] leading-none">Book Consultation</h1>
+                <p className="text-xs text-[#0f4f4b]/45 mt-0.5">
+                  {STEPS[state.currentStep]?.title} · Step {state.currentStep + 1} of {STEPS.length}
+                </p>
+              </div>
             </div>
-            {/* Premium stepper */}
-            <div className="flex-1 flex items-center gap-0">
+            {/* Step indicator — full width row below */}
+            <div className="flex items-center gap-0">
               {STEPS.map((step, index) => (
                 <div key={step.id} className="flex items-center flex-1 last:flex-none">
                   <div className="flex flex-col items-center gap-1 shrink-0">
@@ -372,7 +375,7 @@ export default function BookingPage() {
                       {index < state.currentStep ? <Check className="h-3 w-3" /> : index + 1}
                     </div>
                     <span className={cn(
-                      "text-[9px] font-semibold hidden md:block tracking-wide uppercase",
+                      "text-[9px] font-semibold hidden sm:block tracking-wide uppercase",
                       index <= state.currentStep ? "text-[#0f4f4b]/70" : "text-[#0f4f4b]/25"
                     )}>{step.title.split(" ").slice(-1)[0]}</span>
                   </div>
