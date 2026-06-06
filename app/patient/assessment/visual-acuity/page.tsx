@@ -43,6 +43,7 @@ export default function VisualAcuityPage() {
   const [nextHref, setNextHref]           = useState<string | undefined>(undefined);
   const [nextLabel, setNextLabel]         = useState<string | undefined>(undefined);
   const [launchedNewTab, setLaunchedNewTab] = useState(false);
+  const [popupBlocked, setPopupBlocked] = useState(false);
 
   // ── Compact viewport: open new tab with ?immersive=1 ────────────────────
   useEffect(() => {
@@ -53,10 +54,31 @@ export default function VisualAcuityPage() {
     if (isCompactViewport) {
       const url = new URL(window.location.href);
       url.searchParams.set("immersive", "1");
-      window.open(url.toString(), "_blank");
-      setLaunchedNewTab(true);
+      const newWindow = window.open(url.toString(), "_blank");
+
+      // Detect popup blocked: window.open returns null when blocked
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
+        setPopupBlocked(true);
+      } else {
+        setLaunchedNewTab(true);
+      }
     }
   }, [isImmersiveMode]);
+
+  /** Manual handler when popup was blocked — user clicks to open */
+  const handleManualOpen = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("immersive", "1");
+    const newWindow = window.open(url.toString(), "_blank");
+
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
+      // Still blocked — fallback to navigating in the same window
+      window.location.href = url.toString();
+    } else {
+      setPopupBlocked(false);
+      setLaunchedNewTab(true);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -176,6 +198,38 @@ export default function VisualAcuityPage() {
         <Link
           href="/patient/assessment"
           className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to My Assessments
+        </Link>
+      </div>
+    );
+  }
+
+  // ── Popup was blocked by browser ──────────────────────────────────────────
+  if (popupBlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-5 px-4">
+        <div className="h-16 w-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center">
+          <Eye className="h-7 w-7 text-amber-600" />
+        </div>
+        <div>
+          <p className="font-bold text-foreground text-lg mb-1">Open Assessment</p>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Your browser blocked the assessment window from opening automatically. Tap the button below to start.
+          </p>
+        </div>
+        <button
+          onClick={handleManualOpen}
+          className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.97]"
+        >
+          Open Assessment Window
+        </button>
+        <p className="text-xs text-muted-foreground max-w-xs">
+          If it still doesn&apos;t open, allow pop-ups for this site in your browser settings, or the assessment will open in this tab instead.
+        </p>
+        <Link
+          href="/patient/assessment"
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary hover:underline"
         >
           <ArrowLeft className="h-4 w-4" /> Back to My Assessments
         </Link>
