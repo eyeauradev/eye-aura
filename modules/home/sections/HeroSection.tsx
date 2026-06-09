@@ -46,9 +46,9 @@ export function HeroSection({ user }: { user: any }) {
             <motion.h1 {...fadeUp(0.18)}
               className="mb-6 text-5xl font-black leading-[1.06] tracking-tight text-[#0f4f4b] sm:text-6xl lg:text-7xl"
             >
-              Eye Care Has<br />
+              Digital Clarity,<br />
               <span className="bg-gradient-to-r from-[#0f4f4b] via-[#1a6e6a] to-[#2bb8b3] bg-clip-text text-transparent">
-                Gone Digital.
+                Human Care.
               </span>
             </motion.h1>
 
@@ -107,7 +107,7 @@ export function HeroSection({ user }: { user: any }) {
             >
               <Image
                 src="/doctor_1.png"
-                alt="Harshita, Founder & Certified Optometrist at Eye Aura"
+                alt="Certified Optometrist at Eye Aura"
                 width={400}
                 height={520}
                 className="h-auto w-full object-cover object-top"
@@ -117,7 +117,7 @@ export function HeroSection({ user }: { user: any }) {
               {/* Single clean bottom card */}
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/20 bg-white/12 p-4 backdrop-blur-md">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">Certified Optometrist</p>
-                <p className="mt-1 text-lg font-bold text-white">Harshita, B.Optom</p>
+                <p className="mt-1 text-lg font-bold text-white">Dr. H., B.Optom</p>
                 <p className="mt-1 text-xs text-white/55">Founder, Eye Aura</p>
               </div>
               {/* Live indicator */}

@@ -39,7 +39,6 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
             <Image src="/eye.png" alt="Eye Aura" width={40} height={40} className="rounded-full object-contain" priority />
             <div className="leading-none">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0f4f4b]">Eye Aura</p>
-              <p className="text-[10px] tracking-wider text-[#0f4f4b]/50">by Harshita</p>
             </div>
           </Link>
 

@@ -119,7 +119,7 @@ export function FooterSection() {
 
         {/* Bottom bar */}
         <div className="flex flex-col items-center justify-between gap-4 py-6 text-xs text-white/25 sm:flex-row">
-          <p>© {new Date().getFullYear()} Eye Aura by Harshita. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Eye Aura. All rights reserved.</p>
           <div className="flex gap-5">
             {legalLinks.map((l) => (
               <a key={l.label} href={l.href} className="transition hover:text-white/50">{l.label}</a>
