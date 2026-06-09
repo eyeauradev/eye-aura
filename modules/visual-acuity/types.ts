@@ -18,7 +18,6 @@ export type TestPhase =
   | "calibration"
   | "duration_select"
   | "eye_selection"
-  | "countdown"
   | "testing"
   | "results";
 

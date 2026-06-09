@@ -10,7 +10,6 @@ import { EyeSelectionStep } from "./steps/EyeSelectionStep";
 import { TestingStep } from "./steps/TestingStep";
 import { NearTestingStep } from "./steps/NearTestingStep";
 import { ResultsStep } from "./steps/ResultsStep";
-import { CountdownStep } from "./steps/CountdownStep";
 import { AssessmentImmersiveShell, AssessmentOrientationGate } from "./immersive";
 import type {
   TestPhase,
@@ -29,7 +28,6 @@ const PHASE_LABELS: Record<TestPhase, string> = {
   calibration:     "Calibration",
   duration_select: "Duration",
   eye_selection:   "Eye Selection",
-  countdown:       "Get Ready",
   testing:         "Testing",
   results:         "Results",
 };
@@ -40,7 +38,6 @@ const PHASE_ORDER: TestPhase[] = [
   "calibration",
   "duration_select",
   "eye_selection",
-  "countdown",
   "testing",
   "results",
 ];
@@ -146,9 +143,8 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
   const handleDurationContinue = () => setPhase(testType === "far" ? "eye_selection" : "testing");
 
   const handleEyeSelected = (selectedEye: "right" | "left") => {
-    // Store the selected eye for potential future use
-    // For now, just proceed to countdown
-    setPhase("countdown");
+    // Go directly to testing — TestingShell handles the eye_intro and countdown internally
+    setPhase("testing");
   };
 
   const handleTestComplete = async (eyeResults: { right: EyeAcuityResult; left: EyeAcuityResult }) => {
@@ -317,10 +313,6 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
         <AssessmentOrientationGate>
           <EyeSelectionStep onContinue={handleEyeSelected} />
         </AssessmentOrientationGate>
-      )}
-
-      {phase === "countdown" && (
-        <CountdownStep seconds={10} onComplete={() => setPhase("testing")} />
       )}
 
       {phase === "testing" && calibration && testType === "far" && (
