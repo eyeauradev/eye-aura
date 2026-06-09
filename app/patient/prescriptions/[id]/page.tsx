@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { prescriptionsService, usersService, appointmentsService, servicesService } from "@/services/firestore";
 import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import { useToast } from "@/components/ui/toast-provider";
-import { User, ArrowLeft, Download, Printer, CheckCircle, Eye } from "lucide-react";
+import { User, ArrowLeft, Download, Printer, CheckCircle, Eye, Home, LayoutDashboard } from "lucide-react";
 import {
   DashboardCard,
   PremiumButton,
@@ -89,9 +89,24 @@ export default function PrescriptionDetailPage() {
       <div className="flex items-center justify-center py-32 px-4">
         <GlassPanel padding="lg" className="text-center max-w-sm">
           <p className="text-muted-foreground mb-4">Prescription not found</p>
-          <Link href="/patient/prescriptions">
-            <PremiumButton>View Prescriptions</PremiumButton>
-          </Link>
+          <div className="flex flex-col gap-3">
+            <Link href="/patient/prescriptions">
+              <PremiumButton>View Prescriptions</PremiumButton>
+            </Link>
+            {user ? (
+              <Link href="/patient">
+                <PremiumButton variant="outline" size="sm" icon={<LayoutDashboard className="h-4 w-4" />}>
+                  Go to Dashboard
+                </PremiumButton>
+              </Link>
+            ) : (
+              <Link href="/">
+                <PremiumButton variant="outline" size="sm" icon={<Home className="h-4 w-4" />}>
+                  Go to Home
+                </PremiumButton>
+              </Link>
+            )}
+          </div>
         </GlassPanel>
       </div>
     );
@@ -217,85 +232,101 @@ export default function PrescriptionDetailPage() {
       </DashboardCard>
 
       {/* Medications */}
-      {prescription.medications?.length > 0 && (
+      {prescription.medications && (Array.isArray(prescription.medications) ? prescription.medications.length > 0 : prescription.medications.trim().length > 0) && (
         <DashboardCard disableHover staggerIndex={2}>
           <SectionHeader title="Medications" className="mt-0 mb-4" />
-          <div className="space-y-3">
-            {prescription.medications.map((med: any, i: number) => (
-              <div key={i} className="flex gap-4 p-4 rounded-2xl bg-accent/15">
-                <div className="h-8 w-8 shrink-0 rounded-xl bg-primary grid place-items-center text-primary-foreground text-xs font-bold">{i + 1}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground text-sm mb-1.5">{med.name}</p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    {med.dosage    && <span><span className="font-medium text-foreground/70">Dosage:</span> {med.dosage}</span>}
-                    {med.frequency && <span><span className="font-medium text-foreground/70">Frequency:</span> {med.frequency}</span>}
-                    {med.duration  && <span><span className="font-medium text-foreground/70">Duration:</span> {med.duration}</span>}
+          {Array.isArray(prescription.medications) ? (
+            <div className="space-y-3">
+              {prescription.medications.map((med: any, i: number) => (
+                <div key={i} className="flex gap-4 p-4 rounded-2xl bg-accent/15">
+                  <div className="h-8 w-8 shrink-0 rounded-xl bg-primary grid place-items-center text-primary-foreground text-xs font-bold">{i + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm mb-1.5">{med.name}</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      {med.dosage    && <span><span className="font-medium text-foreground/70">Dosage:</span> {med.dosage}</span>}
+                      {med.frequency && <span><span className="font-medium text-foreground/70">Frequency:</span> {med.frequency}</span>}
+                      {med.duration  && <span><span className="font-medium text-foreground/70">Duration:</span> {med.duration}</span>}
+                    </div>
+                    {med.instructions && <p className="text-xs text-muted-foreground mt-1.5 italic">{med.instructions}</p>}
                   </div>
-                  {med.instructions && <p className="text-xs text-muted-foreground mt-1.5 italic">{med.instructions}</p>}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-foreground leading-relaxed">{prescription.medications}</p>
+          )}
         </DashboardCard>
       )}
 
       {/* Eye Drops */}
-      {prescription.eyeDrops?.length > 0 && (
+      {prescription.eyeDrops && (Array.isArray(prescription.eyeDrops) ? prescription.eyeDrops.length > 0 : prescription.eyeDrops.trim().length > 0) && (
         <DashboardCard disableHover staggerIndex={3}>
           <SectionHeader title="Eye Drops" className="mt-0 mb-4" />
-          <div className="space-y-3">
-            {prescription.eyeDrops.map((drop: any, i: number) => (
-              <div key={i} className="flex gap-4 p-4 rounded-2xl bg-secondary/8">
-                <div className="h-8 w-8 shrink-0 rounded-xl bg-secondary grid place-items-center text-secondary-foreground text-xs font-bold">{i + 1}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground text-sm mb-1.5">{drop.name}</p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    {drop.dosage    && <span><span className="font-medium text-foreground/70">Dosage:</span> {drop.dosage}</span>}
-                    {drop.frequency && <span><span className="font-medium text-foreground/70">Frequency:</span> {drop.frequency}</span>}
-                    {drop.duration  && <span><span className="font-medium text-foreground/70">Duration:</span> {drop.duration}</span>}
+          {Array.isArray(prescription.eyeDrops) ? (
+            <div className="space-y-3">
+              {prescription.eyeDrops.map((drop: any, i: number) => (
+                <div key={i} className="flex gap-4 p-4 rounded-2xl bg-secondary/8">
+                  <div className="h-8 w-8 shrink-0 rounded-xl bg-secondary grid place-items-center text-secondary-foreground text-xs font-bold">{i + 1}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm mb-1.5">{drop.name}</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      {drop.dosage    && <span><span className="font-medium text-foreground/70">Dosage:</span> {drop.dosage}</span>}
+                      {drop.frequency && <span><span className="font-medium text-foreground/70">Frequency:</span> {drop.frequency}</span>}
+                      {drop.duration  && <span><span className="font-medium text-foreground/70">Duration:</span> {drop.duration}</span>}
+                    </div>
+                    {drop.instructions && <p className="text-xs text-muted-foreground mt-1.5 italic">{drop.instructions}</p>}
                   </div>
-                  {drop.instructions && <p className="text-xs text-muted-foreground mt-1.5 italic">{drop.instructions}</p>}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-foreground leading-relaxed">{prescription.eyeDrops}</p>
+          )}
         </DashboardCard>
       )}
 
       {/* Recommendations */}
-      {prescription.recommendations?.length > 0 && (
+      {prescription.recommendations && (Array.isArray(prescription.recommendations) ? prescription.recommendations.length > 0 : prescription.recommendations.trim().length > 0) && (
         <DashboardCard disableHover staggerIndex={4}>
           <SectionHeader title="Recommendations" className="mt-0 mb-4" />
-          <ul className="space-y-2.5">
-            {prescription.recommendations.map((rec: string, i: number) => (
-              <li key={i} className="flex items-start gap-3 text-sm text-foreground">
-                <CheckCircle className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
-                {rec}
-              </li>
-            ))}
-          </ul>
+          {Array.isArray(prescription.recommendations) ? (
+            <ul className="space-y-2.5">
+              {prescription.recommendations.map((rec: string, i: number) => (
+                <li key={i} className="flex items-start gap-3 text-sm text-foreground">
+                  <CheckCircle className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
+                  {rec}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-foreground leading-relaxed">{prescription.recommendations}</p>
+          )}
         </DashboardCard>
       )}
 
       {/* Exercises */}
-      {prescription.exercises?.length > 0 && (
+      {prescription.exercises && (Array.isArray(prescription.exercises) ? prescription.exercises.length > 0 : prescription.exercises.trim().length > 0) && (
         <DashboardCard disableHover staggerIndex={5}>
           <SectionHeader title="Eye Exercises" className="mt-0 mb-4" />
-          <div className="space-y-3">
-            {prescription.exercises.map((ex: any, i: number) => (
-              <div key={i} className="p-4 rounded-2xl bg-accent/15">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <p className="font-semibold text-foreground text-sm">{ex.name}</p>
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
-                    {ex.frequency && <span>{ex.frequency}</span>}
-                    {ex.frequency && ex.duration && <span>·</span>}
-                    {ex.duration  && <span>{ex.duration}</span>}
+          {Array.isArray(prescription.exercises) ? (
+            <div className="space-y-3">
+              {prescription.exercises.map((ex: any, i: number) => (
+                <div key={i} className="p-4 rounded-2xl bg-accent/15">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <p className="font-semibold text-foreground text-sm">{ex.name}</p>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
+                      {ex.frequency && <span>{ex.frequency}</span>}
+                      {ex.frequency && ex.duration && <span>·</span>}
+                      {ex.duration  && <span>{ex.duration}</span>}
+                    </div>
                   </div>
+                  {ex.description && <p className="text-xs text-muted-foreground leading-relaxed">{ex.description}</p>}
                 </div>
-                {ex.description && <p className="text-xs text-muted-foreground leading-relaxed">{ex.description}</p>}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-foreground leading-relaxed">{prescription.exercises}</p>
+          )}
         </DashboardCard>
       )}
 
@@ -334,6 +365,23 @@ export default function PrescriptionDetailPage() {
           <PremiumButton variant="outline" size="sm">Contact Support</PremiumButton>
         </Link>
       </GlassPanel>
+
+      {/* Navigation — Dashboard or Home */}
+      <div className="flex justify-center pt-2 pb-4">
+        {user ? (
+          <Link href="/patient">
+            <PremiumButton variant="outline" size="sm" icon={<LayoutDashboard className="h-4 w-4" />}>
+              Go to Dashboard
+            </PremiumButton>
+          </Link>
+        ) : (
+          <Link href="/">
+            <PremiumButton variant="outline" size="sm" icon={<Home className="h-4 w-4" />}>
+              Go to Home
+            </PremiumButton>
+          </Link>
+        )}
+      </div>
 
     </div>
   );

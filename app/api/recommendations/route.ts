@@ -112,12 +112,16 @@ export async function GET(req: NextRequest) {
       nextCursor,
     });
   } catch (error: any) {
-    console.error("[recommendations/list] Error:", error.message);
+    console.error("[recommendations/list] Error:", error.message, error.code || "", error.stack || "");
     if (error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     if (error.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    // Surface index errors clearly
+    if (error.code === 9 || error.message?.includes("index")) {
+      return NextResponse.json({ error: "Query requires a composite index. Please deploy Firestore indexes." }, { status: 500 });
     }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
