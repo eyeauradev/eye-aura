@@ -56,7 +56,7 @@ export function EyeSelectionStep({ onContinue }: EyeSelectionStepProps) {
         <button
           onClick={() => handleEyeSelect("right")}
           className={cn(
-            "flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all",
+            "flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all h-[160px]",
             selectedEye === "right"
               ? "border-primary bg-primary/8 shadow-lg"
               : "border-border bg-card/50 hover:border-primary/50 hover:bg-card"
@@ -72,15 +72,17 @@ export function EyeSelectionStep({ onContinue }: EyeSelectionStepProps) {
           </div>
           <span className="text-sm font-semibold text-foreground">Right Eye</span>
           <span className="text-xs text-muted-foreground mt-1">Test first</span>
-          {selectedEye === "right" && (
-            <CheckCircle2 className="h-5 w-5 text-primary mt-2" />
-          )}
+          <div className="h-5 mt-2">
+            {selectedEye === "right" && (
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+            )}
+          </div>
         </button>
 
         <button
           onClick={() => handleEyeSelect("left")}
           className={cn(
-            "flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all",
+            "flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all h-[160px]",
             selectedEye === "left"
               ? "border-primary bg-primary/8 shadow-lg"
               : "border-border bg-card/50 hover:border-primary/50 hover:bg-card"
@@ -96,9 +98,11 @@ export function EyeSelectionStep({ onContinue }: EyeSelectionStepProps) {
           </div>
           <span className="text-sm font-semibold text-foreground">Left Eye</span>
           <span className="text-xs text-muted-foreground mt-1">Test first</span>
-          {selectedEye === "left" && (
-            <CheckCircle2 className="h-5 w-5 text-primary mt-2" />
-          )}
+          <div className="h-5 mt-2">
+            {selectedEye === "left" && (
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+            )}
+          </div>
         </button>
       </div>
 
