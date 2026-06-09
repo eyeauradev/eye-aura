@@ -52,7 +52,7 @@ export function FounderStory() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a1c1b]/50 via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6 rounded-2xl border border-white/20 bg-white/12 px-5 py-3 backdrop-blur-md">
-                <p className="text-sm font-bold text-white">Harshita</p>
+                <p className="text-sm font-bold text-white">Dr. Harshita</p>
                 <p className="text-xs text-white/65">Founder & Optometrist, Eye Aura</p>
               </div>
             </div>
