@@ -427,14 +427,6 @@ export default function DoctorDashboard() {
                 key={patient.patientId}
                 patient={patient}
                 doctorId={user!.id}
-                onRecommendService={(pid) => {
-                  setSelectedPatientId(pid);
-                  setShowRecommendDialog(true);
-                }}
-                onAssignAssessment={(pid) => {
-                  setSelectedPatientId(pid);
-                  setShowAssessmentDialog(true);
-                }}
               />
             ))}
           </motion.div>
