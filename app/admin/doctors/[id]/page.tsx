@@ -296,7 +296,7 @@ function DisplayNameEditor({ doctor, onUpdate }: { doctor: UserDocument; onUpdat
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Dr. Harshita Sharma"
+          placeholder="Dr. Harshita"
           className="h-9"
           autoFocus
           onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
