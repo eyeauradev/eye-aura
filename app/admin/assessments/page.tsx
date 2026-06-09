@@ -10,6 +10,7 @@ import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
+import { AVAILABLE_ASSESSMENT_TYPES, getAssessmentLabel } from "@/lib/assessment-type-mapping";
 
 export default function AdminAssessmentsPage() {
   const { user } = useAuth();
@@ -191,18 +192,22 @@ export default function AdminAssessmentsPage() {
             <div>
               <label className="text-xs font-semibold text-[#0f4f4b]/60 mb-1.5 block">Assessment Types</label>
               <div className="flex gap-2">
-                {([["far", Eye, "Far Vision"], ["near", BookOpen, "Near Vision"]] as const).map(([t, Icon, label]) => (
+                {AVAILABLE_ASSESSMENT_TYPES.map(({ value, label }) => (
                   <button
-                    key={t}
-                    onClick={() => toggleType(t)}
+                    key={value}
+                    onClick={() => toggleType(value)}
                     className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${
-                      types.includes(t)
+                      types.includes(value)
                         ? "border-[#0f4f4b] bg-[#0f4f4b]/6"
                         : "border-[#0f4f4b]/15 bg-white hover:border-[#0f4f4b]/25"
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${types.includes(t) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/35"}`} />
-                    <span className={`text-xs font-semibold ${types.includes(t) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/45"}`}>{label}</span>
+                    {value === "far" ? (
+                      <Eye className={`h-4 w-4 ${types.includes(value) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/35"}`} />
+                    ) : (
+                      <BookOpen className={`h-4 w-4 ${types.includes(value) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/35"}`} />
+                    )}
+                    <span className={`text-xs font-semibold ${types.includes(value) ? "text-[#0f4f4b]" : "text-[#0f4f4b]/45"}`}>{label}</span>
                   </button>
                 ))}
               </div>
@@ -255,7 +260,7 @@ export default function AdminAssessmentsPage() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-[#0f4f4b] truncate">
-                          {a.assessmentTypes.map((t) => t === "far" ? "Far" : "Near").join(" + ")} Vision
+                          {a.assessmentTypes.map((t) => getAssessmentLabel(t)).join(" + ")}
                         </p>
                         <p className="text-[10px] text-[#0f4f4b]/45 truncate">
                           Patient: {a.patientId.slice(0, 8)}...

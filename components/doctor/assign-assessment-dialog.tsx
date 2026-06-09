@@ -10,16 +10,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { TYPOGRAPHY, RADIUS } from "@/lib/design-tokens";
 import {
-  mapExtendedToVisionType,
-  type ExtendedAssessmentType,
+  AVAILABLE_ASSESSMENT_TYPES,
 } from "@/lib/assessment-type-mapping";
+import type { VisionAssessmentType } from "@/types/firestore";
 import {
   ClipboardCheck,
   Calendar,
   Clock,
   Send,
   X,
-  Loader2,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -33,40 +32,6 @@ interface AssignAssessmentDialogProps {
   doctorId: string;
   appointmentId?: string;
 }
-
-// ─── Assessment Options ───────────────────────────────────────────────────────
-
-const ASSESSMENT_OPTIONS: {
-  label: string;
-  value: ExtendedAssessmentType;
-  description: string;
-}[] = [
-  {
-    label: "Distance Visual Acuity",
-    value: "distance_visual_acuity",
-    description: "Standard distance vision test",
-  },
-  {
-    label: "Near Vision",
-    value: "near_vision",
-    description: "Close-range reading ability",
-  },
-  {
-    label: "Color Vision",
-    value: "color_vision",
-    description: "Color perception evaluation",
-  },
-  {
-    label: "Contrast Sensitivity",
-    value: "contrast_sensitivity",
-    description: "Low-contrast detection ability",
-  },
-  {
-    label: "Custom",
-    value: "custom",
-    description: "Custom assessment type",
-  },
-];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -125,7 +90,7 @@ function AssignAssessmentForm({
 }: AssignAssessmentFormProps) {
   // Form state
   const [assessmentType, setAssessmentType] =
-    useState<ExtendedAssessmentType | "">("");
+    useState<VisionAssessmentType | "">("");
   const [timing, setTiming] = useState<AssignmentTiming>("now");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
@@ -197,14 +162,10 @@ function AssignAssessmentForm({
       const idToken = await currentUser.getIdToken();
 
       // Build the request body
-      const mappedType = mapExtendedToVisionType(
-        assessmentType as ExtendedAssessmentType
-      );
-
       const body: Record<string, unknown> = {
         patientId,
         doctorId,
-        assessmentTypes: [mappedType],
+        assessmentTypes: [assessmentType],
         assignmentTiming: timing,
         instructions: instructions.trim() || undefined,
       };
@@ -255,7 +216,7 @@ function AssignAssessmentForm({
             Assessment Type
           </Label>
           <div className="grid gap-2">
-            {ASSESSMENT_OPTIONS.map((option) => (
+            {AVAILABLE_ASSESSMENT_TYPES.map((option) => (
               <button
                 key={option.value}
                 type="button"

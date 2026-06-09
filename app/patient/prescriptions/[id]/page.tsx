@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { prescriptionsService, usersService, appointmentsService, servicesService } from "@/services/firestore";
 import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import { useToast } from "@/components/ui/toast-provider";
-import { User, ArrowLeft, Download, Printer, CheckCircle, Eye, Home, LayoutDashboard } from "lucide-react";
+import { User, ArrowLeft, Download, CheckCircle, Eye, Home, LayoutDashboard } from "lucide-react";
 import {
   DashboardCard,
   PremiumButton,
@@ -65,10 +65,6 @@ export default function PrescriptionDetailPage() {
     loadPrescription();
   }, [params.id, user, router]);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const handleDownload = () => {
     router.push(`/prescriptions/${prescription?.id}/pdf`);
   };
@@ -125,9 +121,6 @@ export default function PrescriptionDetailPage() {
           Back to Prescriptions
         </Link>
         <div className="flex gap-2">
-          <PremiumButton variant="outline" size="sm" onClick={handlePrint} icon={<Printer className="h-4 w-4" />}>
-            Print
-          </PremiumButton>
           <PremiumButton size="sm" onClick={handleDownload} icon={<Download className="h-4 w-4" />}>
             Download PDF
           </PremiumButton>

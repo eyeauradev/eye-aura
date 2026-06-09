@@ -16,6 +16,7 @@ import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
 import type { ServiceDocument, UserDocument, VisionAssessmentType, ServiceAssessmentAutomation } from "@/types/firestore";
+import { AVAILABLE_ASSESSMENT_TYPES, getAssessmentLabel } from "@/lib/assessment-type-mapping";
 
 export default function AdminServiceEditPage() {
   const params = useParams();
@@ -315,9 +316,8 @@ export default function AdminServiceEditPage() {
                   <div className="space-y-2 pt-1">
                     <p className="text-xs font-semibold text-[#0f4f4b]/55">Which test(s) to assign automatically?</p>
                     <div className="flex gap-2">
-                      {(["far", "near"] as VisionAssessmentType[]).map((t) => {
+                      {AVAILABLE_ASSESSMENT_TYPES.map(({ value: t, label }) => {
                         const Icon = t === "far" ? Eye : BookOpen;
-                        const label = t === "far" ? "Far Vision" : "Near Vision";
                         const active = automation.assessmentTypes.includes(t);
                         return (
                           <div
