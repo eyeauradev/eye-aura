@@ -12,6 +12,7 @@ import { SnellenRenderer } from "../SnellenRenderer";
 import { useAssessmentProgress } from "../engine/useAssessmentProgress";
 import { useCalibrationSync } from "../engine/useCalibrationSync";
 import { useLetterTimer } from "../engine/useLetterTimer";
+import { CountdownStep } from "./CountdownStep";
 // Note: Timer ring constants (RING_SIZE, ARC_R, ARC_C) removed — timer UI
 // now rendered by parent ImmersiveTopBar via AssessmentImmersiveShell.
 import type {
@@ -56,7 +57,7 @@ export interface TestingShellProps {
 
 // ─── Internal ──────────────────────────────────────────────────────────────
 
-type EyePhase = "eye_intro" | "reading" | "self_report";
+type EyePhase = "eye_intro" | "countdown" | "reading" | "self_report";
 
 // Timer ring geometry removed — timer display now handled by ImmersiveTopBar.
 // Hook outputs (timer.remainingSeconds, timer.elapsedFraction, etc.) still
@@ -148,6 +149,10 @@ export function TestingShell({
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleEyeBegin = useCallback(() => {
+    setEyePhase("countdown");
+  }, []);
+
+  const handleCountdownComplete = useCallback(() => {
     setEyePhase("reading");
     timer.start();
   }, [timer]);
@@ -186,6 +191,12 @@ export function TestingShell({
         accent={accent}
         onBegin={handleEyeBegin}
       />
+    );
+  }
+
+  if (eyePhase === "countdown") {
+    return (
+      <CountdownStep seconds={10} onComplete={handleCountdownComplete} />
     );
   }
 
