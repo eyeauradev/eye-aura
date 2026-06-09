@@ -3,124 +3,86 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
-import { prescriptionsService, appointmentsService, usersService } from "@/services/firestore";
-import type { PrescriptionDocument, AppointmentDocument, UserDocument } from "@/types/firestore";
-import { ArrowLeft, Eye, Download, Share2, Calendar, User, FileText, Edit2 } from "lucide-react";
+import { prescriptionsService, usersService } from "@/services/firestore";
+import type { PrescriptionDocument, UserDocument, PrescriptionHistoryEntry } from "@/types/firestore";
+import { ArrowLeft, Download, Share2, Clock } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
 import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import { useToast } from "@/components/ui/toast-provider";
-import { EditHistory } from "@/components/prescription/EditHistory";
-
 import Link from "next/link";
 
-export default function DoctorPrescriptionDetailPage() {
+export default function HistoricalPrescriptionPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const { errorFromAppError } = useToast();
   const [loading, setLoading] = useState(true);
   const [prescription, setPrescription] = useState<PrescriptionDocument | null>(null);
-  const [appointment, setAppointment] = useState<AppointmentDocument | null>(null);
+  const [historyEntry, setHistoryEntry] = useState<PrescriptionHistoryEntry | null>(null);
   const [patient, setPatient] = useState<UserDocument | null>(null);
-  const [doctors, setDoctors] = useState<Map<string, UserDocument>>(new Map());
+  const [doctor, setDoctor] = useState<UserDocument | null>(null);
 
   useEffect(() => {
-    async function loadPrescription() {
-      if (!params.id) return;
+    async function loadHistoricalPrescription() {
+      if (!params.id || !params.historyIndex) return;
 
       try {
         setLoading(true);
         const rx = await prescriptionsService.getById(params.id as string);
+        
+        if (!rx) {
+          throw new Error("Prescription not found");
+        }
+
         setPrescription(rx);
 
-        if (rx) {
-          // Load appointment
-          if (rx.appointmentId) {
-            const apt = await appointmentsService.getById(rx.appointmentId);
-            setAppointment(apt);
+        // Get the history entry (remember: history is stored oldest first, but we display newest first)
+        const historyIndex = parseInt(params.historyIndex as string);
+        if (rx.history && rx.history.length > 0) {
+          // Reverse to match the display order (newest first)
+          const reversedHistory = [...rx.history].reverse();
+          const entry = reversedHistory[historyIndex];
+          
+          if (!entry) {
+            throw new Error("History entry not found");
           }
+
+          setHistoryEntry(entry);
 
           // Load patient
           const pat = await usersService.getById(rx.patientId);
           setPatient(pat);
 
-          // Debug: Log prescription history status
-          console.log('[EditHistory Debug] Prescription history:', {
-            hasHistory: !!rx.history,
-            historyLength: rx.history?.length || 0,
-            historyEntries: rx.history,
-          });
-
-          // Load doctor details for all history entries
-          if (rx.history && rx.history.length > 0) {
-            const doctorIds = new Set<string>();
-            
-            // Collect all unique doctor IDs from history
-            rx.history.forEach((entry) => {
-              if (entry.savedBy) {
-                doctorIds.add(entry.savedBy);
-              }
-            });
-
-            // Add the prescription's doctor ID
-            if (rx.doctorId) {
-              doctorIds.add(rx.doctorId);
-            }
-
-            // Load all doctors in parallel
-            const doctorPromises = Array.from(doctorIds).map(async (doctorId) => {
-              try {
-                const doc = await usersService.getById(doctorId);
-                return { doctorId, doc };
-              } catch (error) {
-                console.error(`Failed to load doctor ${doctorId}:`, error);
-                return null;
-              }
-            });
-
-            const doctorResults = await Promise.all(doctorPromises);
-            
-            // Build the doctors map
-            const doctorsMap = new Map<string, UserDocument>();
-            doctorResults.forEach((result) => {
-              if (result && result.doc) {
-                doctorsMap.set(result.doctorId, result.doc);
-              }
-            });
-            
-            console.log('[EditHistory Debug] Loaded doctors:', doctorsMap.size, 'doctors');
-            setDoctors(doctorsMap);
+          // Load doctor who saved this version
+          if (entry.savedBy) {
+            const doc = await usersService.getById(entry.savedBy);
+            setDoctor(doc);
           }
+        } else {
+          throw new Error("No history available for this prescription");
         }
       } catch (error) {
         const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
-        logError(appError.code, error, "PrescriptionModule");
+        logError(appError.code, error, "HistoricalPrescriptionPage");
         errorFromAppError(appError);
       } finally {
         setLoading(false);
       }
     }
 
-    loadPrescription();
-  }, [params.id]);
+    loadHistoricalPrescription();
+  }, [params.id, params.historyIndex]);
 
   const handleExportPDF = () => {
-    if (!prescription) return;
-    router.push(`/prescriptions/${prescription.id}/pdf`);
-  };
-
-  const handleExportPNG = () => {
-    // TODO: Implement PNG export
-    alert("PNG export will be implemented with html2canvas or similar");
+    window.print();
   };
 
   const handleShare = async () => {
     if (!prescription) return;
-    // TODO: Implement shareable link generation
-    const shareUrl = `${window.location.origin}/prescriptions/${prescription.id}`;
+    const shareUrl = `${window.location.origin}/doctor/prescriptions/${prescription.id}/history/${params.historyIndex}`;
     await navigator.clipboard.writeText(shareUrl);
     alert("Shareable link copied to clipboard");
   };
@@ -130,18 +92,18 @@ export default function DoctorPrescriptionDetailPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading prescription...</p>
+          <p className="text-muted-foreground">Loading historical prescription...</p>
         </div>
       </div>
     );
   }
 
-  if (!prescription) {
+  if (!prescription || !historyEntry) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="border-primary/10 bg-primary/5">
           <CardContent className="p-12 text-center">
-            <p className="text-lg text-muted-foreground">Prescription not found</p>
+            <p className="text-lg text-muted-foreground">Historical prescription not found</p>
             <Link href="/doctor/prescriptions">
               <PremiumButton variant="outline" icon={<ArrowLeft className="h-4 w-4" />}>
                 Back to Prescriptions
@@ -153,31 +115,44 @@ export default function DoctorPrescriptionDetailPage() {
     );
   }
 
+  const data = historyEntry.data as any;
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between print:hidden">
         <div>
-          <Link href="/doctor/appointments">
+          <Link href={`/doctor/prescriptions/${prescription.id}`}>
             <PremiumButton variant="ghost" className="mb-4" icon={<ArrowLeft className="h-4 w-4" />}>
-              Back to Appointments
+              Back to Current Prescription
             </PremiumButton>
           </Link>
-          <h1 className={TYPOGRAPHY.heading}>Prescription Details</h1>
+          <div className="flex items-center gap-3">
+            <h1 className={TYPOGRAPHY.heading}>Historical Prescription</h1>
+            <Badge className="flex items-center gap-1 bg-secondary/10 text-secondary">
+              <Clock className="h-3 w-3" />
+              {new Date(historyEntry.savedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground">
-            {patient?.displayName || "Patient"} • {new Date(prescription.createdAt).toLocaleDateString("en-US", {
+            {patient?.displayName || "Patient"} • Saved on {new Date(historyEntry.savedAt).toLocaleDateString("en-US", {
               month: "long",
               day: "numeric",
               year: "numeric",
+            })} at {new Date(historyEntry.savedAt).toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
             })}
           </p>
         </div>
         <div className="flex gap-3">
           <PremiumButton onClick={handleExportPDF} variant="outline" icon={<Download className="h-4 w-4" />}>
             Export PDF
-          </PremiumButton>
-          <PremiumButton onClick={handleExportPNG} variant="outline" icon={<Download className="h-4 w-4" />}>
-            Export PNG
           </PremiumButton>
           <PremiumButton onClick={handleShare} variant="outline" icon={<Share2 className="h-4 w-4" />}>
             Share
@@ -186,70 +161,25 @@ export default function DoctorPrescriptionDetailPage() {
       </div>
 
       {/* Prescription Display */}
-      
-        <Card className="border-primary/10 bg-white">
-          <CardContent className="p-4 sm:p-8">
-            <PrescriptionDisplay prescription={prescription} patient={patient} doctor={user} appointment={appointment} />
-          </CardContent>
-        </Card>
-      
-
-      {/* Edit History - Only visible to doctors and admins */}
-      {prescription.history && prescription.history.length > 0 ? (
-        <EditHistory history={prescription.history} doctors={doctors} prescriptionId={prescription.id} />
-      ) : (
-        <Card className="border-primary/10">
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground text-center">
-              No edit history available. This prescription has not been edited yet.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Actions */}
-      
-        <Card className="border-primary/10">
-          <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="text-lg">Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {appointment && (
-              <Link href={`/doctor/appointments/${appointment.id}`} className="block">
-                <PremiumButton variant="outline" fullWidth icon={<Calendar className="h-4 w-4" />}>
-                  View Related Appointment
-                </PremiumButton>
-              </Link>
-            )}
-            {patient && (
-              <Link href={`/doctor/patients/${patient.id}`} className="block">
-                <PremiumButton variant="outline" fullWidth icon={<User className="h-4 w-4" />}>
-                  View Patient History
-                </PremiumButton>
-              </Link>
-            )}
-            <Link href={`/doctor/prescriptions/${prescription.id}/edit`} className="block">
-              <PremiumButton variant="outline" fullWidth icon={<Edit2 className="h-4 w-4" />}>
-                Edit Prescription
-              </PremiumButton>
-            </Link>
-          </CardContent>
-        </Card>
-      
+      <Card className="border-primary/10 bg-white">
+        <CardContent className="p-4 sm:p-8">
+          <PrescriptionDisplay data={data} patient={patient} doctor={doctor} savedAt={historyEntry.savedAt} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 function PrescriptionDisplay({ 
-  prescription, 
+  data, 
   patient, 
-  doctor, 
-  appointment 
+  doctor,
+  savedAt,
 }: { 
-  prescription: PrescriptionDocument; 
+  data: any; 
   patient: UserDocument | null; 
-  doctor: any; 
-  appointment: AppointmentDocument | null; 
+  doctor: UserDocument | null;
+  savedAt: Date;
 }) {
   return (
     <div className="border border-primary/10 rounded-xl p-8 bg-gradient-to-br from-[#F7F4EF] to-[#DDE5DF]">
@@ -265,7 +195,9 @@ function PrescriptionDisplay({
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">Date: {new Date(prescription.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
+          <p className="text-sm text-muted-foreground">
+            Date: {new Date(savedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+          </p>
           <p className="text-sm text-muted-foreground">Dr. {doctor?.displayName || "Doctor"}</p>
         </div>
       </div>
@@ -275,9 +207,6 @@ function PrescriptionDisplay({
         <p className="text-sm text-muted-foreground">Patient: {patient?.displayName || "N/A"}</p>
         {patient?.email && <p className="text-sm text-muted-foreground">{patient.email}</p>}
         {patient?.phoneNumber && <p className="text-sm text-muted-foreground">{patient.phoneNumber}</p>}
-        {appointment && (
-          <p className="text-sm text-muted-foreground">Consultation: {new Date(appointment.scheduledFor).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
-        )}
       </div>
 
       {/* Eye Examination Results */}
@@ -289,19 +218,19 @@ function PrescriptionDisplay({
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">SPH:</span>
-                <span>{prescription.rightEye.sph || "-"}</span>
+                <span>{data.rightEye?.sph || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">CYL:</span>
-                <span>{prescription.rightEye.cyl || "-"}</span>
+                <span>{data.rightEye?.cyl || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">AXIS:</span>
-                <span>{prescription.rightEye.axis || "-"}</span>
+                <span>{data.rightEye?.axis || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">VA:</span>
-                <span>{prescription.rightEye.va || "-"}</span>
+                <span>{data.rightEye?.va || "-"}</span>
               </div>
             </div>
           </div>
@@ -310,96 +239,96 @@ function PrescriptionDisplay({
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">SPH:</span>
-                <span>{prescription.leftEye.sph || "-"}</span>
+                <span>{data.leftEye?.sph || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">CYL:</span>
-                <span>{prescription.leftEye.cyl || "-"}</span>
+                <span>{data.leftEye?.cyl || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">AXIS:</span>
-                <span>{prescription.leftEye.axis || "-"}</span>
+                <span>{data.leftEye?.axis || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">VA:</span>
-                <span>{prescription.leftEye.va || "-"}</span>
+                <span>{data.leftEye?.va || "-"}</span>
               </div>
             </div>
           </div>
         </div>
-        {prescription.pd && (
+        {data.pd && (
           <div className="mt-4">
-            <p className="text-sm"><span className="text-muted-foreground">PD:</span> {prescription.pd}</p>
+            <p className="text-sm"><span className="text-muted-foreground">PD:</span> {data.pd}</p>
           </div>
         )}
       </div>
 
       {/* Findings & Diagnosis */}
-      {(prescription.findings || prescription.diagnosis) && (
+      {(data.findings || data.diagnosis) && (
         <div className="mb-6 pb-6 border-b border-primary/10">
           <h3 className="font-display text-lg text-primary mb-4">Findings & Diagnosis</h3>
-          {prescription.findings && (
+          {data.findings && (
             <div className="mb-3">
               <p className="text-sm font-medium text-primary mb-1">Findings:</p>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.findings}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{data.findings}</p>
             </div>
           )}
-          {prescription.diagnosis && (
+          {data.diagnosis && (
             <div>
               <p className="text-sm font-medium text-primary mb-1">Diagnosis:</p>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.diagnosis}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{data.diagnosis}</p>
             </div>
           )}
         </div>
       )}
 
       {/* Medications */}
-      {prescription.medications && (
+      {data.medications && (
         <div className="mb-6 pb-6 border-b border-primary/10">
           <h3 className="font-display text-lg text-primary mb-4">Medications</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.medications}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{data.medications}</p>
         </div>
       )}
 
       {/* Eye Drops */}
-      {prescription.eyeDrops && (
+      {data.eyeDrops && (
         <div className="mb-6 pb-6 border-b border-primary/10">
           <h3 className="font-display text-lg text-primary mb-4">Eye Drops</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.eyeDrops}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{data.eyeDrops}</p>
         </div>
       )}
 
       {/* Exercises */}
-      {prescription.exercises && (
+      {data.exercises && (
         <div className="mb-6 pb-6 border-b border-primary/10">
           <h3 className="font-display text-lg text-primary mb-4">Exercises</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.exercises}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{data.exercises}</p>
         </div>
       )}
 
       {/* Recommendations */}
-      {prescription.recommendations && (
+      {data.recommendations && (
         <div className="mb-6 pb-6 border-b border-primary/10">
           <h3 className="font-display text-lg text-primary mb-4">Recommendations</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.recommendations}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{data.recommendations}</p>
         </div>
       )}
 
       {/* Consultation Notes */}
-      {prescription.consultationNotes && (
+      {data.consultationNotes && (
         <div className="mb-6">
           <h3 className="font-display text-lg text-primary mb-4">Consultation Notes</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{prescription.consultationNotes}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{data.consultationNotes}</p>
         </div>
       )}
 
       {/* Follow-Up */}
-      {prescription.followUpRequired && prescription.followUpDate && (
+      {data.followUpRequired && data.followUpDate && (
         <div className="mt-6 pt-6 border-t border-primary/10">
           <div className="flex items-center gap-2 text-secondary">
-            <Eye className="h-4 w-4" />
+            <Clock className="h-4 w-4" />
             <p className="text-sm font-medium">
-              Follow-up Required: {new Date(prescription.followUpDate).toLocaleDateString("en-US", {
+              Follow-up Required: {new Date(data.followUpDate).toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",
                 year: "numeric",

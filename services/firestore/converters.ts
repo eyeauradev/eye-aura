@@ -203,6 +203,11 @@ export const prescriptionConverter = {
     followUpDate: prescription.followUpDate ? toTimestamp(prescription.followUpDate) : null,
     createdAt: toTimestamp(prescription.createdAt),
     updatedAt: toTimestamp(prescription.updatedAt),
+    history: prescription.history?.map((entry) => ({
+      savedAt: toTimestamp(entry.savedAt),
+      savedBy: entry.savedBy,
+      data: entry.data,
+    })),
   }),
   fromFirestore: (snapshot: QueryDocumentSnapshot): PrescriptionDocument => {
     const d = snapshot.data();
@@ -230,6 +235,11 @@ export const prescriptionConverter = {
       followUpRequired: d.followUpRequired || false,
       followUpDate: d.followUpDate?.toDate(),
       consultationNotes: d.consultationNotes || "",
+      history: d.history?.map((entry: any) => ({
+        savedAt: entry.savedAt?.toDate() || new Date(),
+        savedBy: entry.savedBy,
+        data: entry.data,
+      })),
       createdAt: d.createdAt?.toDate() || new Date(),
       updatedAt: d.updatedAt?.toDate() || new Date(),
     };

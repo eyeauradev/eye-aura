@@ -117,7 +117,7 @@ export function HeroSection({ user }: { user: any }) {
               {/* Single clean bottom card */}
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/20 bg-white/12 p-4 backdrop-blur-md">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">Certified Optometrist</p>
-                <p className="mt-1 text-lg font-bold text-white">Dr. Harshita, B.Optom</p>
+                <p className="mt-1 text-lg font-bold text-white">Dr. Harshita,</p>
                 <p className="mt-1 text-xs text-white/55">Founder, Eye Aura</p>
               </div>
               {/* Live indicator */}

@@ -23,31 +23,7 @@ import { cn } from "@/lib/utils";
 import { FloatingSidebar, PageTransition } from "@/components/premium";
 import type { NavItem } from "@/components/premium";
 import { GLASS, SPACING, RADIUS } from "@/lib/design-tokens";
-
-/**
- * Doctor module navigation items.
- * Groups: "main" for primary navigation, "account" for profile/settings.
- */
-const doctorNavItems: NavItem[] = [
-  { label: "Public Home", href: "/", icon: Home, group: "home" },
-  { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard, group: "main" },
-  { label: "Appointments", href: "/doctor/appointments", icon: Calendar, group: "main" },
-  { label: "Requests", href: "/doctor/requests", icon: Bell, group: "main" },
-  { label: "Patients", href: "/doctor/patients", icon: Users, group: "main" },
-  { label: "Prescriptions", href: "/doctor/prescriptions", icon: FileText, group: "main" },
-  { label: "Recommendations", href: "/doctor/recommendations", icon: Globe, group: "main" },
-  { label: "Slots", href: "/doctor/slots", icon: Clock, group: "main" },
-  { label: "Profile", href: "/doctor/profile", icon: UserCircle, group: "account" },
-];
-
-/** Subset of nav items shown in the mobile bottom navigation bar */
-const mobileNavItems: NavItem[] = [
-  { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard },
-  { label: "Appointments", href: "/doctor/appointments", icon: Calendar },
-  { label: "Requests", href: "/doctor/requests", icon: Bell },
-  { label: "Patients", href: "/doctor/patients", icon: Users },
-  { label: "More", href: "__more__", icon: MoreHorizontal },
-];
+import { usePendingRequestsCount } from "@/hooks/usePendingRequestsCount";
 
 /**
  * Checks if the current pathname matches a nav item href using prefix matching.
@@ -77,6 +53,9 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const { user, loading } = useAuth();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Get real-time pending requests count
+  const { count: pendingCount } = usePendingRequestsCount(user?.id ?? null);
 
   // Close more menu on outside click
   useEffect(() => {
@@ -95,6 +74,31 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
       router.push("/auth/verify-email");
     }
   }, [user, loading, router]);
+
+  /**
+   * Doctor module navigation items.
+   * Groups: "main" for primary navigation, "account" for profile/settings.
+   */
+  const doctorNavItems: NavItem[] = [
+    { label: "Public Home", href: "/", icon: Home, group: "home" },
+    { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard, group: "main" },
+    { label: "Appointments", href: "/doctor/appointments", icon: Calendar, group: "main" },
+    { label: "Requests", href: "/doctor/requests", icon: Bell, group: "main", badge: pendingCount },
+    { label: "Patients", href: "/doctor/patients", icon: Users, group: "main" },
+    { label: "Prescriptions", href: "/doctor/prescriptions", icon: FileText, group: "main" },
+    { label: "Recommendations", href: "/doctor/recommendations", icon: Globe, group: "main" },
+    { label: "Slots", href: "/doctor/slots", icon: Clock, group: "main" },
+    { label: "Profile", href: "/doctor/profile", icon: UserCircle, group: "account" },
+  ];
+
+  /** Subset of nav items shown in the mobile bottom navigation bar */
+  const mobileNavItems: NavItem[] = [
+    { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard },
+    { label: "Appointments", href: "/doctor/appointments", icon: Calendar },
+    { label: "Requests", href: "/doctor/requests", icon: Bell, badge: pendingCount },
+    { label: "Patients", href: "/doctor/patients", icon: Users },
+    { label: "More", href: "__more__", icon: MoreHorizontal },
+  ];
 
   if (loading) {
     return (
@@ -267,7 +271,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex flex-col items-center gap-0.5 px-3 py-2 min-h-[44px] justify-center",
+                    "relative flex flex-col items-center gap-0.5 px-3 py-2 min-h-[44px] justify-center",
                     RADIUS.interactive,
                     "transition-colors duration-200",
                     isActive
@@ -275,8 +279,23 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                       : "text-muted-foreground hover:text-foreground"
                   )}
                   aria-current={isActive ? "page" : undefined}
+                  aria-label={
+                    item.badge !== undefined && item.badge !== null && item.badge > 0
+                      ? `${item.label} (${item.badge > 9 ? "9+" : item.badge} pending)`
+                      : item.label
+                  }
                 >
-                  <Icon className="h-5 w-5" />
+                  <div className="relative">
+                    <Icon className="h-5 w-5" />
+                    {item.badge !== undefined && item.badge !== null && item.badge > 0 && (
+                      <span
+                        className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-primary text-white text-[8px] font-bold flex items-center justify-center"
+                        aria-hidden="true"
+                      >
+                        {item.badge > 9 ? "9+" : item.badge}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] font-medium leading-tight text-center">
                     {item.label}
                   </span>

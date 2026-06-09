@@ -68,8 +68,8 @@ export function FounderStory() {
               className="mb-8 text-3xl font-medium leading-snug text-[#0f4f4b] lg:text-4xl"
               style={{ fontFamily: "'EB Garamond', Georgia, serif" }}
             >
-              My mom waited a week.<br />
-              My sister waited a month.<br />
+              My mom waited a month.<br />
+              My sister waited a week.<br />
               <span className="italic text-[#0f4f4b]/70">Just to change their specs.</span>
             </blockquote>
             <div>

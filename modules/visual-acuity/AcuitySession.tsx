@@ -6,6 +6,7 @@ import { TestTypeSelector } from "./TestTypeSelector";
 import { InstructionsStep } from "./steps/InstructionsStep";
 import { CalibrationStep } from "./steps/CalibrationStep";
 import { DurationSelector } from "./DurationSelector";
+import { EyeSelectionStep } from "./steps/EyeSelectionStep";
 import { TestingStep } from "./steps/TestingStep";
 import { NearTestingStep } from "./steps/NearTestingStep";
 import { ResultsStep } from "./steps/ResultsStep";
@@ -27,6 +28,7 @@ const PHASE_LABELS: Record<TestPhase, string> = {
   instructions:    "Preparation",
   calibration:     "Calibration",
   duration_select: "Duration",
+  eye_selection:   "Eye Selection",
   countdown:       "Get Ready",
   testing:         "Testing",
   results:         "Results",
@@ -37,6 +39,7 @@ const PHASE_ORDER: TestPhase[] = [
   "instructions",
   "calibration",
   "duration_select",
+  "eye_selection",
   "countdown",
   "testing",
   "results",
@@ -140,7 +143,13 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
     setPhase("duration_select");
   };
 
-  const handleDurationContinue = () => setPhase(testType === "far" ? "countdown" : "testing");
+  const handleDurationContinue = () => setPhase(testType === "far" ? "eye_selection" : "testing");
+
+  const handleEyeSelected = (selectedEye: "right" | "left") => {
+    // Store the selected eye for potential future use
+    // For now, just proceed to countdown
+    setPhase("countdown");
+  };
 
   const handleTestComplete = async (eyeResults: { right: EyeAcuityResult; left: EyeAcuityResult }) => {
     if (!calibration) return;
@@ -301,6 +310,12 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
             onSelect={setTimerDuration}
             onContinue={handleDurationContinue}
           />
+        </AssessmentOrientationGate>
+      )}
+
+      {phase === "eye_selection" && (
+        <AssessmentOrientationGate>
+          <EyeSelectionStep onContinue={handleEyeSelected} />
         </AssessmentOrientationGate>
       )}
 

@@ -15,6 +15,8 @@ export interface NavItem {
   icon: LucideIcon;
   /** Optional group identifier for divider separation */
   group?: string;
+  /** Optional badge count to display on the nav item */
+  badge?: number | null;
 }
 
 export interface FloatingSidebarProps {
@@ -91,15 +93,28 @@ export function FloatingSidebar({
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ease-in-out text-sm font-medium",
+                    "relative flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ease-in-out text-sm font-medium",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-foreground hover:bg-muted/50"
                   )}
                   aria-current={isActive ? "page" : undefined}
+                  aria-label={
+                    item.badge !== undefined && item.badge !== null && item.badge > 0
+                      ? `${item.label} (${item.badge > 99 ? "99+" : item.badge} pending)`
+                      : item.label
+                  }
                 >
                   <Icon className="h-5 w-5 shrink-0" />
                   <span>{item.label}</span>
+                  {item.badge !== undefined && item.badge !== null && item.badge > 0 && (
+                    <span
+                      className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center"
+                      aria-hidden="true"
+                    >
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             );

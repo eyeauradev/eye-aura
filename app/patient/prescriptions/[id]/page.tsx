@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { prescriptionsService, usersService, appointmentsService, servicesService } from "@/services/firestore";
 import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import { useToast } from "@/components/ui/toast-provider";
-import { User, ArrowLeft, Download, CheckCircle, Eye, Home, LayoutDashboard } from "lucide-react";
+import { User, ArrowLeft, Download, CheckCircle, Eye, Home, LayoutDashboard, Calendar } from "lucide-react";
 import {
   DashboardCard,
   PremiumButton,
@@ -173,6 +173,17 @@ export default function PrescriptionDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Timestamp Banner */}
+      <GlassPanel padding="sm" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Calendar className="h-4 w-4" />
+        <span>
+          {prescription.history && prescription.history.length > 0
+            ? `Last updated on ${new Date(prescription.history[0].savedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+            : `Created on ${new Date(prescription.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+          }
+        </span>
+      </GlassPanel>
 
       {/* Vision Prescription Table */}
       <DashboardCard disableHover>

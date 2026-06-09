@@ -22,10 +22,10 @@ export function LandingPage() {
       <NavBar user={user} loading={loading} />
       <HeroSection user={user} />
       <FounderStory />
+      <GenerationsSection />
       <ProblemSection />
       <HowItWorks />
       <ServicesSection />
-      <GenerationsSection />
       <WhyEyeAura />
       <TechnologySection />
       <TestimonialsSection />
