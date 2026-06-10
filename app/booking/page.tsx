@@ -79,7 +79,7 @@ export default function BookingPage() {
 
   const loadServicesWithDoctors = async () => {
     try {
-      const allServices = await servicesService.getAll();
+      const allServices = await servicesService.getActiveServices();
       const servicesWithDoctorsData = await Promise.all(
         allServices.map(async (service) => {
           const doctorIds = service.doctorIds || [];
