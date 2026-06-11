@@ -1,6 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
 import crypto from "crypto";
+import { hasTimeRangeOverlap, computeEndTime } from "@/services/booking/slot-filter.service";
+
+export interface ConflictCheckResult {
+  hasConflict: boolean;
+  conflictSource?: "booking_request" | "appointment" | "doctor_block";
+  conflictId?: string;
+}
+
+async function checkSlotConflictInTransaction(
+  transaction: FirebaseFirestore.Transaction,
+  db: FirebaseFirestore.Firestore,
+  doctorId: string,
+  requestedTime: Date,
+  combinedDuration: number
+): Promise<ConflictCheckResult> {
+  const requestStart = requestedTime;
+  const requestEnd = computeEndTime(requestedTime, combinedDuration);
+
+  // Check booking_requests (pending or accepted)
+  const brSnap = await transaction.get(
+    db.collection("booking_requests")
+      .where("doctorId", "==", doctorId)
+      .where("status", "in", ["pending", "accepted"])
+  );
+
+  for (const doc of brSnap.docs) {
+    const br = doc.data();
+    const brStart = br.requestedTime.toDate();
+    const brEnd = computeEndTime(brStart, br.combinedDuration ?? 30);
+    if (hasTimeRangeOverlap(requestStart, requestEnd, brStart, brEnd)) {
+      return { hasConflict: true, conflictSource: "booking_request", conflictId: doc.id };
+    }
+  }
+
+  // Check appointments (confirmed or pending)
+  const aptSnap = await transaction.get(
+    db.collection("appointments")
+      .where("doctorId", "==", doctorId)
+      .where("status", "in", ["confirmed", "pending"])
+  );
+
+  for (const doc of aptSnap.docs) {
+    const apt = doc.data();
+    const aptStart = apt.scheduledFor.toDate();
+    const aptEnd = computeEndTime(aptStart, apt.combinedDuration ?? 30);
+    if (hasTimeRangeOverlap(requestStart, requestEnd, aptStart, aptEnd)) {
+      return { hasConflict: true, conflictSource: "appointment", conflictId: doc.id };
+    }
+  }
+
+  // Check doctor_blocks
+  const blockSnap = await transaction.get(
+    db.collection("doctor_blocks")
+      .where("doctorId", "==", doctorId)
+  );
+
+  for (const doc of blockSnap.docs) {
+    const block = doc.data();
+    const blockStart = block.start.toDate();
+    const blockEnd = block.end.toDate();
+    if (hasTimeRangeOverlap(requestStart, requestEnd, blockStart, blockEnd)) {
+      return { hasConflict: true, conflictSource: "doctor_block", conflictId: doc.id };
+    }
+  }
+
+  return { hasConflict: false };
+}
 
 async function verifyPatientToken(req: NextRequest) {
   const authHeader = req.headers.get("Authorization");
@@ -101,24 +168,67 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    await db.collection("booking_requests").doc(bookingRequestId).set({
-      id: bookingRequestId,
-      patientId: patient.uid,
-      doctorId: payment.doctorId,
-      serviceId: serviceIds[0],
-      serviceIds,
-      requestedTime: payment.requestedTime,
-      status: "pending",
-      notes: payment.notes || null,
-      paymentId,
-      paymentStatus: "completed",
-      paymentAmount: payment.amount,
-      combinedDuration,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    // Convert requestedTime from Firestore Timestamp to Date for conflict check
+    const requestedTime: Date = payment.requestedTime.toDate();
+
+    // Use a Firestore transaction to atomically check for conflicts and create the booking_request.
+    // This prevents race conditions where two concurrent requests could book the same slot.
+    const transactionResult = await db.runTransaction(async (transaction) => {
+      // Check for slot conflicts within the transaction
+      const conflictResult = await checkSlotConflictInTransaction(
+        transaction,
+        db,
+        payment.doctorId,
+        requestedTime,
+        combinedDuration
+      );
+
+      if (conflictResult.hasConflict) {
+        // Mark payment for refund and record the conflict reason
+        transaction.update(db.collection("payments").doc(paymentId), {
+          refundStatus: "pending",
+          failureReason: "Slot conflict detected",
+          conflictSource: conflictResult.conflictSource,
+          conflictId: conflictResult.conflictId,
+          updatedAt: new Date(),
+        });
+
+        return { conflict: true, conflictResult };
+      }
+
+      // No conflict — create the booking_request within the transaction
+      transaction.set(db.collection("booking_requests").doc(bookingRequestId), {
+        id: bookingRequestId,
+        patientId: patient.uid,
+        doctorId: payment.doctorId,
+        serviceId: serviceIds[0],
+        serviceIds,
+        requestedTime: payment.requestedTime,
+        status: "pending",
+        notes: payment.notes || null,
+        paymentId,
+        paymentStatus: "completed",
+        paymentAmount: payment.amount,
+        combinedDuration,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return { conflict: false };
     });
 
-    // Update payment to completed with all Razorpay identifiers
+    // If a conflict was detected, return 409 response
+    if (transactionResult.conflict) {
+      return NextResponse.json(
+        {
+          error: "Slot no longer available",
+          conflictSource: transactionResult.conflictResult!.conflictSource,
+        },
+        { status: 409 }
+      );
+    }
+
+    // Transaction succeeded with no conflict — update payment to completed
     await db.collection("payments").doc(paymentId).update({
       status: "completed",
       razorpayPaymentId,

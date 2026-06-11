@@ -4,9 +4,12 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { doctorAvailabilityService } from "@/services/firestore/doctor-availability.service";
 import { doctorBlocksService } from "@/services/firestore/doctor-blocks.service";
-import type { DoctorAvailabilityDocument, DoctorBlockDocument, DayOfWeek } from "@/types/firestore";
-import { Calendar, Clock, Plus, Ban, Trash2, ChevronLeft, ChevronRight, Settings, X } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
+import { appointmentsService } from "@/services/firestore/appointments.service";
+import { computeEndTime } from "@/services/booking/slot-filter.service";
+import type { DoctorAvailabilityDocument, DoctorBlockDocument, BookingRequestDocument, AppointmentDocument, DayOfWeek } from "@/types/firestore";
+import { Calendar, Clock, Plus, Ban, Trash2, ChevronLeft, ChevronRight, Settings, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 const DOW_MAP: Record<number, DayOfWeek> = {
@@ -30,6 +33,8 @@ export default function DoctorSlotsPage() {
   const [loading, setLoading] = useState(true);
   const [availability, setAvailability] = useState<DoctorAvailabilityDocument[]>([]);
   const [blocks, setBlocks] = useState<DoctorBlockDocument[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<BookingRequestDocument[]>([]);
+  const [confirmedAppointments, setConfirmedAppointments] = useState<AppointmentDocument[]>([]);
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [showBlockForm, setShowBlockForm] = useState(false);
@@ -43,12 +48,16 @@ export default function DoctorSlotsPage() {
       if (!user) return;
       try {
         setLoading(true);
-        const [availData, blockData] = await Promise.all([
+        const [availData, blockData, pendingData, appointmentData] = await Promise.all([
           doctorAvailabilityService.getByDoctorId(user.id),
           doctorBlocksService.getByDoctorId(user.id),
+          bookingRequestsService.getByDoctorIdAndStatus(user.id, "pending"),
+          appointmentsService.getByDoctorId(user.id),
         ]);
         setAvailability(availData);
         setBlocks(blockData);
+        setPendingRequests(pendingData);
+        setConfirmedAppointments(appointmentData.filter((a) => a.status === "confirmed"));
       } catch (err) {
         console.error("Error loading schedule data:", err);
       } finally {
@@ -57,6 +66,25 @@ export default function DoctorSlotsPage() {
     }
     load();
   }, [user]);
+
+  // Re-fetch pending requests and appointments when selectedDay or weekOffset changes
+  useEffect(() => {
+    if (!user) return;
+    async function refreshData() {
+      if (!user) return;
+      try {
+        const [pendingData, appointmentData] = await Promise.all([
+          bookingRequestsService.getByDoctorIdAndStatus(user.id, "pending"),
+          appointmentsService.getByDoctorId(user.id),
+        ]);
+        setPendingRequests(pendingData);
+        setConfirmedAppointments(appointmentData.filter((a) => a.status === "confirmed"));
+      } catch (err) {
+        console.error("Error refreshing booking data:", err);
+      }
+    }
+    refreshData();
+  }, [user, selectedDay, weekOffset]);
 
   const weekDays = useMemo(() => {
     const today = new Date();
@@ -87,8 +115,28 @@ export default function DoctorSlotsPage() {
       return start < next && end > d;
     });
 
+  const getDayPendingRequests = (date: Date) =>
+    pendingRequests.filter((br) => {
+      const reqTime = new Date(br.requestedTime);
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      const next = new Date(d); next.setDate(d.getDate() + 1);
+      return reqTime >= d && reqTime < next;
+    });
+
+  const getDayConfirmedAppointments = (date: Date) =>
+    confirmedAppointments.filter((apt) => {
+      const schedTime = new Date(apt.scheduledFor);
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      const next = new Date(d); next.setDate(d.getDate() + 1);
+      return schedTime >= d && schedTime < next;
+    });
+
   const getSelectedAvail = () => availMap[DOW_MAP[selectedDay.getDay()]];
   const selectedBlocks = getDayBlocks(selectedDay);
+  const selectedPendingRequests = getDayPendingRequests(selectedDay);
+  const selectedConfirmedAppointments = getDayConfirmedAppointments(selectedDay);
   const isToday = (d: Date) => d.toDateString() === new Date().toDateString();
   const isSelected = (d: Date) => d.toDateString() === selectedDay.toDateString();
   const isPast = (d: Date) => { const t = new Date(); t.setHours(0,0,0,0); return d < t; };
@@ -258,6 +306,8 @@ export default function DoctorSlotsPage() {
             const avail = availMap[dow];
             const hasHours = avail && !avail.isOff && avail.timeRanges.length > 0;
             const hasBlock = getDayBlocks(day).length > 0;
+            const hasPending = getDayPendingRequests(day).length > 0;
+            const hasAppointment = getDayConfirmedAppointments(day).length > 0;
             const past = isPast(day);
             return (
               <button
@@ -287,6 +337,12 @@ export default function DoctorSlotsPage() {
                   )}
                   {hasBlock && (
                     <div className={`w-1 h-1 rounded-full ${isSelected(day) ? "bg-white/60" : "bg-red-400"}`} />
+                  )}
+                  {hasPending && (
+                    <div className={`w-1 h-1 rounded-full ${isSelected(day) ? "bg-white/60" : "bg-amber-400"}`} />
+                  )}
+                  {hasAppointment && (
+                    <div className={`w-1 h-1 rounded-full ${isSelected(day) ? "bg-white/60" : "bg-blue-400"}`} />
                   )}
                 </div>
               </button>
@@ -356,6 +412,49 @@ export default function DoctorSlotsPage() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {selectedPendingRequests.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs uppercase tracking-wider text-amber-700 font-medium">Pending Bookings</p>
+                {selectedPendingRequests.map((br) => {
+                  const startTime = new Date(br.requestedTime);
+                  const endTime = computeEndTime(startTime, br.combinedDuration ?? 30);
+                  return (
+                    <div key={br.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                      <span className="text-sm text-amber-800 font-medium flex-1">
+                        {formatDateTime(startTime)} — {formatDateTime(endTime)}
+                        <span className="ml-1.5 text-amber-600 font-normal">· Pending approval</span>
+                      </span>
+                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-md font-medium">
+                        {br.combinedDuration ?? 30}m
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {selectedConfirmedAppointments.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs uppercase tracking-wider text-blue-700 font-medium">Confirmed Appointments</p>
+                {selectedConfirmedAppointments.map((apt) => {
+                  const startTime = new Date(apt.scheduledFor);
+                  const endTime = computeEndTime(startTime, apt.combinedDuration ?? 30);
+                  return (
+                    <div key={apt.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-blue-50 border border-blue-200">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                      <span className="text-sm text-blue-800 font-medium flex-1">
+                        {formatDateTime(startTime)} — {formatDateTime(endTime)}
+                      </span>
+                      <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium">
+                        {apt.combinedDuration ?? 30}m
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
         </div>

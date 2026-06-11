@@ -14,6 +14,11 @@ import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRig
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast-provider";
 import { computeServiceCompatibility, computeBookingSummary, computeDoctorIntersection } from "@/lib/booking/compatibility";
+import { slotFilterDataFetcher } from "@/services/booking/slot-filter-data.service";
+import {
+  filterAvailableSlots,
+  type TimeSlot,
+} from "@/services/booking/slot-filter.service";
 
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -425,6 +430,7 @@ export default function BookingPage() {
 
         {state.currentStep === 2 && (
           <TimeSelectionStep
+            doctorId={state.doctor?.id}
             doctorAvailability={doctorAvailability}
             onSelect={handleTimeSelect}
             selected={selectedTime}
@@ -792,13 +798,92 @@ function DoctorSelectionStep({
   );
 }
 
+function useAvailableSlots(
+  doctorId: string | undefined,
+  date: Date | null,
+  availability: DoctorAvailabilityDocument[],
+  bookingDuration: number
+) {
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!doctorId || !date) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    const dayMap: Record<string, number> = {
+      sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+      thursday: 4, friday: 5, saturday: 6,
+    };
+
+    const dayOfWeek = date.getDay();
+    const dayName = Object.keys(dayMap).find((k) => dayMap[k] === dayOfWeek);
+    const dayAvail = availability.find((a) => a.dayOfWeek === dayName && !a.isOff);
+
+    if (!dayAvail || dayAvail.timeRanges.length === 0) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    setLoading(true);
+
+    // Generate candidate slots: step by doctor's base duration (granularity), but only
+    // include slots where the full bookingDuration fits within the availability window.
+    // This matches the original calendar logic that uses bookingDuration for fit-check.
+    const adjustedCandidates: TimeSlot[] = [];
+    const now = new Date();
+
+    for (const range of dayAvail.timeRanges) {
+      const [startH, startM] = range.startTime.split(":").map(Number);
+      const [endH, endM] = range.endTime.split(":").map(Number);
+
+      const rangeStart = new Date(date);
+      rangeStart.setHours(startH, startM, 0, 0);
+
+      const rangeEnd = new Date(date);
+      rangeEnd.setHours(endH, endM, 0, 0);
+
+      let current = new Date(rangeStart);
+      // Step by doctor's base slot duration for granularity
+      while (current.getTime() + bookingDuration * 60_000 <= rangeEnd.getTime()) {
+        if (current > now) {
+          adjustedCandidates.push({
+            start: new Date(current),
+            end: new Date(current.getTime() + bookingDuration * 60_000),
+          });
+        }
+        current = new Date(current.getTime() + dayAvail.duration * 60_000);
+      }
+    }
+
+    // Fetch occupied ranges and filter
+    slotFilterDataFetcher
+      .getOccupiedRanges(doctorId, date)
+      .then((occupied) => {
+        const filtered = filterAvailableSlots(adjustedCandidates, occupied);
+        setAvailableSlots(filtered);
+      })
+      .catch(() => {
+        // On error, still show candidates (graceful degradation)
+        setAvailableSlots(adjustedCandidates);
+      })
+      .finally(() => setLoading(false));
+  }, [doctorId, date, availability, bookingDuration]);
+
+  return { availableSlots, loading };
+}
+
 function TimeSelectionStep({
+  doctorId,
   doctorAvailability,
   onSelect,
   selected,
   onBack,
   bookingDuration,
 }: {
+  doctorId: string | undefined;
   doctorAvailability: DoctorAvailabilityDocument[];
   onSelect: (time: Date) => void;
   selected: Date | null;
@@ -812,11 +897,19 @@ function TimeSelectionStep({
     return d;
   });
 
+  const { availableSlots, loading: slotsLoading } = useAvailableSlots(
+    doctorId,
+    selectedDate,
+    doctorAvailability,
+    bookingDuration
+  );
+
   const dayMap: Record<string, number> = {
     sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
     thursday: 4, friday: 5, saturday: 6,
   };
 
+  // Keep using slotsByDate to determine which dates are available in the calendar
   const slotsByDate = useMemo(() => {
     const result: Record<string, Date[]> = {};
     const today = new Date();
@@ -845,12 +938,10 @@ function TimeSelectionStep({
           let slotStart = new Date(current);
           slotStart.setHours(sh, sm, 0, 0);
 
-          // Use combined booking duration: only show slot if the full duration fits
           while (slotStart.getTime() + bookingDuration * 60000 <= endTime.getTime()) {
             if (slotStart > new Date()) {
               daySlots.push(new Date(slotStart));
             }
-            // Step by the doctor's base slot duration for granularity
             slotStart = new Date(slotStart.getTime() + avail.duration * 60000);
           }
         });
@@ -889,9 +980,6 @@ function TimeSelectionStep({
 
   const canGoPrev = currentMonth.getFullYear() > today.getFullYear() ||
     currentMonth.getMonth() > today.getMonth();
-
-  const selectedDateKey = selectedDate?.toISOString().split("T")[0] ?? null;
-  const selectedSlots = selectedDateKey ? slotsByDate[selectedDateKey] ?? [] : [];
 
   return (
     <div className="space-y-6">
@@ -977,18 +1065,25 @@ function TimeSelectionStep({
           <p className="text-xs font-bold text-[#0f4f4b]/60 uppercase tracking-wider">
             {selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
           </p>
-          {selectedSlots.length === 0 ? (
+          {slotsLoading ? (
             <div className="rounded-2xl border border-[#0f4f4b]/10 bg-white p-8 text-center">
-              <p className="text-sm text-[#0f4f4b]/40">No time slots available for this day</p>
+              <Loader2 className="h-6 w-6 animate-spin text-[#0f4f4b]/40 mx-auto mb-3" />
+              <p className="text-sm text-[#0f4f4b]/40">Checking available slots…</p>
+            </div>
+          ) : availableSlots.length === 0 ? (
+            <div className="rounded-2xl border border-[#0f4f4b]/10 bg-white p-8 text-center">
+              <AlertCircle className="h-6 w-6 text-[#0f4f4b]/25 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-[#0f4f4b]/60 mb-1">No available slots</p>
+              <p className="text-xs text-[#0f4f4b]/40">All time slots for this date are booked. Please try another date.</p>
             </div>
           ) : (
             <div className="grid gap-2 grid-cols-3 sm:grid-cols-4">
-              {selectedSlots.map((time, index) => {
-                const isActive = selected?.getTime() === time.getTime();
+              {availableSlots.map((slot, index) => {
+                const isActive = selected?.getTime() === slot.start.getTime();
                 return (
                   <button
                     key={index}
-                    onClick={() => onSelect(time)}
+                    onClick={() => onSelect(slot.start)}
                     className={cn(
                       "flex items-center justify-center gap-1.5 rounded-xl border py-3 text-xs font-bold transition-all hover:-translate-y-0.5 hover:shadow-sm",
                       isActive
@@ -997,7 +1092,7 @@ function TimeSelectionStep({
                     )}
                   >
                     <Clock className="h-3 w-3 shrink-0" />
-                    {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                    {slot.start.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                   </button>
                 );
               })}
