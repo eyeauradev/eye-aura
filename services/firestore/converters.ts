@@ -198,17 +198,25 @@ export const doctorSlotConverter = {
 
 // Prescription converter
 export const prescriptionConverter = {
-  toFirestore: (prescription: PrescriptionDocument): DocumentData => ({
-    ...prescription,
-    followUpDate: prescription.followUpDate ? toTimestamp(prescription.followUpDate) : null,
-    createdAt: toTimestamp(prescription.createdAt),
-    updatedAt: toTimestamp(prescription.updatedAt),
-    history: prescription.history?.map((entry) => ({
-      savedAt: toTimestamp(entry.savedAt),
-      savedBy: entry.savedBy,
-      data: entry.data,
-    })),
-  }),
+  toFirestore: (prescription: PrescriptionDocument): DocumentData => {
+    const data: DocumentData = {
+      ...prescription,
+      followUpDate: prescription.followUpDate ? toTimestamp(prescription.followUpDate) : null,
+      createdAt: toTimestamp(prescription.createdAt),
+      updatedAt: toTimestamp(prescription.updatedAt),
+    };
+
+    // Only include history if it exists (Firestore rejects undefined values)
+    if (prescription.history && prescription.history.length > 0) {
+      data.history = prescription.history.map((entry) => ({
+        savedAt: toTimestamp(entry.savedAt),
+        savedBy: entry.savedBy,
+        data: entry.data,
+      }));
+    }
+
+    return data;
+  },
   fromFirestore: (snapshot: QueryDocumentSnapshot): PrescriptionDocument => {
     const d = snapshot.data();
     return {
