@@ -66,7 +66,6 @@ export class VisionAssessmentsService {
     return this.query([
       where("patientId", "==", patientId),
       orderBy("createdAt", "desc"),
-      limit(50),
     ]);
   }
 
@@ -75,7 +74,18 @@ export class VisionAssessmentsService {
     return this.query([
       where("doctorId", "==", doctorId),
       orderBy("createdAt", "desc"),
-      limit(100),
+    ]);
+  }
+
+  // Assessment History: all assessments for a specific patient–doctor pair
+  async getAllForPatientByDoctor(
+    patientId: string,
+    doctorId: string
+  ): Promise<VisionAssessmentDocument[]> {
+    return this.query([
+      where("patientId", "==", patientId),
+      where("doctorId", "==", doctorId),
+      orderBy("createdAt", "desc"),
     ]);
   }
 

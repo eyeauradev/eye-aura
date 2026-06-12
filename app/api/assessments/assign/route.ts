@@ -174,12 +174,10 @@ export async function POST(req: NextRequest) {
       // For scheduled assessments, expire 30 minutes after the scheduled time
       expiresAt = new Date(parsedScheduledFor.getTime() + 30 * 60 * 1000);
     } else if (appointmentId) {
-      const apptForExpiry = await db.collection("appointments").doc(appointmentId).get();
-      const scheduledForField = apptForExpiry.data()?.scheduledFor;
-      const apptTime = scheduledForField
-        ? (scheduledForField.toDate ? scheduledForField.toDate() : new Date(scheduledForField))
-        : now;
-      expiresAt = new Date(apptTime.getTime() + 30 * 60 * 1000);
+      // Expire 30 minutes from the moment of assignment, not from appointment time.
+      // An appointment may already be completed when a follow-up assessment is assigned,
+      // so anchoring to appointment.scheduledFor would produce a born-expired assessment.
+      expiresAt = new Date(now.getTime() + 30 * 60 * 1000);
     } else {
       expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     }

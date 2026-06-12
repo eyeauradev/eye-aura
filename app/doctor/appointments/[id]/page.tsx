@@ -11,7 +11,7 @@ import { getEffectiveServiceIds } from "@/lib/booking/compatibility";
 import { isRefundEligible } from "@/lib/refund-eligibility";
 import { useToast } from "@/components/ui/toast-provider";
 import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
-import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare, Eye, BookOpen, Zap, RefreshCw } from "lucide-react";
+import { Calendar, Clock, Users, Video, FileText, ArrowLeft, CheckCircle2, X, CalendarPlus, MessageSquare, Eye, BookOpen, Zap, RefreshCw, History } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -749,6 +749,17 @@ export default function DoctorAppointmentDetailPage() {
                       >
                         Assign Assessment
                       </PremiumButton>
+
+                      {/* Assessment History card */}
+                      <Link href={`/doctor/patients/${appointment.patientId}/assessment-history`} className="block">
+                        <PremiumButton
+                          variant="outline"
+                          className="w-full"
+                          icon={<History className="h-4 w-4" />}
+                        >
+                          Assessment History
+                        </PremiumButton>
+                      </Link>
                     </div>
                   </div>
                 );

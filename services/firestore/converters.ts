@@ -482,6 +482,9 @@ export const visionAssessmentConverter = {
     if (doc.expiresAt)          d.expiresAt          = toTimestamp(doc.expiresAt);
     if (doc.resultFar)          d.resultFar          = { ...doc.resultFar, completedAt: toTimestamp(doc.resultFar.completedAt) };
     if (doc.resultNear)         d.resultNear         = { ...doc.resultNear, completedAt: toTimestamp(doc.resultNear.completedAt) };
+    if (doc.scheduledFor)     d.scheduledFor     = toTimestamp(doc.scheduledFor);
+    if (doc.instructions)     d.instructions     = doc.instructions;
+    if (doc.assignmentTiming) d.assignmentTiming = doc.assignmentTiming;
     if (doc.doctorRemarks)      d.doctorRemarks      = doc.doctorRemarks;
     if (doc.doctorCorrectedFar) d.doctorCorrectedFar = doc.doctorCorrectedFar;
     if (doc.doctorCorrectedNear) d.doctorCorrectedNear = doc.doctorCorrectedNear;
@@ -511,6 +514,9 @@ export const visionAssessmentConverter = {
       createdAt:   fromTimestamp(data.createdAt),
       updatedAt:   fromTimestamp(data.updatedAt),
       expiresAt:   data.expiresAt   ? fromTimestamp(data.expiresAt)   : undefined,
+      scheduledFor:      data.scheduledFor     ? fromTimestamp(data.scheduledFor)   : undefined,
+      instructions:      data.instructions     ?? undefined,
+      assignmentTiming:  data.assignmentTiming ?? undefined,
     };
   },
 };

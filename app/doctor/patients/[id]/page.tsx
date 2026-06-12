@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService, prescriptionsService, usersService, servicesService } from "@/services/firestore";
 import type { AppointmentDocument, PrescriptionDocument, UserDocument, ServiceDocument } from "@/types/firestore";
 import type { ServiceRecommendation } from "@/types/recommendations";
-import { ArrowLeft, Calendar, Clock, FileText, CalendarPlus, MessageSquare, Plus, Pencil, XCircle, Stethoscope } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, FileText, CalendarPlus, MessageSquare, Plus, Pencil, XCircle, Stethoscope, ClipboardList } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { PremiumTabs } from "@/components/premium/premium-tabs";
 import { StatusBadge, type StatusVariant } from "@/components/premium/status-badge";
@@ -242,6 +242,11 @@ export default function DoctorPatientDetailPage() {
             <Badge className="bg-primary/10 text-primary border-primary/20">
               {appointments.length} consultation{appointments.length !== 1 ? 's' : ''}
             </Badge>
+            <Link href={`/doctor/patients/${params.id}/assessment-history`}>
+              <PremiumButton variant="outline" size="sm" icon={<ClipboardList className="h-4 w-4" />}>
+                Assessment History
+              </PremiumButton>
+            </Link>
           </div>
         </div>
       </div>
@@ -344,6 +349,7 @@ export default function DoctorPatientDetailPage() {
           { id: "history", label: "Consultation History", icon: <Calendar className="h-4 w-4" /> },
           { id: "prescriptions", label: "Prescriptions", icon: <FileText className="h-4 w-4" /> },
           { id: "recommendations", label: "Recommended Services", icon: <Stethoscope className="h-4 w-4" /> },
+          { id: "assessment-history", label: "Assessment History", icon: <ClipboardList className="h-4 w-4" /> },
         ]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -634,6 +640,23 @@ export default function DoctorPatientDetailPage() {
             </p>
           </PremiumModal>
         </>
+      )}
+
+      {activeTab === "assessment-history" && (
+        <Card className="border-primary/10 bg-primary/5">
+          <CardContent className="p-4 sm:p-8 text-center">
+            <ClipboardList className="h-12 w-12 text-primary mx-auto mb-4 opacity-50" />
+            <p className="text-base font-medium text-primary mb-2">Assessment History</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              View all vision assessments for this patient across all appointments.
+            </p>
+            <Link href={`/doctor/patients/${params.id}/assessment-history`}>
+              <PremiumButton variant="primary" icon={<ClipboardList className="h-4 w-4" />}>
+                Open Assessment History
+              </PremiumButton>
+            </Link>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
