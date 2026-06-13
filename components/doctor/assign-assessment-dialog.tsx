@@ -89,8 +89,8 @@ function AssignAssessmentForm({
   onCancel,
 }: AssignAssessmentFormProps) {
   // Form state
-  const [assessmentType, setAssessmentType] =
-    useState<VisionAssessmentType | "">("");
+  const [assessmentTypes, setAssessmentTypes] =
+    useState<VisionAssessmentType[]>([]);
   const [timing, setTiming] = useState<AssignmentTiming>("now");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
@@ -107,8 +107,8 @@ function AssignAssessmentForm({
   function validate(): boolean {
     const errors: Record<string, string> = {};
 
-    if (!assessmentType) {
-      errors.assessmentType = "Assessment type is required";
+    if (assessmentTypes.length === 0) {
+      errors.assessmentType = "At least one assessment type is required";
     }
 
     if (timing === "schedule_later") {
@@ -165,7 +165,8 @@ function AssignAssessmentForm({
       const body: Record<string, unknown> = {
         patientId,
         doctorId,
-        assessmentTypes: [assessmentType],
+        assessmentTypes,
+        assignedRole: "doctor",
         assignmentTiming: timing,
         instructions: instructions.trim() || undefined,
       };
@@ -192,7 +193,8 @@ function AssignAssessmentForm({
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         setError(
-          errorData?.message ||
+          errorData?.error ||
+            errorData?.message ||
             "Could not assign assessment. Please check your connection and try again."
         );
         return;
@@ -216,33 +218,40 @@ function AssignAssessmentForm({
             Assessment Type
           </Label>
           <div className="grid gap-2">
-            {AVAILABLE_ASSESSMENT_TYPES.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => {
-                  setAssessmentType(option.value);
-                  setFieldErrors((prev) => {
-                    const next = { ...prev };
-                    delete next.assessmentType;
-                    return next;
-                  });
-                }}
-                className={`w-full text-left px-4 py-3 border transition-all duration-200 ${RADIUS.interactive} ${
-                  assessmentType === option.value
-                    ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                    : "border-border bg-transparent hover:border-ring/50 hover:bg-muted/30"
-                } ${isSubmitting ? "pointer-events-none opacity-50" : ""}`}
-              >
-                <span className="block text-sm font-medium text-foreground">
-                  {option.label}
-                </span>
-                <span className="block text-xs text-muted-foreground mt-0.5">
-                  {option.description}
-                </span>
-              </button>
-            ))}
+            {AVAILABLE_ASSESSMENT_TYPES.map((option) => {
+              const isSelected = assessmentTypes.includes(option.value);
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setAssessmentTypes((prev) =>
+                      prev.includes(option.value)
+                        ? prev.filter((t) => t !== option.value)
+                        : [...prev, option.value]
+                    );
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.assessmentType;
+                      return next;
+                    });
+                  }}
+                  className={`w-full text-left px-4 py-3 border transition-all duration-200 ${RADIUS.interactive} ${
+                    isSelected
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                      : "border-border bg-transparent hover:border-ring/50 hover:bg-muted/30"
+                  } ${isSubmitting ? "pointer-events-none opacity-50" : ""}`}
+                >
+                  <span className="block text-sm font-medium text-foreground">
+                    {option.label}
+                  </span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    {option.description}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           {fieldErrors.assessmentType && (
             <p className="text-xs text-destructive mt-1">

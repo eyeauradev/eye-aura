@@ -1004,29 +1004,29 @@ export default function DoctorAppointmentDetailPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <PremiumButton
                 onClick={() => handleAssignAssessment(["far"])}
                 disabled={assigning}
-                className="bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-xs px-2"
+                className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-sm px-4"
               >
-                <Eye className="h-4 w-4 mr-1.5 shrink-0" />
-                Assign Far
+                <Eye className="h-4 w-4 mr-2 shrink-0" />
+                Assign Far Vision
               </PremiumButton>
               <PremiumButton
                 onClick={() => handleAssignAssessment(["near"])}
                 disabled={assigning}
-                className="bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-xs px-2"
+                className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-sm px-4"
               >
-                <BookOpen className="h-4 w-4 mr-1.5 shrink-0" />
-                Assign Near
+                <BookOpen className="h-4 w-4 mr-2 shrink-0" />
+                Assign Near Vision
               </PremiumButton>
               <PremiumButton
                 onClick={() => handleAssignAssessment(["far", "near"])}
                 disabled={assigning}
-                className="bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-xs px-2"
+                className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] rounded-xl text-sm px-4"
               >
-                <Zap className="h-4 w-4 mr-1.5 shrink-0" />
+                <Zap className="h-4 w-4 mr-2 shrink-0" />
                 Assign Both
               </PremiumButton>
             </div>
