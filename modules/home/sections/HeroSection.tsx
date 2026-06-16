@@ -81,11 +81,7 @@ export function HeroSection({ user }: { user: any }) {
             </motion.div>
 
             <motion.div {...fadeUp(0.52)} className="mt-10 flex items-center gap-4">
-              <div className="flex -space-x-2">
-                {["from-emerald-200 to-teal-300","from-teal-200 to-cyan-300","from-cyan-200 to-sky-300","from-sky-200 to-blue-300"].map((g, i) => (
-                  <div key={i} className={`h-8 w-8 rounded-full border-2 border-white bg-gradient-to-br ${g}`} />
-                ))}
-              </div>
+             
               <div>
                 <div className="flex items-center gap-0.5">
                   {Array(5).fill(0).map((_, i) => (
@@ -103,7 +99,7 @@ export function HeroSection({ user }: { user: any }) {
               initial={{ opacity: 0, y: 30, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="relative w-full max-w-[320px] overflow-hidden rounded-[2rem] shadow-[0_32px_80px_rgba(15,79,75,0.22)] sm:max-w-[400px]"
+              className="relative w-full max-w-[320px] overflow-hidden rounded-[2rem] sm:max-w-[400px]"
             >
               <Image
                 src="/doctor_1.png"
@@ -117,7 +113,7 @@ export function HeroSection({ user }: { user: any }) {
               {/* Single clean bottom card */}
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/20 bg-white/12 p-4 backdrop-blur-md">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">Certified Optometrist</p>
-                <p className="mt-1 text-lg font-bold text-white">Dr. Harshita,</p>
+                <p className="mt-1 text-lg font-bold text-white">Ms. Harshita,</p>
                 <p className="mt-1 text-xs text-white/55">Founder, Eye Aura</p>
               </div>
               {/* Live indicator */}

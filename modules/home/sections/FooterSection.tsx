@@ -44,7 +44,7 @@ export function FooterSection() {
             <p className="mb-6 max-w-xs text-sm leading-relaxed text-white/45">
               Next-generation digital eye wellness for the screen generation. Certified tele-optometry, accessible to every Indian.
             </p>
-            <a href="https://wa.me/917903357976" target="_blank" rel="noopener noreferrer"
+            <a href="https://wa.me/917042092967" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2.5 rounded-xl bg-green-500/15 border border-green-500/25 px-4 py-2.5 text-sm font-semibold text-green-400 transition hover:bg-green-500/22"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -83,7 +83,7 @@ export function FooterSection() {
             <p className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-white/35">Contact</p>
             <ul className="mb-6 space-y-3">
               <li>
-                <a href="tel:+917903357976" className="text-sm text-white/50 transition hover:text-white">+91 79033 57976</a>
+                <a href="tel:+917042092967" className="text-sm text-white/50 transition hover:text-white">+91 70420 92967</a>
               </li>
               <li>
                 <a href="mailto:hello@eyeaura.com" className="flex items-center gap-2 text-sm text-white/50 transition hover:text-white">

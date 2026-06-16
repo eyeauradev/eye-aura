@@ -59,7 +59,7 @@ export function FinalCTA({ user }: { user: any }) {
             {user ? "Go to Dashboard" : "Book Free Consultation"}
           </a>
 
-          <a href="https://wa.me/917903357976" target="_blank" rel="noopener noreferrer"
+          <a href="https://wa.me/917042092967" target="_blank" rel="noopener noreferrer"
             className="inline-flex h-14 items-center gap-2.5 rounded-2xl border border-white/20 bg-white/8 px-8 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/14"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -68,11 +68,11 @@ export function FinalCTA({ user }: { user: any }) {
             WhatsApp Us
           </a>
 
-          <a href="tel:+917903357976"
+          <a href="tel:+91 7042092967"
             className="inline-flex h-14 items-center gap-2.5 rounded-2xl border border-white/20 bg-white/8 px-8 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/14"
           >
             <Phone className="h-4 w-4" />
-            +91 79033 57976
+            +91 7042092967
           </a>
         </motion.div>
 

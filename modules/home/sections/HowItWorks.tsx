@@ -89,7 +89,7 @@ export function HowItWorks() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
         >
-          <a href="https://wa.me/917903357976" target="_blank" rel="noopener noreferrer"
+          <a href="https://wa.me/917042092967" target="_blank" rel="noopener noreferrer"
             className="inline-flex h-12 items-center gap-2.5 rounded-2xl bg-green-500 px-7 text-sm font-semibold text-white shadow-sm transition hover:bg-green-600"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
