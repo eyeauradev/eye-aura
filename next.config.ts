@@ -57,6 +57,14 @@ const nextConfig: NextConfig = {
               "worker-src 'self' blob:",
             ].join("; "),
           },
+          {
+            // Next.js 13+ defaults to same-origin which severs window.opener,
+            // breaking Firebase signInWithPopup(). same-origin-allow-popups
+            // preserves opener access for the OAuth popup while keeping COOP
+            // protection for all other cross-origin navigations.
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
         ],
       },
     ];
