@@ -75,18 +75,19 @@ class AuthService {
     }
   }
 
-  async signInWithGoogle(): Promise<UserProfile> {
+  async signInWithGoogle(): Promise<{ profile: UserProfile; isNewUser: boolean }> {
     try {
       console.log("[AuthService] Starting Google sign-in");
 
       const userCredential = await signInWithPopup(this.auth, googleAuthProvider);
       console.log("[AuthService] Firebase Auth Google sign-in successful:", userCredential.user.uid);
 
-      const userProfile = await this.getUserProfile(userCredential.user);
-
-      // Check if user document exists in Firestore
+      // Check if user document exists in Firestore BEFORE calling getUserProfile
+      // (getUserProfile may create the document on its own if missing)
       const userDoc = await getDoc(doc(this.db, "users", userCredential.user.uid));
-      if (!userDoc.exists()) {
+      const isNewUser = !userDoc.exists();
+
+      if (isNewUser) {
         console.log("[AuthService] User document not found in Firestore, creating it now");
 
         const newUserProfile: UserProfile = {
@@ -107,13 +108,14 @@ class AuthService {
         console.log("[AuthService] Firestore document created for Google sign-in user");
 
         await this.setSessionCookie();
-        return newUserProfile;
+        return { profile: newUserProfile, isNewUser: true };
       }
 
       console.log("[AuthService] User document exists in Firestore");
+      const userProfile = await this.getUserProfile(userCredential.user);
 
       await this.setSessionCookie();
-      return userProfile;
+      return { profile: userProfile, isNewUser: false };
     } catch (error) {
       console.error("[AuthService] Google sign-in error:", error);
       throw this.handleError(error);

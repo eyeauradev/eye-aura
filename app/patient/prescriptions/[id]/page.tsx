@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackPrescriptionView } from "@/services/analytics/analytics.service";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
@@ -64,6 +65,14 @@ export default function PrescriptionDetailPage() {
 
     loadPrescription();
   }, [params.id, user, router]);
+
+  useEffect(() => {
+    if (prescription && user?.role === "patient") {
+      try {
+        trackPrescriptionView({ prescriptionId: prescription.id });
+      } catch { /* analytics is non-critical */ }
+    }
+  }, [prescription?.id, user?.role]);
 
   const handleDownload = () => {
     router.push(`/prescriptions/${prescription?.id}/pdf`);

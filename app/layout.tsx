@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
+import { GoogleAnalytics } from "@next/third-parties/google";
+import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider } from "@/contexts/theme-context";
 import { ToastProvider } from "@/components/ui/toast-provider";
@@ -64,9 +67,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
   return (
     <html lang="en">
+      {gaId && <GoogleAnalytics gaId={gaId} />}
       <body suppressHydrationWarning>
+        <Suspense fallback={null}>
+          <AnalyticsProvider />
+        </Suspense>
         <AuthProvider>
           <ThemeProvider>
             <ToastProvider>

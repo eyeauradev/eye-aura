@@ -8,6 +8,7 @@ import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import { useToast } from "@/components/ui/toast-provider";
 import { v4 as uuidv4 } from "uuid";
 import { MessageSquare, Plus, ArrowRight, Clock, CheckCircle, AlertCircle, HelpCircle, CreditCard, Calendar as CalendarIcon } from "lucide-react";
+import { trackSupportTicketCreated } from "@/services/analytics/analytics.service";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -112,6 +113,10 @@ export default function PatientSupportPage() {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
+      try {
+        trackSupportTicketCreated({ category: newTicket.category });
+      } catch { /* analytics is non-critical */ }
 
       setSuccess(true);
       setShowNewTicket(false);

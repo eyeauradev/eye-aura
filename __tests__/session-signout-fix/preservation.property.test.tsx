@@ -639,13 +639,13 @@ describe("Property 2: Preservation — Unauthenticated Behavior and Existing Flo
             }),
           } as any);
 
-          const profile = await authService.signInWithGoogle();
+          const result = await authService.signInWithGoogle();
 
           // Preservation: Google sign-in should return a valid user profile
-          expect(profile).toBeDefined();
-          expect(profile.id).toBe("test-user-uid");
-          expect(profile.email).toBe("test@example.com");
-          expect(profile.role).toBeDefined();
+          expect(result).toBeDefined();
+          expect(result.profile.id).toBe("test-user-uid");
+          expect(result.profile.email).toBe("test@example.com");
+          expect(result.profile.role).toBeDefined();
         }),
         { numRuns: 10 }
       );

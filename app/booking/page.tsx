@@ -14,6 +14,7 @@ import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRig
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast-provider";
 import { computeServiceCompatibility, computeBookingSummary, computeDoctorIntersection } from "@/lib/booking/compatibility";
+import { trackAppointmentBooking } from "@/services/analytics/analytics.service";
 import { slotFilterDataFetcher } from "@/services/booking/slot-filter-data.service";
 import {
   filterAvailableSlots,
@@ -267,6 +268,14 @@ export default function BookingPage() {
 
             const verifyData = await verifyRes.json();
             resolve();
+            try {
+              trackAppointmentBooking({
+                serviceName: state.selectedServices.map((s: { title: string }) => s.title).join(", "),
+                doctorName: state.doctor?.displayName ?? "Unknown Doctor",
+                value: totalPrice,
+                currency: currency ?? "INR",
+              });
+            } catch { /* analytics is non-critical */ }
             router.push(`/patient/requests/${verifyData.bookingRequestId}`);
           } catch (error) {
             setState((prev) => ({ ...prev, loading: false }));

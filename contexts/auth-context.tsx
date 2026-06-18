@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { getFirebaseAuth } from "@/services/firebase/client";
 import { authService } from "@/services/auth/auth.service";
+import { trackSignUp, trackLogin } from "@/services/analytics/analytics.service";
 import type { UserProfile, AuthState } from "@/types/auth";
 
 interface AuthContextType extends AuthState {
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const user = await authService.signInWithEmail(credentials);
       setState({ user, loading: false, error: null });
+      try { trackLogin({ method: "email" }); } catch { /* analytics is non-critical */ }
       return user;
     } catch (error) {
       setState(prev => ({ ...prev, loading: false, error: error as Error }));
@@ -83,9 +85,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
-      const user = await authService.signInWithGoogle();
-      setState({ user, loading: false, error: null });
-      return user;
+      const { profile, isNewUser } = await authService.signInWithGoogle();
+      setState({ user: profile, loading: false, error: null });
+      if (isNewUser) {
+        try { trackSignUp({ method: "google" }); } catch { /* analytics is non-critical */ }
+      } else {
+        try { trackLogin({ method: "google" }); } catch { /* analytics is non-critical */ }
+      }
+      return profile;
     } catch (error) {
       setState(prev => ({ ...prev, loading: false, error: error as Error }));
       throw error;
@@ -97,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const user = await authService.signUp(credentials);
       setState({ user, loading: false, error: null });
+      try { trackSignUp({ method: "email" }); } catch { /* analytics is non-critical */ }
       return user;
     } catch (error) {
       setState(prev => ({ ...prev, loading: false, error: error as Error }));
