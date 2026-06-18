@@ -51,9 +51,12 @@ const nextConfig: NextConfig = {
               // Next.js injects inline <style> tags; 'unsafe-inline' is required here.
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://region1.google-analytics.com https://firebaseinstallations.googleapis.com https://firebase.googleapis.com https://app-measurement.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://accounts.google.com",
+              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://region1.google-analytics.com https://firebaseinstallations.googleapis.com https://firebase.googleapis.com https://app-measurement.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://accounts.google.com https://*.firebaseapp.com",
               "img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://lh3.googleusercontent.com https://firebasestorage.googleapis.com https://www.gstatic.com https://*.googleusercontent.com",
-              "frame-src https://api.razorpay.com https://www.googletagmanager.com https://accounts.google.com https://apis.google.com",
+              // https://*.firebaseapp.com is required for Firebase Auth popup flow:
+              // Firebase loads its auth handler iframe from <project>.firebaseapp.com
+              // which receives the OAuth callback and relays the token back to the page.
+              "frame-src https://api.razorpay.com https://www.googletagmanager.com https://accounts.google.com https://apis.google.com https://*.firebaseapp.com",
               "worker-src 'self' blob:",
             ].join("; "),
           },
