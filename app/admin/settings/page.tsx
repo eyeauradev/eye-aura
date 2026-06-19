@@ -33,7 +33,7 @@ const DEFAULTS: PlatformSettings = {
   googleMeetApiKey: "",
   zoomApiKey: "",
   zoomApiSecret: "",
-  notificationEmail: "onboarding@resend.dev",
+  notificationEmail: "noreply@eyeaura.co.in",
   theme: { ...DEFAULT_THEME },
 };
 

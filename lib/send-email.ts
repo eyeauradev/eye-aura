@@ -22,7 +22,7 @@ export async function sendDoctorInviteEmail({
   const resend = getResend();
 
   await resend.emails.send({
-    from: "Eye Aura <onboarding@resend.dev>",
+    from: "Eye Aura <noreply@eyeaura.co.in>",
     to,
     subject: "You're invited to join Eye Aura as a Doctor",
     html: buildEmailHtml(doctorName, inviteLink, expiryDate),
