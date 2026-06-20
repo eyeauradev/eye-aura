@@ -102,7 +102,7 @@ export function HeroSection({ user }: { user: any }) {
               className="relative w-full max-w-[320px] overflow-hidden rounded-[2rem] sm:max-w-[400px]"
             >
               <Image
-                src="/doctor_1.png"
+                src="/doctor_1.jpg"
                 alt="Certified Optometrist at Eye Aura"
                 width={400}
                 height={520}

@@ -58,24 +58,38 @@ export function FounderStory() {
             </div>
           </motion.div>
 
-          {/* Quote */}
+          {/* Founder story */}
           <motion.div {...view} className="flex flex-col justify-center">
-            <div className="mb-6 font-serif text-7xl leading-none text-[#b5964d]/25"
-              style={{ fontFamily: "'EB Garamond', Georgia, serif" }}>
-              "
-            </div>
-            <blockquote
-              className="mb-8 text-3xl font-medium leading-snug text-[#0f4f4b] lg:text-4xl"
+            {/* Primary heading */}
+            <h2
+              className="mb-4 text-3xl font-semibold leading-snug text-[#0f4f4b] lg:text-4xl"
               style={{ fontFamily: "'EB Garamond', Georgia, serif" }}
             >
-              My mom waited a month.<br />
-              My sister waited a week.<br />
-              <span className="italic text-[#0f4f4b]/70">Just to change their specs.</span>
-            </blockquote>
+              Inspired by a Real Problem
+            </h2>
+            <p className="mb-10 text-base leading-relaxed text-[#0f4f4b]/65">
+              Even my own family faced long delays in accessing basic eye care—my mother waited
+              a week for an eye check-up, while my sister waited a month just to update her
+              spectacles.
+            </p>
+
+            {/* Secondary heading */}
+            <h3
+              className="mb-4 text-2xl font-medium leading-snug text-[#0f4f4b] lg:text-3xl"
+              style={{ fontFamily: "'EB Garamond', Georgia, serif" }}
+            >
+              Bridging the Accessibility Gap
+            </h3>
+            <p className="mb-10 text-base leading-relaxed text-[#0f4f4b]/65">
+              As an optometrist, I realized that quality eye care often remains out of reach due
+              to travel, waiting times, and limited access to specialists.
+            </p>
+
+            {/* Attribution — same style as original */}
             <div>
               <div className="mb-3 h-px w-10 bg-[#b5964d]" />
               <cite className="not-italic text-sm font-semibold uppercase tracking-[0.2em] text-[#0f4f4b]/50">
-                - Harshita, Founder & Optometrist
+                Harshita, Founder &amp; Optometrist
               </cite>
             </div>
           </motion.div>
