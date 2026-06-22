@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 function StatCard({
-  end, suffix, prefix = "", label, sub, delay = 0,
-}: { end: number; suffix: string; prefix?: string; label: string; sub: string; delay?: number }) {
-  const [display, setDisplay] = useState("0");
+  end, suffix, prefix = "", label, sub, delay = 0, nowrap = false,
+}: { end: number; suffix: string; prefix?: string; label: string; sub: string; delay?: number; nowrap?: boolean }) {
+  const [val, setVal] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const started = useRef(false);
 
@@ -21,8 +21,7 @@ function StatCard({
           const elapsed = Date.now() - startTime;
           const progress = Math.min(elapsed / duration, 1);
           const eased = 1 - Math.pow(1 - progress, 3);
-          const val = Math.round(eased * end);
-          setDisplay(`${prefix}${val}${suffix}`);
+          setVal(Math.round(eased * end));
           if (progress < 1) requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
@@ -31,7 +30,13 @@ function StatCard({
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, [end, suffix, prefix]);
+  }, [end]);
+
+  // For nowrap cards (e.g. "4 Weeks"), render number and suffix as a single
+  // non-breaking unit so the space inside the suffix never causes a line break.
+  const displayNode = nowrap
+    ? <span className="whitespace-nowrap">{prefix}{val}{suffix}</span>
+    : <>{prefix}{val}{suffix}</>;
 
   return (
     <motion.div
@@ -42,7 +47,7 @@ function StatCard({
       transition={{ duration: 0.65, delay }}
       className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm"
     >
-      <p className="mb-2 text-5xl font-black text-white lg:text-6xl">{display}</p>
+      <p className="mb-2 text-5xl font-black text-white lg:text-6xl">{displayNode}</p>
       <p className="mb-1.5 text-sm font-semibold text-white/75">{label}</p>
       <p className="text-xs leading-relaxed text-white/40">{sub}</p>
     </motion.div>
@@ -52,7 +57,7 @@ function StatCard({
 const stats = [
   { end: 550, suffix: "M+", label: "Indians need vision correction", sub: "Yet most go untreated for years" },
   { end: 72, suffix: "%", label: "Skip annual eye checkups", sub: "Due to cost, distance, or awareness" },
-  { end: 4, suffix: " Weeks", label: "Average wait in tier-2 cities", sub: "For a basic optometry appointment" },
+  { end: 4, suffix: " Weeks", label: "Average wait in tier-2 cities", sub: "For a basic optometry appointment", nowrap: true },
   { end: 0, suffix: "", prefix: "₹", label: "Cost of preventable blindness", sub: "If caught and treated in time" },
 ];
 
@@ -87,7 +92,7 @@ export function ProblemSection() {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((s, i) => (
             <StatCard key={s.label} end={s.end} suffix={s.suffix} prefix={s.prefix}
-              label={s.label} sub={s.sub} delay={i * 0.1} />
+              label={s.label} sub={s.sub} delay={i * 0.1} nowrap={s.nowrap} />
           ))}
         </div>
       </div>
