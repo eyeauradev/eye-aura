@@ -38,7 +38,15 @@ export function FooterSection() {
           {/* Brand */}
           <div>
             <div className="mb-5 flex items-center gap-3">
-              <Image src="/eye-aura-logo.png" alt="Eye Aura" width={100} height={100} className="h-14 w-auto object-contain" />
+              <div className="rounded-2xl bg-white px-3 py-2">
+                <Image
+                  src="/eye-aura-logo_transparent.png"
+                  alt="Eye Aura"
+                  width={100}
+                  height={100}
+                  className="h-10 w-auto object-contain"
+                />
+              </div>
             </div>
             <p className="mb-6 max-w-xs text-sm leading-relaxed text-white/45">
               Next-generation digital eye wellness for the screen generation. Certified tele-optometry, accessible to every Indian.
