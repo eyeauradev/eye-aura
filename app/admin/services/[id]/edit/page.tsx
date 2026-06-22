@@ -41,6 +41,7 @@ export default function AdminServiceEditPage() {
     currency: "",
     duration: "",
     suitableFor: [] as string[],
+    displayOrder: "" as string, // optional ranking; empty string = no rank
   });
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function AdminServiceEditPage() {
           currency: serviceData.currency,
           duration: serviceData.duration.toString(),
           suitableFor: serviceData.suitableFor,
+          displayOrder: typeof serviceData.displayOrder === "number" ? serviceData.displayOrder.toString() : "",
         });
       } catch (error) {
         console.error("Error loading data:", error);
@@ -97,6 +99,10 @@ export default function AdminServiceEditPage() {
         duration: parseInt(formData.duration),
         suitableFor: formData.suitableFor,
         doctorIds: selectedDoctorIds,
+        // displayOrder: only write when a valid positive integer is provided
+        ...(formData.displayOrder.trim() !== "" && !isNaN(Number(formData.displayOrder))
+          ? { displayOrder: parseInt(formData.displayOrder) }
+          : { displayOrder: undefined }),
         // Only include assessmentAutomation when enabled — passing undefined
         // causes Firestore to throw "Unsupported field value: undefined".
         ...(automation.enabled ? { assessmentAutomation: automation } : {}),
@@ -221,6 +227,21 @@ export default function AdminServiceEditPage() {
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                     required
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="displayOrder">Display Order (optional)</Label>
+                  <Input
+                    id="displayOrder"
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 1 = shown first"
+                    value={formData.displayOrder}
+                    onChange={(e) => setFormData({ ...formData, displayOrder: e.target.value })}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Lower number = higher priority. Leave empty to sort last.
+                  </p>
                 </div>
               </div>
 

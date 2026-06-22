@@ -148,6 +148,11 @@ export const serviceConverter = {
       data.assessmentAutomation = service.assessmentAutomation;
     }
 
+    // Only write displayOrder when it is a valid number.
+    if (typeof service.displayOrder === "number") {
+      data.displayOrder = service.displayOrder;
+    }
+
     return data;
   },
   fromFirestore: (snapshot: QueryDocumentSnapshot): ServiceDocument => {
@@ -164,6 +169,7 @@ export const serviceConverter = {
       isActive: data.isActive,
       doctorIds: data.doctorIds || [],
       assessmentAutomation: data.assessmentAutomation ?? undefined,
+      displayOrder: typeof data.displayOrder === "number" ? data.displayOrder : undefined,
       createdAt: fromTimestamp(data.createdAt),
       updatedAt: fromTimestamp(data.updatedAt),
     };

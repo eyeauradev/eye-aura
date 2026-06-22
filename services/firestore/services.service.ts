@@ -10,6 +10,8 @@ import {
   where,
   orderBy,
   limit,
+  Timestamp,
+  deleteField,
   QueryConstraint,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/services/firebase/client";
@@ -36,10 +38,30 @@ export class ServicesService {
 
   async update(id: string, updates: Partial<ServiceDocument>): Promise<ServiceDocument> {
     const docRef = doc(this.db, COLLECTION_NAME, id);
-    await updateDoc(docRef, {
-      ...updates,
-      updatedAt: new Date(),
-    });
+
+    // Build a plain Firestore-safe payload. The converter's toFirestore is only
+    // invoked by setDoc/addDoc, not updateDoc, so we must handle special cases here.
+    const { displayOrder, createdAt, updatedAt, assessmentAutomation, ...rest } = updates;
+
+    const payload: Record<string, unknown> = {
+      ...rest,
+      updatedAt: Timestamp.now(),
+    };
+
+    // displayOrder: write the number when set, delete the field when explicitly cleared
+    if (typeof displayOrder === "number") {
+      payload.displayOrder = displayOrder;
+    } else if ("displayOrder" in updates) {
+      // key present but value is undefined/null → remove field from Firestore
+      payload.displayOrder = deleteField();
+    }
+
+    // assessmentAutomation: only write when enabled, omit otherwise
+    if (assessmentAutomation?.enabled) {
+      payload.assessmentAutomation = assessmentAutomation;
+    }
+
+    await updateDoc(docRef, payload);
     const updated = await this.getById(id);
     if (!updated) throw new Error("Service not found after update");
     return updated;
@@ -57,23 +79,47 @@ export class ServicesService {
   }
 
   async getActiveServices(): Promise<ServiceDocument[]> {
-    return this.query([
+    const results = await this.query([
       where("isActive", "==", true),
       orderBy("createdAt", "desc"),
     ]);
+    return sortByDisplayOrder(results);
   }
 
   async getByType(type: ServiceType): Promise<ServiceDocument[]> {
-    return this.query([
+    const results = await this.query([
       where("type", "==", type),
       where("isActive", "==", true),
       orderBy("createdAt", "desc"),
     ]);
+    return sortByDisplayOrder(results);
   }
 
   async getAll(limitCount: number = 50): Promise<ServiceDocument[]> {
-    return this.query([orderBy("createdAt", "desc"), limit(limitCount)]);
+    const results = await this.query([orderBy("createdAt", "desc"), limit(limitCount)]);
+    return sortByDisplayOrder(results);
   }
+}
+
+/**
+ * Sort services so that:
+ * 1. Services with a displayOrder come first, ascending (1, 2, 3…)
+ * 2. Services without a displayOrder sit at the end, ordered by createdAt desc
+ */
+function sortByDisplayOrder(services: ServiceDocument[]): ServiceDocument[] {
+  return [...services].sort((a, b) => {
+    const aHas = typeof a.displayOrder === "number";
+    const bHas = typeof b.displayOrder === "number";
+    if (aHas && bHas) {
+      if (a.displayOrder !== b.displayOrder) return a.displayOrder! - b.displayOrder!;
+      // same rank — tiebreak by createdAt ascending (older first keeps stable order)
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    }
+    if (aHas) return -1; // a has rank, b doesn't → a first
+    if (bHas) return 1;  // b has rank, a doesn't → b first
+    // neither has rank — keep createdAt desc (newer first)
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
 }
 
 export const servicesService = new ServicesService();

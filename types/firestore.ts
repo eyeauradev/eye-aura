@@ -144,6 +144,10 @@ export interface ServiceDocument {
   doctorIds: string[]; // IDs of doctors who can provide this service
   isActive: boolean;
   assessmentAutomation?: ServiceAssessmentAutomation;
+  /** Optional display order set by admin. Lower numbers appear first.
+   *  Services without a rank (undefined/null) are sorted last, with
+   *  createdAt as the tiebreaker. */
+  displayOrder?: number;
   createdAt: Date;
   updatedAt: Date;
 }

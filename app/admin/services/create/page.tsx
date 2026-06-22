@@ -31,6 +31,7 @@ export default function AdminServiceCreatePage() {
     duration: "30",
     suitableFor: [] as string[],
     doctorIds: [] as string[],
+    displayOrder: "" as string, // optional ranking; empty = no rank (sorted last)
   });
   const [automation, setAutomation] = useState<ServiceAssessmentAutomation>({
     enabled: false,
@@ -115,6 +116,10 @@ export default function AdminServiceCreatePage() {
         suitableFor: formData.suitableFor,
         doctorIds: formData.doctorIds,
         isActive: true,
+        // displayOrder: only write when a valid positive integer is provided
+        ...(formData.displayOrder.trim() !== "" && !isNaN(Number(formData.displayOrder))
+          ? { displayOrder: parseInt(formData.displayOrder) }
+          : {}),
         // Only include assessmentAutomation when enabled — passing undefined
         // causes Firestore to throw "Unsupported field value: undefined".
         ...(automation.enabled ? { assessmentAutomation: automation } : {}),
@@ -233,6 +238,21 @@ export default function AdminServiceCreatePage() {
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                     required
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="displayOrder">Display Order (optional)</Label>
+                  <Input
+                    id="displayOrder"
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 1 = shown first"
+                    value={formData.displayOrder}
+                    onChange={(e) => setFormData({ ...formData, displayOrder: e.target.value })}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Lower number = higher priority. Leave empty to sort last.
+                  </p>
                 </div>
               </div>
 
