@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Phone } from "lucide-react";
+import { trackCtaClick } from "@/services/analytics/analytics.service";
 
 export function FinalCTA({ user }: { user: any }) {
   return (
@@ -54,12 +55,14 @@ export function FinalCTA({ user }: { user: any }) {
           className="flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           <a href={user ? `/${user.role}/dashboard` : "/booking"}
+            onClick={() => trackCtaClick({ label: user ? "Go to Dashboard" : "Book Free Consultation", location: "final_cta" })}
             className="inline-flex h-14 items-center gap-2.5 rounded-2xl bg-white px-10 text-base font-bold text-[#0f4f4b] shadow-[0_8px_40px_rgba(255,255,255,0.2)] transition hover:bg-white/90"
           >
             {user ? "Go to Dashboard" : "Book Free Consultation"}
           </a>
 
           <a href="https://wa.me/917042092967" target="_blank" rel="noopener noreferrer"
+            onClick={() => trackCtaClick({ label: "WhatsApp Us", location: "final_cta" })}
             className="inline-flex h-14 items-center gap-2.5 rounded-2xl border border-white/20 bg-white/8 px-8 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/14"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -69,6 +72,7 @@ export function FinalCTA({ user }: { user: any }) {
           </a>
 
           <a href="tel:+91 7042092967"
+            onClick={() => trackCtaClick({ label: "Call +91 7042092967", location: "final_cta" })}
             className="inline-flex h-14 items-center gap-2.5 rounded-2xl border border-white/20 bg-white/8 px-8 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/14"
           >
             <Phone className="h-4 w-4" />

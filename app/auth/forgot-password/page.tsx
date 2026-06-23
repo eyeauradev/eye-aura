@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDisplayError, formatDisplayError, logError, ERROR_CODES } from "@/lib/errors";
+import { trackForgotPassword } from "@/services/analytics/analytics.service";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function ForgotPasswordPage() {
 
     try {
       await resetPassword(email);
+      trackForgotPassword({ method: "email" });
       setSuccess(true);
     } catch (err: unknown) {
       const appError = getDisplayError(err, ERROR_CODES.AUTH.INVALID_CREDENTIAL);

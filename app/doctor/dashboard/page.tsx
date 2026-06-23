@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { getFirebaseAuth } from "@/services/firebase/client";
 import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
+import { trackDoctorRequestAction } from "@/services/analytics/analytics.service";
 
 export default function DoctorDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -182,6 +183,7 @@ export default function DoctorDashboard() {
   const handleAcceptRequest = async (requestId: string) => {
     try {
       await bookingRequestsService.acceptRequest(requestId);
+      trackDoctorRequestAction({ action: "accepted", request_id: requestId });
       const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "pending");
       const requestsWithPatient = await Promise.all(
         requests.map(async (request) => {
@@ -231,6 +233,11 @@ export default function DoctorDashboard() {
         throw new Error(data.error || "Failed to reject request");
       }
 
+      trackDoctorRequestAction({
+        action: "rejected",
+        request_id: rejectDialog.requestId,
+        reject_reason: rejectReason.trim(),
+      });
       setRejectDialog({ open: false, requestId: "" });
       const requests = await bookingRequestsService.getByDoctorIdAndStatus(user!.id, "pending");
       const requestsWithPatient = await Promise.all(

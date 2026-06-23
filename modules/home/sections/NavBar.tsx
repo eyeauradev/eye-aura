@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trackCtaClick, trackNavAnchorClick } from "@/services/analytics/analytics.service";
 
 const links = [
   { label: "Services", href: "#services" },
@@ -45,6 +46,7 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
           <div className="hidden items-center gap-7 md:flex">
             {links.map((l) => (
               <a key={l.href} href={l.href}
+                onClick={() => trackNavAnchorClick(l.label)}
                 className="text-sm font-medium text-[#0f4f4b]/65 transition hover:text-[#0f4f4b]"
               >{l.label}</a>
             ))}
@@ -58,14 +60,17 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
               </div>
             ) : user ? (
               <Link href={`/${user.role}/dashboard`}
+                onClick={() => trackCtaClick({ label: "Dashboard", location: "navbar" })}
                 className="rounded-xl bg-[#0f4f4b] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0a3a36]"
               >Dashboard</Link>
             ) : (
               <>
                 <Link href="/auth/login"
+                  onClick={() => trackCtaClick({ label: "Sign In", location: "navbar" })}
                   className="rounded-xl px-4 py-2.5 text-sm font-medium text-[#0f4f4b] transition hover:bg-[#0f4f4b]/5"
                 >Sign In</Link>
                 <Link href="/booking"
+                  onClick={() => trackCtaClick({ label: "Book Consultation", location: "navbar" })}
                   className="rounded-xl bg-[#0f4f4b] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0a3a36]"
                 >Book Consultation</Link>
               </>
@@ -101,7 +106,7 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
               {links.map((l, i) => (
                 <motion.a
                   key={l.href} href={l.href}
-                  onClick={() => setOpen(false)}
+                  onClick={() => { setOpen(false); trackNavAnchorClick(l.label); }}
                   initial={{ opacity: 0, x: -24 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.05 + i * 0.07 }}
@@ -118,21 +123,21 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
                 </div>
               ) : user ? (
                 <>
-                  <Link href={`/${user.role}/dashboard`} onClick={() => setOpen(false)}
+                  <Link href={`/${user.role}/dashboard`} onClick={() => { setOpen(false); trackCtaClick({ label: "Go to Dashboard", location: "navbar_mobile" }); }}
                     className="flex h-14 items-center justify-center rounded-2xl bg-[#1a9e98] text-base font-semibold text-white"
                   >Go to Dashboard</Link>
                   {user.role === "patient" && (
-                    <Link href="/booking" onClick={() => setOpen(false)}
+                    <Link href="/booking" onClick={() => { setOpen(false); trackCtaClick({ label: "Book Consultation", location: "navbar_mobile" }); }}
                       className="flex h-14 items-center justify-center rounded-2xl border border-white/20 text-base font-medium text-white/70"
                     >Book Consultation</Link>
                   )}
                 </>
               ) : (
                 <>
-                  <Link href="/booking" onClick={() => setOpen(false)}
+                  <Link href="/booking" onClick={() => { setOpen(false); trackCtaClick({ label: "Book Consultation", location: "navbar_mobile" }); }}
                     className="flex h-14 items-center justify-center rounded-2xl bg-[#1a9e98] text-base font-semibold text-white"
                   >Book Consultation</Link>
-                  <Link href="/auth/login" onClick={() => setOpen(false)}
+                  <Link href="/auth/login" onClick={() => { setOpen(false); trackCtaClick({ label: "Sign In", location: "navbar_mobile" }); }}
                     className="flex h-14 items-center justify-center rounded-2xl border border-white/20 text-base font-medium text-white/70"
                   >Sign In</Link>
                 </>

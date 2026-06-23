@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Eye, Phone, Video, ContactRound, Monitor, Stethoscope } from "lucide-react";
+
 import { servicesService } from "@/services/firestore";
 import type { ServiceDocument, ServiceType } from "@/types/firestore";
+import { trackCtaClick } from "@/services/analytics/analytics.service";
 
 const TYPE_ICON: Record<ServiceType, React.ElementType> = {
   visual_acuity_assessment: Eye,
@@ -126,6 +128,7 @@ export function ServicesSection() {
           className="mt-10 text-center"
         >
           <a href="/booking"
+            onClick={() => trackCtaClick({ label: "Book a Consultation", location: "services_section" })}
             className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#0f4f4b] px-8 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0a3a36]"
           >Book a Consultation →</a>
         </motion.div>

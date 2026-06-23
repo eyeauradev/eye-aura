@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { Check, Star } from "lucide-react";
+import { trackCtaClick } from "@/services/analytics/analytics.service";
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 28 },
@@ -73,9 +74,11 @@ export function HeroSection({ user }: { user: any }) {
 
             <motion.div {...fadeUp(0.44)} className="flex flex-wrap items-center gap-4">
               <Link href={ctaHref}
+                onClick={() => trackCtaClick({ label: ctaLabel, location: "hero_primary" })}
                 className="inline-flex h-14 items-center gap-2 rounded-2xl bg-[#0f4f4b] px-8 text-base font-semibold text-white shadow-[0_8px_32px_rgba(15,79,75,0.35)] transition hover:bg-[#0a3a36] hover:shadow-[0_12px_40px_rgba(15,79,75,0.45)]"
               >{ctaLabel}</Link>
               <a href="#how-it-works"
+                onClick={() => trackCtaClick({ label: "How It Works", location: "hero_secondary" })}
                 className="inline-flex h-14 items-center gap-2 rounded-2xl border border-[#0f4f4b]/20 px-8 text-base font-medium text-[#0f4f4b] transition hover:bg-[#0f4f4b]/5"
               >How It Works ↓</a>
             </motion.div>

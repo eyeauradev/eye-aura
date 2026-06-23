@@ -23,10 +23,10 @@ export interface LoginParams {
 }
 
 export interface AppointmentBookingParams {
-  serviceName: string; // comma-separated service names
+  serviceName: string;
   doctorName: string;
-  value: number; // total price in major currency units (rupees, not paise)
-  currency: string; // defaults to "INR"
+  value: number;
+  currency: string;
 }
 
 export interface PrescriptionViewParams {
@@ -41,6 +41,84 @@ export interface SupportTicketCreatedParams {
     | "prescription"
     | "other"
     | "general";
+}
+
+// ── New event param interfaces ────────────────────────────────────────────
+
+export interface CtaClickParams {
+  /** Human-readable label of the button/link, e.g. "Book Consultation" */
+  label: string;
+  /** Section or component origin, e.g. "hero", "pricing", "navbar" */
+  location: string;
+}
+
+export interface BookingFunnelParams {
+  /**
+   * Which step the user just completed/entered.
+   * 0 = service, 1 = doctor, 2 = time, 3 = notes, 4 = confirm
+   */
+  step: number;
+  step_name: "service" | "doctor" | "time" | "notes" | "confirm";
+  /** Comma-separated service titles when relevant */
+  service_names?: string;
+  /** Doctor display name when relevant */
+  doctor_name?: string;
+}
+
+export interface PaymentInitiatedParams {
+  value: number;
+  currency: string;
+  service_names: string;
+  order_id: string;
+}
+
+export interface PaymentFailedParams {
+  reason: string;
+  service_names: string;
+}
+
+export interface PaymentAbandonedParams {
+  service_names: string;
+  step_reached: string;
+}
+
+export interface BookingRequestParams {
+  request_id: string;
+  service_names: string;
+  doctor_name: string;
+  value: number;
+  currency: string;
+}
+
+export interface DoctorRequestActionParams {
+  action: "accepted" | "rejected";
+  request_id: string;
+  reject_reason?: string;
+}
+
+export interface RecommendationActionParams {
+  action: "accepted" | "declined";
+  recommendation_id: string;
+  service_name?: string;
+}
+
+export interface AssessmentParams {
+  assessment_id: string;
+  assessment_type: string;
+}
+
+export interface ForgotPasswordParams {
+  /** always "email" for now */
+  method: "email";
+}
+
+export interface DoctorOnboardingParams {
+  invite_id?: string;
+}
+
+export interface WhatsAppModalParams {
+  /** "shown" = user saw it, "resolved" = user went to profile */
+  action: "shown" | "resolved";
 }
 
 // ─── Config Interfaces ────────────────────────────────────────────────────────
@@ -65,12 +143,6 @@ let warnedServerSide = false;
 
 // ─── Config Accessor ──────────────────────────────────────────────────────────
 
-/**
- * Returns the current analytics configuration derived from environment variables.
- * Pure function — no side effects, safe to call at any time including before init().
- *
- * Validates: Requirements 1.1, 1.2, 1.4, 1.5
- */
 export function getAnalyticsConfig(): AnalyticsConfig {
   const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
   const fbMeasurementId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID;
@@ -89,57 +161,27 @@ export function getAnalyticsConfig(): AnalyticsConfig {
 
 // ─── Firebase Instance Accessor ───────────────────────────────────────────────
 
-/**
- * Returns the current Firebase Analytics instance, or null if not yet initialized
- * or if Firebase Analytics is not supported in this environment.
- *
- * Does NOT trigger initialization. Safe to call before init().
- *
- * Validates: Requirements 3.4
- */
 export function getFirebaseAnalyticsInstance(): Analytics | null {
   return firebaseAnalyticsInstance;
 }
 
 // ─── Initialization ───────────────────────────────────────────────────────────
 
-/**
- * Initializes the analytics service. Must be called once by the AnalyticsProvider
- * useEffect on mount (client-side only).
- *
- * Idempotent — safe to call multiple times; subsequent calls are no-ops.
- * Never called at module scope (Rule: no module-level init).
- *
- * Validates: Requirements 1.1, 1.2, 1.4, 3.1, 3.2, 3.3, 3.5
- */
 export async function initAnalytics(): Promise<void> {
-  // SSR guard — never init on server
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  // Idempotency guard — only init once
-  if (initialized) {
-    return;
-  }
+  if (typeof window === "undefined") return;
+  if (initialized) return;
 
   const config = getAnalyticsConfig();
   ga4Enabled = config.ga4.enabled;
   firebaseEnabled = config.firebase.enabled;
 
   if (!ga4Enabled) {
-    console.warn(
-      "[Analytics] NEXT_PUBLIC_GA_MEASUREMENT_ID is missing or empty — GA4 tracking disabled."
-    );
+    console.warn("[Analytics] NEXT_PUBLIC_GA_MEASUREMENT_ID is missing or empty — GA4 tracking disabled.");
   }
-
   if (!firebaseEnabled) {
-    console.warn(
-      "[Analytics] NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID is missing or empty — Firebase Analytics disabled."
-    );
+    console.warn("[Analytics] NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID is missing or empty — Firebase Analytics disabled.");
   }
 
-  // Firebase Analytics initialization (browser-only, deferred to here)
   if (firebaseEnabled) {
     try {
       const { isSupported, getAnalytics } = await import("firebase/analytics");
@@ -149,7 +191,6 @@ export async function initAnalytics(): Promise<void> {
         const app = getFirebaseApp();
         firebaseAnalyticsInstance = getAnalytics(app);
       }
-      // If !supported: silent — old browsers/privacy environments are expected
     } catch (err) {
       console.warn("[Analytics] Firebase Analytics init failed:", err);
       firebaseAnalyticsInstance = null;
@@ -159,12 +200,38 @@ export async function initAnalytics(): Promise<void> {
   initialized = true;
 }
 
-// ─── SSR / Pre-Init Guard Helper ─────────────────────────────────────────────
+// ─── Core Internal Dispatcher ─────────────────────────────────────────────────
 
 /**
- * Returns true if the current execution context is safe to send analytics events.
- * Logs a one-time warning when called in an unsafe context.
+ * Low-level dispatcher. Sends to GA4 + Firebase. Wrapped in queueMicrotask
+ * by every public track* function so it never blocks the main thread.
+ * All errors are silently swallowed — analytics must never break the app.
  */
+function _dispatch(eventName: string, params: Record<string, unknown>): void {
+  try {
+    if (typeof window === "undefined" || !initialized) return;
+    if (ga4Enabled && window.gtag) {
+      window.gtag("event", eventName, params);
+    }
+    if (firebaseAnalyticsInstance) {
+      logEvent(firebaseAnalyticsInstance, eventName, params as Record<string, string | number | boolean>);
+    }
+  } catch {
+    // silently swallow — analytics must never break the app
+  }
+}
+
+/**
+ * Public dispatcher: defers to a microtask so the calling code is never
+ * delayed. Safe to call from event handlers, useEffect, and async functions.
+ */
+function dispatch(eventName: string, params: Record<string, unknown> = {}): void {
+  if (typeof window === "undefined") return;
+  queueMicrotask(() => _dispatch(eventName, params));
+}
+
+// ─── SSR / Pre-Init Guard Helper ─────────────────────────────────────────────
+
 function isReadyToTrack(): boolean {
   if (typeof window === "undefined") {
     if (!warnedServerSide) {
@@ -173,202 +240,187 @@ function isReadyToTrack(): boolean {
     }
     return false;
   }
-
   if (!initialized) {
-    console.warn(
-      "[Analytics] Tracking skipped: analytics not yet initialized."
-    );
+    console.warn("[Analytics] Tracking skipped: analytics not yet initialized.");
     return false;
   }
-
   return true;
 }
 
-// ─── Tracking Functions ───────────────────────────────────────────────────────
+// ─── Existing Tracking Functions (preserved, now use dispatch) ────────────────
 
-/**
- * Tracks a page view event to both GA4 and Firebase Analytics.
- *
- * Validates: Requirements 4.1, 4.2, 4.3, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7
- */
 export function trackPageView(params: PageViewParams): void {
   try {
-    if (typeof window === "undefined") {
-      isReadyToTrack();
-      return;
-    }
-    if (!initialized) {
-      isReadyToTrack();
-      return;
-    }
-    if (ga4Enabled && window.gtag) {
-      window.gtag("event", "page_view", {
-        page_path: params.page_path,
-        page_title: params.page_title,
-      });
-    }
-    if (firebaseAnalyticsInstance) {
-      logEvent(firebaseAnalyticsInstance, "page_view", {
-        page_path: params.page_path,
-        page_title: params.page_title,
-      });
-    }
-  } catch (err) {
-    console.error("[Analytics] trackPageView failed:", err);
-  }
+    if (typeof window === "undefined") { isReadyToTrack(); return; }
+    if (!initialized) { isReadyToTrack(); return; }
+    dispatch("page_view", { page_path: params.page_path, page_title: params.page_title });
+  } catch { /* silently swallow */ }
 }
 
-/**
- * Tracks a sign-up event to both GA4 and Firebase Analytics.
- *
- * Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 6.1, 6.2
- */
 export function trackSignUp(params: SignUpParams): void {
   try {
-    if (typeof window === "undefined") {
-      isReadyToTrack();
-      return;
-    }
-    if (!initialized) {
-      isReadyToTrack();
-      return;
-    }
-    if (ga4Enabled && window.gtag) {
-      window.gtag("event", "sign_up", { method: params.method });
-    }
-    if (firebaseAnalyticsInstance) {
-      logEvent(firebaseAnalyticsInstance, "sign_up", {
-        method: params.method,
-      });
-    }
-  } catch (err) {
-    console.error("[Analytics] trackSignUp failed:", err);
-  }
+    if (typeof window === "undefined") { isReadyToTrack(); return; }
+    if (!initialized) { isReadyToTrack(); return; }
+    dispatch("sign_up", { method: params.method });
+  } catch { /* silently swallow */ }
 }
 
-/**
- * Tracks a login event to both GA4 and Firebase Analytics.
- *
- * Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 7.1, 7.2
- */
 export function trackLogin(params: LoginParams): void {
   try {
-    if (typeof window === "undefined") {
-      isReadyToTrack();
-      return;
-    }
-    if (!initialized) {
-      isReadyToTrack();
-      return;
-    }
-    if (ga4Enabled && window.gtag) {
-      window.gtag("event", "login", { method: params.method });
-    }
-    if (firebaseAnalyticsInstance) {
-      logEvent(firebaseAnalyticsInstance, "login", { method: params.method });
-    }
-  } catch (err) {
-    console.error("[Analytics] trackLogin failed:", err);
-  }
+    if (typeof window === "undefined") { isReadyToTrack(); return; }
+    if (!initialized) { isReadyToTrack(); return; }
+    dispatch("login", { method: params.method });
+  } catch { /* silently swallow */ }
 }
 
-/**
- * Tracks an appointment booking event to both GA4 and Firebase Analytics.
- *
- * Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 8.1, 8.2
- */
-export function trackAppointmentBooking(
-  params: AppointmentBookingParams
-): void {
+export function trackAppointmentBooking(params: AppointmentBookingParams): void {
   try {
-    if (typeof window === "undefined") {
-      isReadyToTrack();
-      return;
-    }
-    if (!initialized) {
-      isReadyToTrack();
-      return;
-    }
-    if (ga4Enabled && window.gtag) {
-      window.gtag("event", "purchase", {
-        service_name: params.serviceName,
-        doctor_name: params.doctorName,
-        value: params.value,
-        currency: params.currency,
-      });
-    }
-    if (firebaseAnalyticsInstance) {
-      logEvent(firebaseAnalyticsInstance, "purchase", {
-        service_name: params.serviceName,
-        doctor_name: params.doctorName,
-        value: params.value,
-        currency: params.currency,
-        transaction_id: "",
-      });
-    }
-  } catch (err) {
-    console.error("[Analytics] trackAppointmentBooking failed:", err);
-  }
+    if (typeof window === "undefined") { isReadyToTrack(); return; }
+    if (!initialized) { isReadyToTrack(); return; }
+    dispatch("purchase", {
+      service_name: params.serviceName,
+      doctor_name: params.doctorName,
+      value: params.value,
+      currency: params.currency,
+    });
+  } catch { /* silently swallow */ }
 }
 
-/**
- * Tracks a prescription view event to both GA4 and Firebase Analytics.
- *
- * Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 9.1
- */
 export function trackPrescriptionView(params: PrescriptionViewParams): void {
   try {
-    if (typeof window === "undefined") {
-      isReadyToTrack();
-      return;
-    }
-    if (!initialized) {
-      isReadyToTrack();
-      return;
-    }
-    if (ga4Enabled && window.gtag) {
-      window.gtag("event", "prescription_view", {
-        prescription_id: params.prescriptionId,
-      });
-    }
-    if (firebaseAnalyticsInstance) {
-      logEvent(firebaseAnalyticsInstance, "prescription_view", {
-        prescription_id: params.prescriptionId,
-      });
-    }
-  } catch (err) {
-    console.error("[Analytics] trackPrescriptionView failed:", err);
-  }
+    if (typeof window === "undefined") { isReadyToTrack(); return; }
+    if (!initialized) { isReadyToTrack(); return; }
+    dispatch("prescription_view", { prescription_id: params.prescriptionId });
+  } catch { /* silently swallow */ }
+}
+
+export function trackSupportTicketCreated(params: SupportTicketCreatedParams): void {
+  try {
+    if (typeof window === "undefined") { isReadyToTrack(); return; }
+    if (!initialized) { isReadyToTrack(); return; }
+    dispatch("support_ticket_created", { category: params.category });
+  } catch { /* silently swallow */ }
+}
+
+// ─── New Tracking Functions ───────────────────────────────────────────────────
+
+/** CTA button / link click — hero, pricing, navbar, footer, etc. */
+export function trackCtaClick(params: CtaClickParams): void {
+  dispatch("cta_click", { label: params.label, location: params.location });
 }
 
 /**
- * Tracks a support ticket created event to both GA4 and Firebase Analytics.
- *
- * Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 10.1
+ * User advanced to a new booking funnel step.
+ * Fire when the step changes (service → doctor → time → notes → confirm).
  */
-export function trackSupportTicketCreated(
-  params: SupportTicketCreatedParams
-): void {
-  try {
-    if (typeof window === "undefined") {
-      isReadyToTrack();
-      return;
-    }
-    if (!initialized) {
-      isReadyToTrack();
-      return;
-    }
-    if (ga4Enabled && window.gtag) {
-      window.gtag("event", "support_ticket_created", {
-        category: params.category,
-      });
-    }
-    if (firebaseAnalyticsInstance) {
-      logEvent(firebaseAnalyticsInstance, "support_ticket_created", {
-        category: params.category,
-      });
-    }
-  } catch (err) {
-    console.error("[Analytics] trackSupportTicketCreated failed:", err);
-  }
+export function trackBookingStep(params: BookingFunnelParams): void {
+  dispatch("booking_step", {
+    step: params.step,
+    step_name: params.step_name,
+    ...(params.service_names ? { service_names: params.service_names } : {}),
+    ...(params.doctor_name   ? { doctor_name:   params.doctor_name   } : {}),
+  });
+}
+
+/**
+ * Razorpay checkout modal was opened (payment initiated).
+ * Analogous to GA4's "begin_checkout".
+ */
+export function trackPaymentInitiated(params: PaymentInitiatedParams): void {
+  dispatch("begin_checkout", {
+    value: params.value,
+    currency: params.currency,
+    service_names: params.service_names,
+    order_id: params.order_id,
+  });
+}
+
+/** Razorpay payment.failed callback fired. */
+export function trackPaymentFailed(params: PaymentFailedParams): void {
+  dispatch("payment_failed", {
+    reason: params.reason,
+    service_names: params.service_names,
+  });
+}
+
+/**
+ * User dismissed the Razorpay modal without paying (modal.ondismiss).
+ * This is the "abandoned cart" equivalent.
+ */
+export function trackPaymentAbandoned(params: PaymentAbandonedParams): void {
+  dispatch("payment_abandoned", {
+    service_names: params.service_names,
+    step_reached: params.step_reached,
+  });
+}
+
+/** Booking request successfully created after payment verification. */
+export function trackBookingRequestCreated(params: BookingRequestParams): void {
+  dispatch("booking_request_created", {
+    request_id: params.request_id,
+    service_names: params.service_names,
+    doctor_name: params.doctor_name,
+    value: params.value,
+    currency: params.currency,
+  });
+}
+
+/** Doctor accepted or rejected a booking request. */
+export function trackDoctorRequestAction(params: DoctorRequestActionParams): void {
+  dispatch("doctor_request_action", {
+    action: params.action,
+    request_id: params.request_id,
+    ...(params.reject_reason ? { reject_reason: params.reject_reason } : {}),
+  });
+}
+
+/** Patient accepted or declined a service recommendation from a doctor. */
+export function trackRecommendationAction(params: RecommendationActionParams): void {
+  dispatch("recommendation_action", {
+    action: params.action,
+    recommendation_id: params.recommendation_id,
+    ...(params.service_name ? { service_name: params.service_name } : {}),
+  });
+}
+
+/** Vision assessment started by patient. */
+export function trackAssessmentStarted(params: AssessmentParams): void {
+  dispatch("assessment_started", {
+    assessment_id: params.assessment_id,
+    assessment_type: params.assessment_type,
+  });
+}
+
+/** Vision assessment completed by patient. */
+export function trackAssessmentCompleted(params: AssessmentParams): void {
+  dispatch("assessment_completed", {
+    assessment_id: params.assessment_id,
+    assessment_type: params.assessment_type,
+  });
+}
+
+/** User submitted the forgot-password form. */
+export function trackForgotPassword(params: ForgotPasswordParams): void {
+  dispatch("forgot_password", { method: params.method });
+}
+
+/** Doctor completed their onboarding via invite link. */
+export function trackDoctorOnboardingCompleted(params: DoctorOnboardingParams): void {
+  dispatch("doctor_onboarding_completed", {
+    ...(params.invite_id ? { invite_id: params.invite_id } : {}),
+  });
+}
+
+/**
+ * WhatsApp number gate in booking flow.
+ * "shown"    = user hit the booking page without a WhatsApp number
+ * "resolved" = user clicked "Go to Profile" to add their number
+ */
+export function trackWhatsAppModal(params: WhatsAppModalParams): void {
+  dispatch("whatsapp_gate", { action: params.action });
+}
+
+/** Nav anchor link clicked (Services, How It Works, etc.) */
+export function trackNavAnchorClick(label: string): void {
+  dispatch("nav_anchor_click", { label });
 }

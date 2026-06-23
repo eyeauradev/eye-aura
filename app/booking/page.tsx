@@ -14,7 +14,7 @@ import { ArrowRight, Calendar, Clock, Check, User, Star, ChevronLeft, ChevronRig
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast-provider";
 import { computeServiceCompatibility, computeBookingSummary, computeDoctorIntersection } from "@/lib/booking/compatibility";
-import { trackAppointmentBooking } from "@/services/analytics/analytics.service";
+import { trackAppointmentBooking, trackBookingStep, trackPaymentInitiated, trackPaymentFailed, trackPaymentAbandoned, trackBookingRequestCreated, trackCtaClick, trackWhatsAppModal } from "@/services/analytics/analytics.service";
 import { slotFilterDataFetcher } from "@/services/booking/slot-filter-data.service";
 import {
   filterAvailableSlots,
@@ -73,6 +73,7 @@ export default function BookingPage() {
   useEffect(() => {
     if (!authLoading && user && !user.whatsappNumber) {
       setShowWhatsAppModal(true);
+      trackWhatsAppModal({ action: "shown" });
     }
   }, [authLoading, user]);
 
@@ -123,6 +124,11 @@ export default function BookingPage() {
 
   const handleServiceContinue = () => {
     if (state.selectedServices.length > 0) {
+      trackBookingStep({
+        step: 1,
+        step_name: "doctor",
+        service_names: state.selectedServices.map((s) => s.title).join(", "),
+      });
       setState((prev) => ({ ...prev, currentStep: 1 }));
     }
   };
@@ -143,12 +149,24 @@ export default function BookingPage() {
 
   const handleDoctorContinue = () => {
     if (state.doctor) {
+      trackBookingStep({
+        step: 2,
+        step_name: "time",
+        service_names: state.selectedServices.map((s) => s.title).join(", "),
+        doctor_name: state.doctor.displayName ?? undefined,
+      });
       setState((prev) => ({ ...prev, currentStep: 2 }));
     }
   };
 
   const handleTimeSelect = (time: Date) => {
     setSelectedTime(time);
+    trackBookingStep({
+      step: 3,
+      step_name: "notes",
+      service_names: state.selectedServices.map((s) => s.title).join(", "),
+      doctor_name: state.doctor?.displayName ?? undefined,
+    });
     setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
   };
 
@@ -237,9 +255,11 @@ export default function BookingPage() {
         ? `${state.selectedServices.length} services`
         : state.selectedServices[0]?.title ?? state.service?.title;
 
+      const _serviceNames = state.selectedServices.map((s: { title: string }) => s.title).join(", ");
+
       const options: RazorpayOptions = {
         key: orderData.keyId,
-        amount: orderData.amount, // Already in paise from Razorpay order
+        amount: orderData.amount,
         currency: orderData.currency,
         name: "Eye Aura",
         description: razorpayDescription,
@@ -270,8 +290,15 @@ export default function BookingPage() {
             resolve();
             try {
               trackAppointmentBooking({
-                serviceName: state.selectedServices.map((s: { title: string }) => s.title).join(", "),
+                serviceName: _serviceNames,
                 doctorName: state.doctor?.displayName ?? "Unknown Doctor",
+                value: totalPrice,
+                currency: currency ?? "INR",
+              });
+              trackBookingRequestCreated({
+                request_id: verifyData.bookingRequestId,
+                service_names: _serviceNames,
+                doctor_name: state.doctor?.displayName ?? "Unknown Doctor",
                 value: totalPrice,
                 currency: currency ?? "INR",
               });
@@ -299,6 +326,12 @@ export default function BookingPage() {
         modal: {
           ondismiss: () => {
             setState((prev) => ({ ...prev, loading: false }));
+            try {
+              trackPaymentAbandoned({
+                service_names: _serviceNames,
+                step_reached: "payment_modal",
+              });
+            } catch { /* non-critical */ }
             resolve(); // Dismissed — not an error, just cancelled
           },
         },
@@ -310,6 +343,12 @@ export default function BookingPage() {
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", (resp: any) => {
         setState((prev) => ({ ...prev, loading: false }));
+        try {
+          trackPaymentFailed({
+            reason: resp?.error?.description || "Unknown",
+            service_names: _serviceNames,
+          });
+        } catch { /* non-critical */ }
         try {
           const slotError = getDisplayError(
             new Error(resp?.error?.description || "Slot unavailable"),
@@ -323,6 +362,15 @@ export default function BookingPage() {
         resolve();
       });
       rzp.open();
+      // Track checkout open AFTER the modal opens — non-blocking
+      try {
+        trackPaymentInitiated({
+          value: totalPrice,
+          currency: currency ?? "INR",
+          service_names: _serviceNames,
+          order_id: orderData.orderId,
+        });
+      } catch { /* non-critical */ }
     });
   };
 
@@ -350,7 +398,7 @@ export default function BookingPage() {
             <p className="text-xs text-red-600 font-semibold">
               You cannot proceed without a WhatsApp number.
             </p>
-            <Link href="/patient/profile" className="block">
+            <Link href="/patient/profile" className="block" onClick={() => trackWhatsAppModal({ action: "resolved" })}>
               <button className="w-full bg-[#0f4f4b] hover:bg-[#0a3a36] text-white text-sm font-bold py-3 rounded-2xl transition-colors">
                 Go to Profile to Add WhatsApp Number
               </button>

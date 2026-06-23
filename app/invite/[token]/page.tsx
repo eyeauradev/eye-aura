@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { doctorInvitesService } from "@/services/firestore";
 import { useAuth } from "@/contexts/auth-context";
 import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/lib/errors";
+import { trackDoctorOnboardingCompleted } from "@/services/analytics/analytics.service";
 import { Eye, EyeOff, Lock, User, Mail, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,6 +118,7 @@ export default function InviteAcceptancePage() {
       // Step 2: Auto sign-in with the newly created credentials
       setStatusMessage("Signing you in...");
       await signInWithEmail({ email: data.email, password: formData.password });
+      trackDoctorOnboardingCompleted({ invite_id: invite?.id });
 
       // Step 3: Send verification email
       setStatusMessage("Sending verification email...");

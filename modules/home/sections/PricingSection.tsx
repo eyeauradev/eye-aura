@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
+import { trackCtaClick } from "@/services/analytics/analytics.service";
 
 const plans = [
   {
@@ -117,6 +118,7 @@ export function PricingSection() {
               </ul>
 
               <a href="/booking"
+                onClick={() => trackCtaClick({ label: plan.cta, location: "pricing_section" })}
                 className={`flex h-12 items-center justify-center rounded-2xl text-sm font-semibold transition ${
                   plan.featured
                     ? "bg-white text-[#0f4f4b] hover:bg-white/90"

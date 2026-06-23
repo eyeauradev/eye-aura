@@ -30,6 +30,7 @@ import {
   Stethoscope,
   Timer,
 } from "lucide-react";
+import { trackRecommendationAction, trackCtaClick } from "@/services/analytics/analytics.service";
 import {
   DashboardCard,
   SectionHeader,
@@ -189,6 +190,12 @@ export default function PatientDashboard() {
         body: JSON.stringify({}),
       });
       if (res.ok) {
+        const rec = recommendations.find((r) => r.id === id);
+        trackRecommendationAction({
+          action: "declined",
+          recommendation_id: id,
+          service_name: rec?.serviceName,
+        });
         setRecommendations((prev) => prev.filter((r) => r.id !== id));
         setDecliningId(null);
       }
@@ -519,7 +526,10 @@ export default function PatientDashboard() {
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <Link href={`/patient/recommendations?action=accept&id=${rec.id}`}>
+                          <Link
+                            href={`/patient/recommendations?action=accept&id=${rec.id}`}
+                            onClick={() => trackRecommendationAction({ action: "accepted", recommendation_id: rec.id, service_name: rec.serviceName })}
+                          >
                             <PremiumButton variant="primary" size="sm">
                               Pay & Book
                             </PremiumButton>
