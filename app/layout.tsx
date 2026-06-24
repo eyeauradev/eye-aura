@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     apple: "/eye.png",
   },
   title: {
-    default: "Eye Aura | Vision Care Anywhere",
+    default: "Eye Aura | Because Every Eye Has A Story",
     template: "%s | Eye Aura",
   },
   description:
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     "contact lens consultation",
   ],
   openGraph: {
-    title: "Eye Aura | Vision Care Anywhere",
+    title: "Eye Aura | Because Every Eye Has A Story",
     description:
       "Eye care designed for modern living: calm online guidance, self-screening concepts, and premium digital wellness.",
     url: "https://eyeaura.com",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Eye Aura | Vision Care Anywhere",
+    title: "Eye Aura | Because Every Eye Has A Story",
     description:
       "Premium, calming, accessibility-first eye wellness for modern living.",
     images: ["/eye-aura-logo.png"],

@@ -89,7 +89,7 @@ export function FounderStory() {
             <div>
               <div className="mb-3 h-px w-10 bg-[#b5964d]" />
               <cite className="not-italic text-sm font-semibold uppercase tracking-[0.2em] text-[#0f4f4b]/50">
-                Harshita, Founder &amp; Optometrist
+                Ms. Harshita, Amity University
               </cite>
             </div>
           </motion.div>

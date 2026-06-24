@@ -37,7 +37,7 @@ function ServiceCard({ svc, index }: { svc: ServiceDocument; index: number }) {
       viewport={{ once: true }}
       transition={{ duration: 0.6, delay: index * 0.1 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="group flex flex-col rounded-3xl border border-[#0f4f4b]/8 bg-white p-8 shadow-sm transition hover:shadow-[0_16px_48px_rgba(15,79,75,0.12)]"
+      className="group flex h-full flex-col rounded-3xl border border-[#0f4f4b]/8 bg-white p-8 shadow-sm transition hover:shadow-[0_16px_48px_rgba(15,79,75,0.12)]"
     >
       <div className="mb-5 flex items-start justify-between">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0f4f4b]/8 transition group-hover:bg-[#0f4f4b]/12">
@@ -125,12 +125,22 @@ export function ServicesSection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-10 text-center"
+          className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
         >
-          <a href="/booking"
+          <a
+            href="/booking"
             onClick={() => trackCtaClick({ label: "Book a Consultation", location: "services_section" })}
             className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#0f4f4b] px-8 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0a3a36]"
-          >Book a Consultation →</a>
+          >
+            Book a Consultation →
+          </a>
+          <a
+            href="/services"
+            onClick={() => trackCtaClick({ label: "View All Services", location: "services_section" })}
+            className="inline-flex h-12 items-center gap-2 rounded-2xl border border-[#0f4f4b]/20 bg-white px-8 text-sm font-semibold text-[#0f4f4b] transition hover:border-[#0f4f4b]/40 hover:bg-[#0f4f4b]/4"
+          >
+            View All Services
+          </a>
         </motion.div>
       </div>
     </section>

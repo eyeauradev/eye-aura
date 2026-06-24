@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { trackCtaClick, trackNavAnchorClick } from "@/services/analytics/analytics.service";
 
 const links = [
-  { label: "Services", href: "#services" },
+  { label: "Services", href: "/services" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Technology", href: "#technology" },
   { label: "About", href: "#founder" },
@@ -36,20 +36,30 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
               : "border-white/20 bg-white/60 backdrop-blur-md"
           )}
         >
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/eye.png" alt="Eye Aura" width={40} height={40} className="rounded-full object-contain" priority />
-            <div className="leading-none">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image src="/eye.png" alt="Eye Aura" width={46} height={46} className="rounded-full object-contain" priority />
+            <div className="flex flex-col gap-0.5 leading-none">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0f4f4b]">Eye Aura</p>
+              <p className="text-[11px] font-light tracking-wide text-[#0f4f4b]/55 md:text-[11px] text-[10px]">
+                Because every eye has a story
+              </p>
             </div>
           </Link>
 
           <div className="hidden items-center gap-7 md:flex">
-            {links.map((l) => (
-              <a key={l.href} href={l.href}
-                onClick={() => trackNavAnchorClick(l.label)}
-                className="text-sm font-medium text-[#0f4f4b]/65 transition hover:text-[#0f4f4b]"
-              >{l.label}</a>
-            ))}
+            {links.map((l) =>
+              l.href.startsWith("#") ? (
+                <a key={l.href} href={l.href}
+                  onClick={() => trackNavAnchorClick(l.label)}
+                  className="text-sm font-medium text-[#0f4f4b]/65 transition hover:text-[#0f4f4b]"
+                >{l.label}</a>
+              ) : (
+                <Link key={l.href} href={l.href}
+                  onClick={() => trackNavAnchorClick(l.label)}
+                  className="text-sm font-medium text-[#0f4f4b]/65 transition hover:text-[#0f4f4b]"
+                >{l.label}</Link>
+              )
+            )}
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -93,9 +103,14 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
             className="fixed inset-0 z-[100] flex flex-col bg-[#0a1c1b]"
           >
             <div className="flex items-center justify-between px-6 py-5">
-              <div className="flex items-center gap-3">
-                <Image src="/eye.png" alt="Eye Aura" width={36} height={36} className="rounded-full object-contain" />
-                <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Eye Aura</span>
+              <div className="flex items-center gap-2.5">
+                <Image src="/eye.png" alt="Eye Aura" width={42} height={42} className="rounded-full object-contain" />
+                <div className="flex flex-col gap-0.5 leading-none">
+                  <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Eye Aura</span>
+                  <span className="text-[10px] font-light tracking-wide text-white/45">
+                    Because every eye has a story
+                  </span>
+                </div>
               </div>
               <button onClick={() => setOpen(false)} className="p-2 text-white/50 transition hover:text-white">
                 <X className="h-6 w-6" />
@@ -103,7 +118,8 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
             </div>
 
             <div className="flex flex-1 flex-col justify-center px-8">
-              {links.map((l, i) => (
+              {links.map((l, i) =>
+              l.href.startsWith("#") ? (
                 <motion.a
                   key={l.href} href={l.href}
                   onClick={() => { setOpen(false); trackNavAnchorClick(l.label); }}
@@ -112,7 +128,21 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
                   transition={{ delay: 0.05 + i * 0.07 }}
                   className="border-b border-white/10 py-5 text-2xl font-light text-white/70 transition hover:text-white"
                 >{l.label}</motion.a>
-              ))}
+              ) : (
+                <motion.div
+                  key={l.href}
+                  initial={{ opacity: 0, x: -24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 + i * 0.07 }}
+                >
+                  <Link
+                    href={l.href}
+                    onClick={() => { setOpen(false); trackNavAnchorClick(l.label); }}
+                    className="block border-b border-white/10 py-5 text-2xl font-light text-white/70 transition hover:text-white"
+                  >{l.label}</Link>
+                </motion.div>
+              )
+            )}
             </div>
 
             <div className="flex flex-col gap-3 px-8 pb-12">

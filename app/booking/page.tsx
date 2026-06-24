@@ -66,8 +66,13 @@ export default function BookingPage() {
   const [additionalServices, setAdditionalServices] = useState<ServiceDocument[]>([]);
 
   useEffect(() => {
-    loadServicesWithDoctors();
-  }, []);
+    // Only load services+doctors once we know the user is authenticated.
+    // This prevents hitting the users collection (which requires signedIn()) before
+    // auth resolves, which would throw a Firestore permissions error.
+    if (!authLoading && user) {
+      loadServicesWithDoctors();
+    }
+  }, [authLoading, user]);
 
   // Check WhatsApp number when user loads
   useEffect(() => {
