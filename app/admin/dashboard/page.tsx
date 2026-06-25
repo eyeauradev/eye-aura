@@ -260,7 +260,7 @@ export default function AdminDashboardPage() {
         />
         <MetricCard
           icon={<DollarSign className="h-6 w-6" />}
-          value={metricErrors.revenue ? "—" : `$${stats.revenue}`}
+          value={metricErrors.revenue ? "—" : `₹${stats.revenue.toLocaleString("en-IN")}`}
           label={metricErrors.revenue ? "Data unavailable" : "Revenue"}
           staggerIndex={3}
         />
