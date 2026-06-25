@@ -8,7 +8,7 @@ import { getAuth } from "firebase/auth";
 import { useToast } from "@/components/ui/toast-provider";
 import { getDisplayError, logError, ERROR_CODES } from "@/lib/errors";
 import type { AppError } from "@/lib/errors";
-import { Calendar, Clock, AlertCircle, CheckCircle2, X, ArrowLeft, DollarSign, History } from "lucide-react";
+import { Calendar, Clock, AlertCircle, CheckCircle2, X, ArrowLeft, IndianRupee, History } from "lucide-react";
 import { PremiumButton } from "@/components/premium";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -363,7 +363,7 @@ export default function AdminCancellationsPage() {
                   disabled={actionLoading === approvalChoiceModalId}
                   className="w-full bg-green-600 hover:bg-green-700"
                 >
-                  <DollarSign className="h-4 w-4 mr-2" />
+                  <IndianRupee className="h-4 w-4 mr-2" />
                   {actionLoading === approvalChoiceModalId ? "Processing..." : "Approve with Refund"}
                 </PremiumButton>
                 <PremiumButton
@@ -508,7 +508,7 @@ function CancellationRequestCard({
             disabled={refundLoading === appointment.id}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <DollarSign className="h-4 w-4 mr-1" />
+            <IndianRupee className="h-4 w-4 mr-1" />
             {refundLoading === appointment.id ? "Processing Refund..." : "Issue Refund"}
           </PremiumButton>
         </div>

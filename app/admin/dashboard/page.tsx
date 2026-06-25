@@ -20,7 +20,7 @@ import {
   Users,
   Stethoscope,
   Calendar,
-  DollarSign,
+  IndianRupee,
   MessageSquare,
   ArrowRight,
   CheckCircle,
@@ -259,7 +259,7 @@ export default function AdminDashboardPage() {
           staggerIndex={2}
         />
         <MetricCard
-          icon={<DollarSign className="h-6 w-6" />}
+          icon={<IndianRupee className="h-6 w-6" />}
           value={metricErrors.revenue ? "—" : `₹${stats.revenue.toLocaleString("en-IN")}`}
           label={metricErrors.revenue ? "Data unavailable" : "Revenue"}
           staggerIndex={3}
