@@ -1,21 +1,24 @@
 import type { Metadata } from "next";
 import ServicesClient from "./ServicesClient";
 
+// Production domain confirmed from lib/send-email.ts and app/admin/settings/page.tsx
+const SITE_URL = "https://www.eyeaura.co.in";
+
 export const metadata: Metadata = {
   title: "Eye Care Services",
   description:
     "Explore Eye Aura's digital eye care services: online consultations, visual acuity screening, and contact lens guidance — all from home.",
   alternates: {
-    canonical: "https://eyeaura.com/services",
+    canonical: `${SITE_URL}/services`,
   },
   openGraph: {
     title: "Eye Care Services | Eye Aura",
     description:
       "Book an online eye consultation, screen your vision, or get contact lens guidance — all from home.",
-    url: "https://eyeaura.com/services",
+    url: `${SITE_URL}/services`,
     images: [
       {
-        url: "https://eyeaura.com/eye-aura-logo.png",
+        url: `${SITE_URL}/eye-aura-logo.png`,
         width: 1254,
         height: 1254,
         alt: "Eye Aura — Premium Digital Eye Wellness",
@@ -27,7 +30,7 @@ export const metadata: Metadata = {
     title: "Eye Care Services | Eye Aura",
     description:
       "Book an online eye consultation, screen your vision, or get contact lens guidance — all from home.",
-    images: ["https://eyeaura.com/eye-aura-logo.png"],
+    images: [`${SITE_URL}/eye-aura-logo.png`],
   },
 };
 

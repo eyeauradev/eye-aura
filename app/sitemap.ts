@@ -1,15 +1,18 @@
 import type { MetadataRoute } from "next";
 
+// Production domain confirmed from lib/send-email.ts and app/admin/settings/page.tsx
+const SITE_URL = "https://www.eyeaura.co.in";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: "https://eyeaura.com",
+      url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1,
     },
     {
-      url: "https://eyeaura.com/services",
+      url: `${SITE_URL}/services`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,

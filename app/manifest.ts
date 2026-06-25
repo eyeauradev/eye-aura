@@ -4,13 +4,13 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Eye Aura",
     short_name: "Eye Aura",
-    description:
-      "Premium digital eye wellness for modern screen-led lives.",
+    description: "Premium digital eye wellness for modern screen-led lives.",
     start_url: "/",
     display: "standalone",
     background_color: "#f5f2ec",
     theme_color: "#0f4f4b",
     icons: [
+      // /eye.png and /eye-aura-logo.png both confirmed to exist in public/ directory
       {
         src: "/eye.png",
         sizes: "1254x1254",
