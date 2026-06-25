@@ -605,7 +605,7 @@ function ServiceSelectionStep({
               <p className="text-xs text-[#0f4f4b]/50 leading-relaxed line-clamp-2 mb-4">{service.description}</p>
               <div className="flex items-center justify-between pt-3 border-t border-[#0f4f4b]/8">
                 <span className="font-display text-lg font-bold text-[#b5964d]">
-                  {service.currency} {service.price}
+                  {service.currency === "INR" ? "₹" : service.currency}{service.price.toLocaleString("en-IN")}
                 </span>
                 <span className="text-xs font-semibold text-[#0f4f4b]/50 bg-[#0f4f4b]/6 px-2.5 py-1 rounded-full">
                   {service.duration} min
@@ -811,7 +811,7 @@ function DoctorSelectionStep({
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-[#0f4f4b] truncate">{svc.title}</p>
                     <p className="text-[11px] text-[#0f4f4b]/40">
-                      {svc.currency} {svc.price} · {svc.duration} min
+                      {svc.currency === "INR" ? "₹" : svc.currency}{svc.price.toLocaleString("en-IN")} · {svc.duration} min
                     </p>
                   </div>
                   <button
@@ -835,8 +835,7 @@ function DoctorSelectionStep({
           {additionalServices.length > 0 && (
             <div className="rounded-xl bg-[#b5964d]/8 border border-[#b5964d]/20 px-4 py-2.5">
               <p className="text-xs font-semibold text-[#b5964d]">
-                +{additionalServices.length} add-on{additionalServices.length > 1 ? "s" : ""} selected · Total add-on: {service?.currency ?? "INR"}{" "}
-                {additionalServices.reduce((sum, s) => sum + s.price, 0)}
+                +{additionalServices.length} add-on{additionalServices.length > 1 ? "s" : ""} selected · Total add-on: {(service?.currency ?? "INR") === "INR" ? "₹" : (service?.currency ?? "INR")}{additionalServices.reduce((sum, s) => sum + s.price, 0).toLocaleString("en-IN")}
               </p>
             </div>
           )}
@@ -1293,7 +1292,7 @@ function ConfirmationStep({
                     <p className="text-xs text-[#0f4f4b]/40">{svc.duration} min</p>
                   </div>
                   <span className="text-sm font-semibold text-[#0f4f4b] shrink-0">
-                    {svc.currency} {svc.price}
+                    {svc.currency === "INR" ? "₹" : svc.currency}{svc.price.toLocaleString("en-IN")}
                   </span>
                 </div>
               ))}

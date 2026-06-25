@@ -142,7 +142,7 @@ function ServiceCard({ service, onToggle }: { service: ServiceDocument & { docto
         <p className="text-sm text-muted-foreground truncate">{service.type}</p>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {service.duration}min • {service.currency}{service.price}
+            {service.duration}min • {service.currency === "INR" ? "₹" : service.currency}{service.price.toLocaleString("en-IN")}
           </span>
           {service.isActive ? (
             <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>

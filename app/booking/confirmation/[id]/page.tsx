@@ -191,7 +191,7 @@ export default function BookingConfirmationPage() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-muted-foreground">Price</p>
-                    <p className="text-lg font-bold text-secondary">{service.currency} {service.price}</p>
+                    <p className="text-lg font-bold text-secondary">{service.currency === "INR" ? "₹" : service.currency}{service.price.toLocaleString("en-IN")}</p>
                   </div>
                 </div>
               </div>

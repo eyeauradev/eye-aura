@@ -192,7 +192,7 @@ export default function AdminAppointmentDetailPage() {
                   <p className="text-sm text-muted-foreground">{service.type}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-primary">{service.currency} {service.price}</p>
+                  <p className="font-medium text-primary">{service.currency === "INR" ? "₹" : service.currency}{service.price.toLocaleString("en-IN")}</p>
                   <p className="text-sm text-muted-foreground">{service.duration} min</p>
                 </div>
               </div>

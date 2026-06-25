@@ -577,7 +577,7 @@ export default function PatientDashboard() {
                       </p>
                       <div className="flex items-center justify-between mb-3">
                         <span className="font-semibold text-lg text-secondary">
-                          {service.currency} {service.price}
+                          {service.currency === "INR" ? "₹" : service.currency}{service.price.toLocaleString("en-IN")}
                         </span>
                         <StatusBadge variant="active" size="sm">
                           {service.duration} min

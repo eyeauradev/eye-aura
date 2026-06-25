@@ -146,7 +146,7 @@ export default function AdminServiceDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Price</p>
-                <p className="font-medium text-primary">{service.currency} {service.price}</p>
+                <p className="font-medium text-primary">{service.currency === "INR" ? "₹" : service.currency}{service.price.toLocaleString("en-IN")}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Duration</p>
