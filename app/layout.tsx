@@ -55,9 +55,13 @@ export const metadata: Metadata = {
   // app/icon.png exists (1254×1254px) — Next.js App Router serves it automatically.
   // Explicit declaration here ensures shortcut and apple-touch fallbacks are correct.
   icons: {
-    icon: [{ url: "/icon.png", type: "image/png", sizes: "1254x1254" }],
-    shortcut: "/icon.png",
-    apple: [{ url: "/eye.png", sizes: "1254x1254", type: "image/png" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16.png", type: "image/png", sizes: "16x16" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/icon.png", sizes: "1254x1254", type: "image/png" }],
   },
   openGraph: {
     title: "Eye Aura | Because Every Eye Has A Story",
