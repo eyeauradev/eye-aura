@@ -312,8 +312,8 @@ function EyeIntroScreen({
           ) : (
             <>
               Cover your <strong>{isRight ? "left" : "right"}</strong> eye with
-              your palm. Hold the device at <strong>35 cm</strong>{" "}
-              (arm&apos;s length).
+              your palm. Hold the device at <strong>40 cm</strong>{" "}
+              (standard reading distance).
             </>
           )}
         </p>
@@ -364,7 +364,7 @@ function EyeIntroScreen({
             ) : (
               <>
                 Cover your <strong>{isRight ? "left" : "right"}</strong> eye
-                firmly. Hold device at 35 cm. Each line shows for {timerDuration}
+                firmly. Hold device at 40 cm. Each line shows for {timerDuration}
                 s then advances.
               </>
             )}

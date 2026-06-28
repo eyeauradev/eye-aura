@@ -27,7 +27,7 @@ export function NearTestingStep(props: NearTestingStepProps) {
       {...props}
       chart={NEAR_CHART}
       accent={{ primary: "#b5964d", primaryHover: "#9f833f", ringPaused: "#b5964d" }}
-      distanceLabel="35 cm"
+      distanceLabel="40 cm"
       testKind="near"
     />
   );

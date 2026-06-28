@@ -61,8 +61,10 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
   const initialLong = () => {
     if (typeof window === "undefined") return 280;
     if (window.innerWidth < PORTRAIT_BREAKPOINT_PX) {
-      // Start at 60% of viewport height — card usually needs ~55–65% on a typical phone
-      return Math.max(200, Math.min(Math.floor(window.innerHeight * 0.6), 600));
+      // Start at 70% of viewport height — closer to the typical card size on most phones.
+      // The physical card (85.60mm) at average phone PPI (~460ppi, DPR=3) is ~515 CSS px.
+      // 70% of a 750px phone = 525px which is close. Clamped to [240, 800].
+      return Math.max(240, Math.min(Math.floor(window.innerHeight * 0.70), 800));
     }
     return Math.max(200, Math.min(Math.floor(window.innerWidth * 0.6), 420));
   };
@@ -90,9 +92,11 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
   }, [existingCalibration]);
 
   const minLong = 160;
+  // Allow the card to grow to the full viewport dimension so users on any phone
+  // can always size it to match a physical card. No artificial 720px cap.
   const maxLong = portrait
-    ? Math.min((typeof window !== "undefined" ? window.innerHeight : 800), 720)
-    : Math.min((typeof window !== "undefined" ? window.innerWidth  : 800) - 48, 560);
+    ? Math.min((typeof window !== "undefined" ? window.innerHeight : 900) - 8, 1000)
+    : Math.min((typeof window !== "undefined" ? window.innerWidth  : 800) - 16, 900);
 
   const adjust = useCallback((delta: number) => {
     setCardLongPx((v) => Math.max(minLong, Math.min(maxLong, v + delta)));
@@ -170,13 +174,15 @@ export function CalibrationStep({ onCalibrated, existingCalibration }: Calibrati
         </div>
       )}
 
-      {/* Calibration area — card overflows the viewport edges intentionally */}
-      <div ref={containerRef} className="flex flex-col items-center gap-6">
+      {/* Calibration area — card allowed to overflow viewport edges intentionally.
+          This lets users hold a physical card flush against the screen to compare. */}
+      <div ref={containerRef} className="flex flex-col items-center gap-6 w-full overflow-visible">
 
-        {/* Calibration rectangle — allowed to overflow horizontally so user can
-            hold a physical card against the screen edge for comparison */}
+        {/* Calibration rectangle — overflows the content column on purpose.
+            In portrait mode the card is taller than the scrollable area — that's correct.
+            Users hold their physical card next to the screen for comparison. */}
         <div
-          className="relative"
+          className="relative flex-shrink-0"
           style={{ width: displayW, height: displayH }}
         >
           <div

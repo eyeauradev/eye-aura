@@ -156,7 +156,7 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
       rightEye:        eyeResults.right,
       leftEye:         eyeResults.left,
       timerDuration,
-      testingDistance: testType === "far" ? 3 : 0.35,
+      testingDistance: testType === "far" ? 3 : 0.40,
       calibration,
       startedAt:       startedAt.current,
       completedAt,

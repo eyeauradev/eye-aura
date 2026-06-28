@@ -24,12 +24,12 @@ const FAR_INSTRUCTIONS = [
 
 const NEAR_INSTRUCTIONS = [
   "Sit in a well-lit room. Avoid reflections or glare on your screen.",
-  "Hold the device at approximately 35–40 cm from your eyes (arm's length).",
+  "Hold the device at approximately 40 cm from your eyes (standard reading distance).",
   "Keep the device stable — do not tilt or move it during a reading.",
   "Wear your existing reading glasses or contacts if instructed.",
   "Cover one eye firmly with your palm. Do not press on the eye.",
   "Read each line of text aloud clearly so your doctor can hear you.",
-  "Maintain the same distance throughout — do not bring the screen closer.",
+  "Maintain the same 40 cm distance throughout — do not bring the screen closer.",
 ];
 
 export function InstructionsStep({ testType, onContinue }: InstructionsStepProps) {
@@ -62,7 +62,7 @@ export function InstructionsStep({ testType, onContinue }: InstructionsStepProps
         <p className="text-xs text-muted-foreground max-w-xs mx-auto">
           {isFar
             ? "Far vision test at 3 metres. Confirm each step."
-            : "Near vision test at 35–40 cm. Confirm each step."}
+            : "Near vision test at 40 cm. Confirm each step."}
         </p>
       </div>
 
