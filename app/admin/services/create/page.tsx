@@ -120,8 +120,8 @@ export default function AdminServiceCreatePage() {
         ...(formData.displayOrder.trim() !== "" && !isNaN(Number(formData.displayOrder))
           ? { displayOrder: parseInt(formData.displayOrder) }
           : {}),
-        // Only include assessmentAutomation when enabled — passing undefined
-        // causes Firestore to throw "Unsupported field value: undefined".
+        // Only include assessmentAutomation when enabled — the Firestore
+        // create converter skips it when not enabled, which is correct for new docs.
         ...(automation.enabled ? { assessmentAutomation: automation } : {}),
         createdAt: new Date(),
         updatedAt: new Date(),

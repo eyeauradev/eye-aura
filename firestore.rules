@@ -257,11 +257,17 @@ service cloud.firestore {
         || isAdmin()
       );
 
-      // Doctors can create assessments linked to their own appointments
-      // Admin SDK API route handles admin + system creation
+      // Doctors can create assessments for their own patients:
+      //   - Manual assignments: assignedRole == "doctor"
+      //   - Auto-assignments triggered on booking accept: assignedRole == "system" + autoAssigned == true
+      // Admin SDK API route handles admin-panel creation.
       allow create: if isDoctor()
-        && request.resource.data.assignedRole == "doctor"
-        && request.resource.data.doctorId == request.auth.uid;
+        && request.resource.data.doctorId == request.auth.uid
+        && (
+          request.resource.data.assignedRole == "doctor"
+          || (request.resource.data.assignedRole == "system"
+              && request.resource.data.autoAssigned == true)
+        );
 
       // Patient can write results + status; doctor can write review fields; admin unrestricted
       allow update: if signedIn() && request.auth.uid == resource.data.patientId
@@ -271,6 +277,12 @@ service cloud.firestore {
         || isAdmin();
 
       allow delete: if isAdmin();
+    }
+
+    // Vision Assessments Collection — list access
+    // Patients list their own; doctors list theirs; admins list all.
+    match /vision_assessments {
+      allow list: if isPatient() || isDoctor() || isAdmin();
     }
 
     // Platform Settings Collection
