@@ -56,9 +56,15 @@ export class ServicesService {
       payload.displayOrder = deleteField();
     }
 
-    // assessmentAutomation: only write when enabled, omit otherwise
-    if (assessmentAutomation?.enabled) {
-      payload.assessmentAutomation = assessmentAutomation;
+    // assessmentAutomation: write the full object when present in the update payload,
+    // delete the Firestore field when explicitly set to undefined/null (disabled or cleared).
+    if ("assessmentAutomation" in updates) {
+      if (assessmentAutomation?.enabled) {
+        payload.assessmentAutomation = assessmentAutomation;
+      } else {
+        // Toggle was turned off — remove the stale field so acceptRequest won't fire.
+        payload.assessmentAutomation = deleteField();
+      }
     }
 
     await updateDoc(docRef, payload);

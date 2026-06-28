@@ -175,6 +175,9 @@ export class BookingRequestsService {
         try {
           const autoId = crypto.randomUUID();
           const now = new Date();
+          // Expires 1 hour after the appointment starts (matches the UI label).
+          // Using appointmentTime (the scheduled slot) as the anchor, not now.
+          const expiresAt = new Date(appointmentTime.getTime() + 60 * 60 * 1000);
           const autoAssessment: VisionAssessmentDocument = {
             id: autoId,
             patientId: request.patientId,
@@ -189,7 +192,7 @@ export class BookingRequestsService {
             autoAssigned: true,
             createdAt: now,
             updatedAt: now,
-            expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+            expiresAt,
           };
           const assessmentRef = doc(this.db, "vision_assessments", autoId);
           await setDoc(assessmentRef, autoAssessment);

@@ -103,9 +103,9 @@ export default function AdminServiceEditPage() {
         ...(formData.displayOrder.trim() !== "" && !isNaN(Number(formData.displayOrder))
           ? { displayOrder: parseInt(formData.displayOrder) }
           : { displayOrder: undefined }),
-        // Only include assessmentAutomation when enabled — passing undefined
-        // causes Firestore to throw "Unsupported field value: undefined".
-        ...(automation.enabled ? { assessmentAutomation: automation } : {}),
+        // Always pass assessmentAutomation so the service layer can delete the
+        // Firestore field when the toggle is off (prevents stale enabled:true data).
+        assessmentAutomation: automation.enabled ? automation : undefined,
       });
       router.push(`/admin/services/${service.id}`);
     } catch (error) {
