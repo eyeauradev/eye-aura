@@ -55,16 +55,17 @@ export default function PatientDashboard() {
   // Role-based redirect — use stable primitives as deps to avoid re-firing on every user object refresh
   useEffect(() => {
     if (authLoading || !user) return;
+    // Check inactive/suspended first — a disabled doctor should go to login, not bounce to /doctor/dashboard
+    if (!user.isActive || user.isSuspended) {
+      router.replace("/auth/login");
+      return;
+    }
     if (user.role === "admin") {
       router.replace("/admin/dashboard");
       return;
     }
     if (user.role === "doctor") {
       router.replace("/doctor/dashboard");
-      return;
-    }
-    if (!user.isActive || user.isSuspended) {
-      router.replace("/auth/login");
       return;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
