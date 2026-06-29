@@ -487,6 +487,9 @@ export default function BookingPage() {
                   : [...prev, svc]
               );
             }}
+            bookingDuration={state.selectedServices.length > 0
+              ? state.selectedServices.reduce((sum, s) => sum + s.duration, 0)
+              : state.service?.duration ?? 30}
           />
         )}
 
@@ -651,6 +654,7 @@ function DoctorSelectionStep({
   onContinue,
   additionalServices,
   onToggleAdditionalService,
+  bookingDuration,
 }: {
   selectedServices: ServiceDocument[];
   service: ServiceDocument | null;
@@ -661,6 +665,7 @@ function DoctorSelectionStep({
   onContinue: () => void;
   additionalServices: ServiceDocument[];
   onToggleAdditionalService: (svc: ServiceDocument) => void;
+  bookingDuration: number;
 }) {
   // Compute doctors that can serve ALL selected services (intersection)
   const validDoctorIds = useMemo(
@@ -689,6 +694,9 @@ function DoctorSelectionStep({
     if (!d.displayName || d.displayName === d.email) return d.email;
     return d.displayName;
   };
+
+  const doctorIds = useMemo(() => doctors.map((d) => d.id), [doctors]);
+  const { availMap, loading: availLoading } = useDoctorAvailabilityMap(doctorIds);
 
   // Find other services from the same doctors (upsell)
   const otherServices = selected
@@ -736,22 +744,35 @@ function DoctorSelectionStep({
         <div className="grid gap-3 sm:grid-cols-2">
           {doctors.map((doctor) => {
             const active = selected?.id === doctor.id;
+            const doctorAvail = availMap[doctor.id];
+            // Only mark unavailable once we've loaded availability (doctorAvail !== undefined)
+            const noSlots = doctorAvail !== undefined && !hasFutureSlots(doctorAvail, bookingDuration);
             return (
               <div
                 key={doctor.id}
-                onClick={() => onSelect(doctor)}
+                onClick={() => { if (!noSlots) onSelect(doctor); }}
                 className={cn(
-                  "group relative cursor-pointer rounded-2xl border bg-white p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
-                  active
+                  "group relative rounded-2xl border bg-white p-4 transition-all duration-200",
+                  noSlots
+                    ? "opacity-60 cursor-not-allowed border-[#0f4f4b]/8"
+                    : "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+                  active && !noSlots
                     ? "border-[#0f4f4b] shadow-sm ring-1 ring-[#0f4f4b]/20"
-                    : "border-[#0f4f4b]/12 hover:border-[#0f4f4b]/30"
+                    : !noSlots && "border-[#0f4f4b]/12 hover:border-[#0f4f4b]/30"
                 )}
               >
+                {/* Fully booked badge */}
+                {noSlots && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1 rounded-lg bg-[#b5964d]/12 border border-[#b5964d]/25 px-2 py-0.5">
+                    <AlertCircle className="h-3 w-3 text-[#b5964d]" />
+                    <span className="text-[10px] font-bold text-[#b5964d]">No availability</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-3.5">
                   {/* Avatar */}
                   <div className={cn(
                     "h-12 w-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0 transition-colors",
-                    active ? "bg-[#0f4f4b] text-white" : "bg-[#b5964d]/15 text-[#b5964d]"
+                    active && !noSlots ? "bg-[#0f4f4b] text-white" : "bg-[#b5964d]/15 text-[#b5964d]"
                   )}>
                     {getInitial(doctor)}
                   </div>
@@ -765,15 +786,19 @@ function DoctorSelectionStep({
                       {getName(doctor)}
                     </p>
                     <p className="text-xs text-[#0f4f4b]/45 truncate mt-0.5">{doctor.email}</p>
-                    <div className="flex items-center gap-1 mt-1.5">
-                      <Star className="h-3 w-3 fill-[#b5964d] text-[#b5964d] shrink-0" />
-                      <span className="text-xs font-bold text-[#0f4f4b]/80">4.9</span>
-                      <span className="text-[11px] text-[#0f4f4b]/35">(120 reviews)</span>
-                    </div>
+                    {noSlots ? (
+                      <p className="text-[11px] text-[#b5964d]/80 mt-1.5 font-medium">No open slots in the next 60 days</p>
+                    ) : (
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <Star className="h-3 w-3 fill-[#b5964d] text-[#b5964d] shrink-0" />
+                        <span className="text-xs font-bold text-[#0f4f4b]/80">4.9</span>
+                        <span className="text-[11px] text-[#0f4f4b]/35">(120 reviews)</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Selected check */}
-                  {active && (
+                  {active && !noSlots && (
                     <div className="h-6 w-6 rounded-full bg-[#0f4f4b] flex items-center justify-center shrink-0">
                       <Check className="h-3.5 w-3.5 text-white" />
                     </div>
@@ -857,6 +882,68 @@ function DoctorSelectionStep({
       )}
     </div>
   );
+}
+
+/** Pure check: does this doctor's availability schedule have any future slots in the next 60 days? */
+function hasFutureSlots(availability: DoctorAvailabilityDocument[], bookingDuration: number): boolean {
+  const dayMap: Record<string, number> = {
+    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+    thursday: 4, friday: 5, saturday: 6,
+  };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() + 60);
+  const now = new Date();
+
+  let current = new Date(today);
+  while (current <= cutoff) {
+    const dayOfWeek = current.getDay();
+    const dayName = Object.keys(dayMap).find((k) => dayMap[k] === dayOfWeek);
+    const avail = availability.find((a) => a.dayOfWeek === dayName && !a.isOff);
+    if (avail) {
+      for (const range of avail.timeRanges) {
+        const [sh, sm] = range.startTime.split(":").map(Number);
+        const [eh, em] = range.endTime.split(":").map(Number);
+        const rangeEnd = new Date(current);
+        rangeEnd.setHours(eh, em, 0, 0);
+        let slotStart = new Date(current);
+        slotStart.setHours(sh, sm, 0, 0);
+        while (slotStart.getTime() + bookingDuration * 60_000 <= rangeEnd.getTime()) {
+          if (slotStart > now) return true;
+          slotStart = new Date(slotStart.getTime() + avail.duration * 60_000);
+        }
+      }
+    }
+    current = new Date(current);
+    current.setDate(current.getDate() + 1);
+  }
+  return false;
+}
+
+/** Fetch availability for a list of doctors in parallel; returns a map of doctorId → records */
+function useDoctorAvailabilityMap(doctorIds: string[]) {
+  const [availMap, setAvailMap] = useState<Record<string, DoctorAvailabilityDocument[]>>({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (doctorIds.length === 0) return;
+    setLoading(true);
+    Promise.all(
+      doctorIds.map((id) =>
+        doctorAvailabilityService.getByDoctorId(id).then((avail) => ({ id, avail }))
+      )
+    )
+      .then((results) => {
+        const map: Record<string, DoctorAvailabilityDocument[]> = {};
+        for (const { id, avail } of results) map[id] = avail;
+        setAvailMap(map);
+      })
+      .catch(() => { /* graceful — empty map means we don't block selection */ })
+      .finally(() => setLoading(false));
+  }, [doctorIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { availMap, loading };
 }
 
 function useAvailableSlots(
@@ -986,7 +1073,11 @@ function TimeSelectionStep({
       const avail = doctorAvailability.find((a) => a.dayOfWeek === dayName && !a.isOff);
 
       if (avail) {
-        const dateKey = current.toISOString().split("T")[0];
+        // Use local date parts to avoid UTC offset shifting the key to the wrong day
+        const y = current.getFullYear();
+        const m = String(current.getMonth() + 1).padStart(2, "0");
+        const d = String(current.getDate()).padStart(2, "0");
+        const dateKey = `${y}-${m}-${d}`;
         const daySlots: Date[] = [];
 
         avail.timeRanges.forEach((range) => {
@@ -1017,6 +1108,18 @@ function TimeSelectionStep({
     return result;
   }, [doctorAvailability, bookingDuration]);
 
+  // Auto-select the nearest available date when availability loads and nothing is selected
+  useEffect(() => {
+    if (selectedDate) return; // already have a selection
+    const keys = Object.keys(slotsByDate).sort();
+    if (keys.length === 0) return;
+    const [y, mo, d] = keys[0].split("-").map(Number);
+    const nearest = new Date(y, mo - 1, d); // local date, no timezone shift
+    setSelectedDate(nearest);
+    // Jump the calendar to that month if it differs from the currently shown month
+    setCurrentMonth(new Date(nearest.getFullYear(), nearest.getMonth(), 1));
+  }, [slotsByDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const calendarDays = useMemo(() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -1031,7 +1134,12 @@ function TimeSelectionStep({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const isAvailable = (date: Date) => !!slotsByDate[date.toISOString().split("T")[0]];
+  const isAvailable = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return !!slotsByDate[`${y}-${m}-${d}`];
+  };
   const isPast = (date: Date) => { const d = new Date(date); d.setHours(0,0,0,0); return d < today; };
   const isToday = (date: Date) => date.toDateString() === new Date().toDateString();
   const isSelected = (date: Date) => selectedDate?.toDateString() === date.toDateString();
@@ -1093,13 +1201,15 @@ function TimeSelectionStep({
             return (
               <button
                 key={i}
-                disabled={disabled}
-                onClick={() => setSelectedDate(date)}
+                disabled={disabled && !sel}
+                onClick={() => { if (!disabled) setSelectedDate(date); }}
                 className={cn(
                   "rounded-xl py-2 text-xs font-semibold transition-all focus:outline-none",
-                  sel && "bg-[#0f4f4b] text-white shadow-md shadow-[#0f4f4b]/20",
-                  !sel && avail && !past && "bg-[#0f4f4b]/8 text-[#0f4f4b] hover:bg-[#0f4f4b]/15 cursor-pointer",
-                  disabled && "text-[#0f4f4b]/20 cursor-not-allowed",
+                  sel
+                    ? "bg-[#0f4f4b] text-white shadow-md shadow-[#0f4f4b]/20"
+                    : avail && !past
+                      ? "bg-[#0f4f4b]/8 text-[#0f4f4b] hover:bg-[#0f4f4b]/15 cursor-pointer"
+                      : "text-[#0f4f4b]/20 cursor-not-allowed",
                   tod && !sel && "ring-2 ring-[#b5964d]/60 ring-offset-1",
                 )}
               >
@@ -1132,10 +1242,21 @@ function TimeSelectionStep({
               <p className="text-sm text-[#0f4f4b]/40">Checking available slots…</p>
             </div>
           ) : availableSlots.length === 0 ? (
-            <div className="rounded-2xl border border-[#0f4f4b]/10 bg-white p-8 text-center">
-              <AlertCircle className="h-6 w-6 text-[#0f4f4b]/25 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-[#0f4f4b]/60 mb-1">No available slots</p>
-              <p className="text-xs text-[#0f4f4b]/40">All time slots for this date are booked. Please try another date.</p>
+            <div className="rounded-2xl border border-[#b5964d]/25 bg-[#b5964d]/5 p-8 text-center">
+              <div className="h-12 w-12 rounded-2xl bg-[#b5964d]/12 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-6 w-6 text-[#b5964d]" />
+              </div>
+              <p className="text-sm font-bold text-[#0f4f4b] mb-1">No slots available on this day</p>
+              <p className="text-xs text-[#0f4f4b]/55 mb-4 leading-relaxed">
+                This date is fully booked or outside office hours.<br />
+                Try selecting another highlighted date from the calendar above.
+              </p>
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0f4f4b] border border-[#0f4f4b]/20 rounded-xl px-4 py-2 hover:bg-[#0f4f4b]/5 hover:border-[#0f4f4b]/35 transition-colors"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" /> Pick another date
+              </button>
             </div>
           ) : (
             <div className="grid gap-2 grid-cols-3 sm:grid-cols-4">
@@ -1164,8 +1285,14 @@ function TimeSelectionStep({
 
       {!selectedDate && (
         <div className="rounded-2xl border border-[#0f4f4b]/10 bg-white p-8 text-center">
-          <Calendar className="h-8 w-8 text-[#0f4f4b]/25 mx-auto mb-3" />
-          <p className="text-sm text-[#0f4f4b]/40">Select a highlighted date to see available slots</p>
+          <div className="h-12 w-12 rounded-2xl bg-[#0f4f4b]/6 flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-6 w-6 text-[#0f4f4b]/40" />
+          </div>
+          <p className="text-sm font-semibold text-[#0f4f4b]/70 mb-1">Pick a date to see open slots</p>
+          <p className="text-xs text-[#0f4f4b]/40 leading-relaxed">
+            Highlighted dates have availability.<br />
+            Tap one to view the times you can book.
+          </p>
         </div>
       )}
     </div>
