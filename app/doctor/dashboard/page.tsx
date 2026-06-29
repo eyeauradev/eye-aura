@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { Users, Calendar, Bell, CheckCircle, Video, FileText, Clock, AlertCircle, Loader2, XCircle } from "lucide-react";
+import { Users, Calendar, Bell, CheckCircle, Video, FileText, Clock, AlertCircle, Loader2, XCircle, ShieldOff } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { appointmentsService } from "@/services/firestore";
 import { bookingRequestsService } from "@/services/firestore/booking-requests.service";
@@ -30,7 +30,7 @@ import { getDisplayError, logError, formatDisplayError, ERROR_CODES } from "@/li
 import { trackDoctorRequestAction } from "@/services/analytics/analytics.service";
 
 export default function DoctorDashboard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
   const [loading, setLoading] = useState(true);
@@ -54,6 +54,9 @@ export default function DoctorDashboard() {
   const [showRecommendDialog, setShowRecommendDialog] = useState(false);
   const [showAssessmentDialog, setShowAssessmentDialog] = useState(false);
 
+  // Whether to show the account-disabled dialog
+  const isDisabled = !authLoading && !!user && (!user.isActive || user.isSuspended);
+
   // Role-based redirect — use stable primitives as deps to avoid re-firing on every user object refresh
   useEffect(() => {
     if (authLoading || !user) return;
@@ -65,12 +68,9 @@ export default function DoctorDashboard() {
       router.replace("/patient/dashboard");
       return;
     }
-    if (!user.isActive || user.isSuspended) {
-      router.replace("/auth/login");
-      return;
-    }
+    // Disabled/suspended doctors stay on this page — AccountDisabledDialog is shown below
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.role, user?.isActive, user?.isSuspended, authLoading]);
+  }, [user?.role, authLoading]);
 
   const loadDashboardData = async () => {
     if (!user) return;
@@ -555,6 +555,36 @@ export default function DoctorDashboard() {
           />
         </>
       )}
+
+      {/* Account Disabled Dialog */}
+      <Dialog open={isDisabled} onOpenChange={() => {}}>
+        <DialogContent
+          className="sm:max-w-md mx-4"
+          // Prevent closing by clicking outside or pressing Escape
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <ShieldOff className="h-5 w-5 text-destructive" />
+              Account Disabled
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Your doctor account has been disabled. Please contact the admin to have it re-enabled before you can access the dashboard.
+            </p>
+          </div>
+          <DialogFooter>
+            <PremiumButton
+              variant="outline"
+              onClick={async () => { await signOut(); router.replace("/auth/login"); }}
+            >
+              Sign Out
+            </PremiumButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Rejection Dialog */}
       <Dialog
