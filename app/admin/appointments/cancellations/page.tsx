@@ -80,9 +80,9 @@ export default function AdminCancellationsPage() {
   async function handleApprove(appointmentId: string) {
     if (!user) return;
 
-    // Check if the appointment has a paymentId — if so, show the choice modal
+    // Check if the appointment has a paymentId or bookingRequestId — if so, show the choice modal
     const item = requests.find((r) => r.appointment.id === appointmentId);
-    if (item?.appointment.paymentId) {
+    if (item?.appointment.paymentId || item?.appointment.bookingRequestId) {
       setApprovalChoiceModalId(appointmentId);
       return;
     }
@@ -113,7 +113,19 @@ export default function AdminCancellationsPage() {
       );
 
       // If "Approve with Refund" was selected and payment exists, call the Refund API
-      if (decision === "refund" && result.paymentId) {
+      // paymentId may be on the appointment directly or on the booking request
+      let refundPaymentId = result.paymentId;
+      if (!refundPaymentId && result.bookingRequestId) {
+        try {
+          const { bookingRequestsService } = await import("@/services/firestore/booking-requests.service");
+          const bookingRequest = await bookingRequestsService.getById(result.bookingRequestId);
+          refundPaymentId = bookingRequest?.paymentId;
+        } catch (e) {
+          console.error("Error looking up booking request payment:", e);
+        }
+      }
+
+      if (decision === "refund" && refundPaymentId) {
         try {
           const idToken = await getAuth().currentUser?.getIdToken();
           const res = await fetch("/api/payments/cancellation-refund", {
@@ -124,7 +136,7 @@ export default function AdminCancellationsPage() {
             },
             body: JSON.stringify({
               appointmentId,
-              paymentId: result.paymentId,
+              paymentId: refundPaymentId,
             }),
           });
           if (!res.ok) {
@@ -154,6 +166,25 @@ export default function AdminCancellationsPage() {
   async function handleIssueRefund(appointmentId: string, paymentId: string) {
     if (!user) return;
 
+    // Resolve paymentId — may need to look it up from booking request
+    let resolvedPaymentId = paymentId;
+    if (!resolvedPaymentId) {
+      const apt = requests.find((r) => r.appointment.id === appointmentId)?.appointment;
+      if (apt?.bookingRequestId) {
+        try {
+          const { bookingRequestsService } = await import("@/services/firestore/booking-requests.service");
+          const bookingRequest = await bookingRequestsService.getById(apt.bookingRequestId);
+          resolvedPaymentId = bookingRequest?.paymentId || "";
+        } catch (e) {
+          console.error("Error looking up booking request payment:", e);
+        }
+      }
+      if (!resolvedPaymentId) {
+        toastError("No payment found for this appointment.");
+        return;
+      }
+    }
+
     try {
       setRefundLoading(appointmentId);
       const idToken = await getAuth().currentUser?.getIdToken();
@@ -163,7 +194,7 @@ export default function AdminCancellationsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ appointmentId, paymentId }),
+        body: JSON.stringify({ appointmentId, paymentId: resolvedPaymentId }),
       });
 
       if (!res.ok) {
@@ -501,10 +532,10 @@ function CancellationRequestCard({
       )}
 
       {/* Post-approval "Issue Refund" button (Task 7.2) */}
-      {isApproved && refundEligibility?.eligible && appointment.paymentId && (
+      {isApproved && refundEligibility?.eligible && (appointment.paymentId || appointment.bookingRequestId) && (
         <div className="pt-1">
           <PremiumButton
-            onClick={() => onIssueRefund(appointment.id, appointment.paymentId!)}
+            onClick={() => onIssueRefund(appointment.id, appointment.paymentId || "")}
             disabled={refundLoading === appointment.id}
             className="bg-blue-600 hover:bg-blue-700"
           >

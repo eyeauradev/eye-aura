@@ -70,11 +70,17 @@ async function processRefundInBackground(
       const errBody = await rzpRes.json().catch(() => ({}));
       const failureReason = errBody?.error?.description || `HTTP ${rzpRes.status}`;
       console.error("[cancellation-refund:bg] Razorpay non-OK:", errBody);
-      await db.collection("payments").doc(paymentId).update({
-        refundStatus: "failed",
-        refundFailureReason: failureReason,
-        updatedAt: new Date(),
-      });
+      await Promise.all([
+        db.collection("payments").doc(paymentId).update({
+          refundStatus: "failed",
+          refundFailureReason: failureReason,
+          updatedAt: new Date(),
+        }),
+        db.collection("appointments").doc(appointmentId).update({
+          refundStatus: "failed",
+          updatedAt: new Date(),
+        }),
+      ]);
       return;
     }
 
@@ -109,11 +115,17 @@ async function processRefundInBackground(
     });
   } catch (err: any) {
     console.error("[cancellation-refund:bg] fetch threw:", err?.message, "cause:", err?.cause);
-    await db.collection("payments").doc(paymentId).update({
-      refundStatus: "failed",
-      refundFailureReason: err?.message || "Network error",
-      updatedAt: new Date(),
-    }).catch(() => {});
+    await Promise.all([
+      db.collection("payments").doc(paymentId).update({
+        refundStatus: "failed",
+        refundFailureReason: err?.message || "Network error",
+        updatedAt: new Date(),
+      }),
+      db.collection("appointments").doc(appointmentId).update({
+        refundStatus: "failed",
+        updatedAt: new Date(),
+      }),
+    ]).catch(() => {});
   }
 }
 
@@ -145,6 +157,24 @@ export async function POST(req: NextRequest) {
         refundFailureReason: "No Razorpay payment ID",
         updatedAt: new Date(),
       });
+      await db.collection("appointments").doc(appointmentId).update({
+        refundStatus: "failed",
+        updatedAt: new Date(),
+      });
+      return NextResponse.json({ success: true, refundStatus: "failed" });
+    }
+
+    // Guard: amount must be a positive number
+    if (!payment.amount || typeof payment.amount !== "number" || payment.amount <= 0) {
+      await db.collection("payments").doc(paymentId).update({
+        refundStatus: "failed",
+        refundFailureReason: `Invalid payment amount: ${payment.amount}`,
+        updatedAt: new Date(),
+      });
+      await db.collection("appointments").doc(appointmentId).update({
+        refundStatus: "failed",
+        updatedAt: new Date(),
+      });
       return NextResponse.json({ success: true, refundStatus: "failed" });
     }
 
@@ -153,6 +183,22 @@ export async function POST(req: NextRequest) {
     const appointment = appointmentDoc.data();
 
     if (appointment?.refundId) {
+      return NextResponse.json(
+        { error: "Refund already processed for this appointment" },
+        { status: 409 }
+      );
+    }
+
+    // Payment-level duplicate check — also guard against double refund via payment doc
+    if (payment.refundStatus === "processed" && payment.refundId) {
+      // Sync appointment doc if it's out of date, then return 409
+      if (!appointment?.refundId) {
+        await db.collection("appointments").doc(appointmentId).update({
+          refundId: payment.refundId,
+          refundStatus: "processed",
+          updatedAt: new Date(),
+        });
+      }
       return NextResponse.json(
         { error: "Refund already processed for this appointment" },
         { status: 409 }
