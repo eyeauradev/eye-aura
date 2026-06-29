@@ -534,14 +534,28 @@ function CancellationRequestCard({
       {/* Post-approval "Issue Refund" button (Task 7.2) */}
       {isApproved && refundEligibility?.eligible && (appointment.paymentId || appointment.bookingRequestId) && (
         <div className="pt-1">
-          <PremiumButton
-            onClick={() => onIssueRefund(appointment.id, appointment.paymentId || "")}
-            disabled={refundLoading === appointment.id}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <IndianRupee className="h-4 w-4 mr-1" />
-            {refundLoading === appointment.id ? "Processing Refund..." : "Issue Refund"}
-          </PremiumButton>
+          {appointment.refundStatus === "failed" ? (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 space-y-2">
+              <p className="text-xs font-medium text-red-800">✗ Refund failed — you can retry below</p>
+              <PremiumButton
+                onClick={() => onIssueRefund(appointment.id, appointment.paymentId || "")}
+                disabled={refundLoading === appointment.id}
+                className="bg-red-600 hover:bg-red-700 w-full"
+              >
+                <IndianRupee className="h-4 w-4 mr-1" />
+                {refundLoading === appointment.id ? "Retrying..." : "Retry Refund"}
+              </PremiumButton>
+            </div>
+          ) : (
+            <PremiumButton
+              onClick={() => onIssueRefund(appointment.id, appointment.paymentId || "")}
+              disabled={refundLoading === appointment.id}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <IndianRupee className="h-4 w-4 mr-1" />
+              {refundLoading === appointment.id ? "Processing Refund..." : "Issue Refund"}
+            </PremiumButton>
+          )}
         </div>
       )}
 
@@ -554,11 +568,6 @@ function CancellationRequestCard({
       {isApproved && appointment.refundStatus === "pending" && (
         <div className="rounded-lg bg-yellow-50 border border-yellow-100 p-2">
           <p className="text-xs font-medium text-yellow-800">⏳ Refund in progress</p>
-        </div>
-      )}
-      {isApproved && appointment.refundStatus === "failed" && (
-        <div className="rounded-lg bg-red-50 border border-red-100 p-2">
-          <p className="text-xs font-medium text-red-800">✗ Refund failed</p>
         </div>
       )}
 
