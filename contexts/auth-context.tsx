@@ -55,12 +55,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setState({ user: null, loading: false, error: null });
 
-          // Clear stale session cookie
+          // Clear stale session cookie (best-effort, non-critical)
           try {
-            await fetch("/api/auth/session", { method: "DELETE" });
+            const res = await fetch("/api/auth/session", { method: "DELETE" });
+            if (!res.ok) {
+              console.warn("[AuthContext] Session cookie clear returned", res.status);
+            }
           } catch {
-            // Non-critical: cookie clear failure shouldn't break auth state
-            console.error("[AuthContext] Failed to clear session cookie");
+            // Expected during page unload or when dev server isn't ready
+            if (process.env.NODE_ENV === "development") {
+              console.debug("[AuthContext] Could not clear session cookie (non-critical)");
+            }
           }
         }
       }

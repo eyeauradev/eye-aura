@@ -112,6 +112,33 @@ button {
   box-shadow: 0 24px 70px rgba(15, 79, 75, 0.11);
 }
 
+/* ─── Blink Companion Animations ─── */
+
+@keyframes blinkFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+
+@keyframes blinkEyelid {
+  0%, 90%, 100% { transform: scaleY(0); transform-origin: top; }
+  93%, 97% { transform: scaleY(1); transform-origin: top; }
+}
+
+@keyframes blinkEyelid2 {
+  0%, 88%, 100% { transform: scaleY(0); transform-origin: top; }
+  91%, 95% { transform: scaleY(1); transform-origin: top; }
+}
+
+@keyframes blinkCardIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.blink-eyelid {
+  animation: blinkEyelid 9s ease-in-out infinite, blinkEyelid2 13s ease-in-out infinite;
+  animation-delay: 2s, 5s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
