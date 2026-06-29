@@ -348,7 +348,11 @@ function PaymentCard({ payment, onRefresh }: { payment: EnrichedPayment; onRefre
   const pCfg = paymentStatusCfg[payment.status] ?? paymentStatusCfg.pending;
   const rCfg = refundStatusCfg[payment.refundStatus ?? "none"] ?? refundStatusCfg.none;
   const showFailure = payment.refundStatus === "failed" && payment.refundFailureReason;
-  const canRetry = payment.refundStatus === "pending" || payment.refundStatus === "failed";
+  const canRetry =
+    payment.refundStatus === "pending" ||
+    payment.refundStatus === "failed" ||
+    // Payment completed on Razorpay but razorpayPaymentId never stored — recoverable
+    (payment.status === "completed" && !payment.razorpayPaymentId && !!payment.razorpayOrderId);
 
   const handleRetryRefund = async () => {
     setRetrying(true);
@@ -508,18 +512,25 @@ function PaymentCard({ payment, onRefresh }: { payment: EnrichedPayment; onRefre
                   disabled={retrying}
                   className={cn(
                     "w-full text-sm",
-                    payment.refundStatus === "failed"
+                    payment.refundStatus === "failed" || (!payment.razorpayPaymentId && payment.razorpayOrderId)
                       ? "bg-red-600 hover:bg-red-700"
                       : "bg-amber-600 hover:bg-amber-700"
                   )}
                 >
                   <RotateCcw className={cn("h-4 w-4 mr-1.5", retrying && "animate-spin")} />
                   {retrying
-                    ? "Retrying…"
+                    ? "Processing…"
+                    : !payment.razorpayPaymentId && payment.razorpayOrderId
+                    ? "Recover & Refund"
                     : payment.refundStatus === "failed"
                     ? "Retry Refund"
                     : "Retry Stuck Refund"}
                 </PremiumButton>
+                {!payment.razorpayPaymentId && payment.razorpayOrderId && (
+                  <p className="text-[10px] text-muted-foreground px-0.5">
+                    Will look up the captured payment on Razorpay using Order ID, then issue the refund.
+                  </p>
+                )}
               </div>
             )}
           </div>

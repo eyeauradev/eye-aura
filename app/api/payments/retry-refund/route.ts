@@ -189,9 +189,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!payment.razorpayPaymentId) {
+    // If razorpayPaymentId is missing, try to fetch it from Razorpay using the Order ID
+    let razorpayPaymentId: string = payment.razorpayPaymentId;
+    if (!razorpayPaymentId && payment.razorpayOrderId) {
+      try {
+        const credentials = Buffer.from(
+          `${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`
+        ).toString("base64");
+
+        // Fetch all payments for this order from Razorpay
+        const rzpRes = await fetch(
+          `https://api.razorpay.com/v1/orders/${payment.razorpayOrderId}/payments`,
+          {
+            headers: { Authorization: `Basic ${credentials}` },
+          }
+        );
+
+        if (rzpRes.ok) {
+          const rzpData = await rzpRes.json();
+          // Find the captured payment (if any)
+          const captured = rzpData?.items?.find(
+            (p: { status: string; id: string }) => p.status === "captured"
+          );
+          if (captured?.id) {
+            razorpayPaymentId = captured.id;
+            // Persist it on the payment doc so future retries don't need to re-fetch
+            await db.collection("payments").doc(paymentId).update({
+              razorpayPaymentId: captured.id,
+              status: "completed",
+              completedAt: payment.completedAt ?? new Date(),
+              updatedAt: new Date(),
+            });
+            console.log(`[retry-refund] Recovered razorpayPaymentId ${captured.id} for order ${payment.razorpayOrderId}`);
+          }
+        }
+      } catch (e: any) {
+        console.error("[retry-refund] Failed to fetch payment from Razorpay:", e?.message);
+      }
+    }
+
+    if (!razorpayPaymentId) {
       return NextResponse.json(
-        { error: "No Razorpay payment ID on this payment — payment may not have completed" },
+        { error: "No Razorpay payment ID — payment may not have completed on Razorpay's side. Check Razorpay dashboard for order " + (payment.razorpayOrderId ?? "unknown") },
         { status: 422 }
       );
     }
@@ -269,7 +308,7 @@ export async function POST(req: NextRequest) {
     after(() =>
       processRefundInBackground(
         paymentId,
-        payment.razorpayPaymentId,
+        razorpayPaymentId,
         payment.amount,
         idempotencyKey,
         notes,
