@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PremiumButton } from "@/components/premium";
 import { Input } from "@/components/ui/input";
+import { getAuth } from "firebase/auth";
 import {
   CreditCard, RefreshCcw, Search, TrendingUp,
   AlertCircle, CheckCircle2, XCircle, Clock,
@@ -303,7 +304,7 @@ export default function AdminPaymentsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((payment) => (
-            <PaymentCard key={payment.id} payment={payment} />
+            <PaymentCard key={payment.id} payment={payment} onRefresh={load} />
           ))}
         </div>
       )}
@@ -340,11 +341,45 @@ function SectionCard({ icon, title, children, accent }: {
   );
 }
 
-function PaymentCard({ payment }: { payment: EnrichedPayment }) {
+function PaymentCard({ payment, onRefresh }: { payment: EnrichedPayment; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
   const pCfg = paymentStatusCfg[payment.status] ?? paymentStatusCfg.pending;
   const rCfg = refundStatusCfg[payment.refundStatus ?? "none"] ?? refundStatusCfg.none;
   const showFailure = payment.refundStatus === "failed" && payment.refundFailureReason;
+  const canRetry = payment.refundStatus === "pending" || payment.refundStatus === "failed";
+
+  const handleRetryRefund = async () => {
+    setRetrying(true);
+    setRetryError(null);
+    try {
+      const idToken = await getAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/payments/retry-refund", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ paymentId: payment.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 409) {
+          setRetryError("Refund already processed.");
+        } else {
+          setRetryError(data.error || "Retry failed. Please try again.");
+        }
+      } else {
+        // Refresh the list after a short delay so Firestore writes propagate
+        setTimeout(() => onRefresh(), 1500);
+      }
+    } catch {
+      setRetryError("Network error. Please try again.");
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   return (
     <Card
@@ -457,6 +492,34 @@ function PaymentCard({ payment }: { payment: EnrichedPayment }) {
                   <p className="text-[11px] font-bold text-red-700">Refund failed</p>
                   <p className="text-[11px] text-red-600 mt-0.5 break-words">{payment.refundFailureReason}</p>
                 </div>
+              </div>
+            )}
+
+            {/* Retry refund action */}
+            {canRetry && (
+              <div className="space-y-2">
+                {retryError && (
+                  <p className="text-[11px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-2.5 py-1.5">
+                    {retryError}
+                  </p>
+                )}
+                <PremiumButton
+                  onClick={handleRetryRefund}
+                  disabled={retrying}
+                  className={cn(
+                    "w-full text-sm",
+                    payment.refundStatus === "failed"
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-amber-600 hover:bg-amber-700"
+                  )}
+                >
+                  <RotateCcw className={cn("h-4 w-4 mr-1.5", retrying && "animate-spin")} />
+                  {retrying
+                    ? "Retrying…"
+                    : payment.refundStatus === "failed"
+                    ? "Retry Refund"
+                    : "Retry Stuck Refund"}
+                </PremiumButton>
               </div>
             )}
           </div>
