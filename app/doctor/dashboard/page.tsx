@@ -54,23 +54,23 @@ export default function DoctorDashboard() {
   const [showRecommendDialog, setShowRecommendDialog] = useState(false);
   const [showAssessmentDialog, setShowAssessmentDialog] = useState(false);
 
-  // Role-based redirect
+  // Role-based redirect — use stable primitives as deps to avoid re-firing on every user object refresh
   useEffect(() => {
-    if (!authLoading && user) {
-      if (user.role === "admin") {
-        router.replace("/admin/dashboard");
-        return;
-      }
-      if (user.role === "patient") {
-        router.replace("/patient/dashboard");
-        return;
-      }
-      if (!user.isActive || user.isSuspended) {
-        router.replace("/auth/login");
-        return;
-      }
+    if (authLoading || !user) return;
+    if (user.role === "admin") {
+      router.replace("/admin/dashboard");
+      return;
     }
-  }, [user, authLoading, router]);
+    if (user.role === "patient") {
+      router.replace("/patient/dashboard");
+      return;
+    }
+    if (!user.isActive || user.isSuspended) {
+      router.replace("/auth/login");
+      return;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, user?.isActive, user?.isSuspended, authLoading]);
 
   const loadDashboardData = async () => {
     if (!user) return;

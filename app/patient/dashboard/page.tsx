@@ -52,23 +52,23 @@ export default function PatientDashboard() {
   const [recommendations, setRecommendations] = useState<(ServiceRecommendation & { doctorName?: string; serviceName?: string })[]>([]);
   const [decliningId, setDecliningId] = useState<string | null>(null);
 
-  // Role-based redirect
+  // Role-based redirect — use stable primitives as deps to avoid re-firing on every user object refresh
   useEffect(() => {
-    if (!authLoading && user) {
-      if (user.role === "admin") {
-        router.replace("/admin/dashboard");
-        return;
-      }
-      if (user.role === "doctor") {
-        router.replace("/doctor/dashboard");
-        return;
-      }
-      if (!user.isActive || user.isSuspended) {
-        router.replace("/auth/login");
-        return;
-      }
+    if (authLoading || !user) return;
+    if (user.role === "admin") {
+      router.replace("/admin/dashboard");
+      return;
     }
-  }, [user, authLoading, router]);
+    if (user.role === "doctor") {
+      router.replace("/doctor/dashboard");
+      return;
+    }
+    if (!user.isActive || user.isSuspended) {
+      router.replace("/auth/login");
+      return;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, user?.isActive, user?.isSuspended, authLoading]);
 
   useEffect(() => {
     async function loadDashboardData() {
