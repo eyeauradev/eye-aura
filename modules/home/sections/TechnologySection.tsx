@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BarChart2, Video, CalendarCheck, FileText } from "lucide-react";
+import { BarChart2, Eye, CalendarCheck, FileText } from "lucide-react";
 
 const techs = [
   {
@@ -11,9 +11,9 @@ const techs = [
     step: "01",
   },
   {
-    icon: Video,
-    title: "Live Video Refraction Protocol",
-    body: "Real-time video consultation follows the same clinical workflow as an in-clinic refraction, with lens comparison and subjective feedback.",
+    icon: Eye,
+    title: "Remote Vision Evaluation",
+    body: "Perform clinically guided vision tests online using standardized digital assessment methods.",
     step: "02",
   },
   {
