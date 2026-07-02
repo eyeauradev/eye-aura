@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { BlinkCompanionLoader } from "@/components/blink-companion";
+import { GlobalErrorHandler } from "@/components/error-boundary/GlobalErrorHandler";
 
 // Production domain confirmed from lib/send-email.ts (noreply@eyeaura.co.in)
 // and admin/settings/page.tsx (notificationEmail: "noreply@eyeaura.co.in")
@@ -159,6 +160,7 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeProvider>
             <ToastProvider>
+              <GlobalErrorHandler />
               <ErrorBoundary>{children}</ErrorBoundary>
               <BlinkCompanionLoader />
             </ToastProvider>

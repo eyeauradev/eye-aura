@@ -65,6 +65,8 @@ interface ErrorBoundaryProps {
   children: ReactNode;
   /** Optional custom fallback UI — replaces the default ErrorFallbackUI */
   fallback?: ReactNode;
+  /** Optional user context for error logging */
+  user?: { id: string; role?: string; email?: string } | null;
 }
 
 interface ErrorBoundaryState {
@@ -75,8 +77,8 @@ interface ErrorBoundaryState {
  * Global React Error Boundary.
  *
  * Catches any unhandled render-phase errors in the component tree below it,
- * logs them via `logError`, and renders either the provided `fallback` prop
- * or the default `ErrorFallbackUI`.
+ * logs them via `logError` with automatic Firestore logging, and renders either
+ * the provided `fallback` prop or the default `ErrorFallbackUI`.
  *
  * Must be a class component — React's `componentDidCatch` API is not available
  * to function components.
@@ -88,13 +90,23 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, _info: ErrorInfo): void {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Always attempt to log — if logError itself throws, fall back to console.error
     // so the fallback UI still renders regardless.
     try {
-      logError(ERROR_CODES.SYSTEM.UNEXPECTED, error, "ErrorBoundary");
+      logError(
+        ERROR_CODES.SYSTEM.UNEXPECTED,
+        error,
+        "ErrorBoundary",
+        true, // Log to Firestore
+        {
+          user: this.props.user || undefined,
+          action: "react_render_error",
+          resourceType: "application",
+        }
+      );
     } catch {
-      console.error("[EA-SYSTEM-001] ErrorBoundary caught an error", error);
+      console.error("[EA-SYSTEM-001] ErrorBoundary caught an error", error, errorInfo);
     }
   }
 

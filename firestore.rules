@@ -381,6 +381,27 @@ service cloud.firestore {
       allow list: if signedIn();
     }
 
+    // Error Logs Collection
+    // Any authenticated user can create error logs (for error tracking)
+    // Only admins can read error logs
+    match /error_logs/{errorLogId} {
+      allow read: if isAdmin();
+      
+      // Any authenticated user can create error logs
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid;
+      
+      // Only admins can update (e.g., mark as resolved, add notes)
+      allow update: if isAdmin();
+      
+      allow delete: if isAdmin();
+    }
+
+    // Error Logs Collection - Allow list for admins only
+    match /error_logs {
+      allow list: if isAdmin();
+    }
+
     // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;

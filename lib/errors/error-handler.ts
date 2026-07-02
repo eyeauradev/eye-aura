@@ -4,6 +4,8 @@ import type { EACode } from "./error-codes";
 import { ERROR_CODES } from "./error-codes";
 import { ERROR_MESSAGES } from "./error-messages";
 import { mapFirebaseAuthError, mapFirestoreError, mapNetworkError } from "./firebase-error-mapper";
+import { errorLogService } from "@/services/error-logging/error-log.service";
+import type { CreateErrorLogParams } from "@/types/error-log";
 
 // ── Private helper ────────────────────────────────────────────────────────────
 
@@ -85,16 +87,33 @@ export function formatDisplayError(error: AppError): string {
 }
 
 /**
- * Logs a structured error line to the console.
+ * Logs a structured error line to the console and optionally to Firestore.
  *
  * Format: `[code][context?] title | Original: originalMessage`
  *
  * - In production: console.error(logLine, stack or raw error)
  * - In development: console.error(logLine), then stack trace on a separate line
  *
+ * @param code - The EA error code
+ * @param error - The caught error
+ * @param context - Optional context string (component/function name)
+ * @param logToFirestore - Whether to save this error to Firestore (default: true for production)
+ * @param logParams - Additional parameters for Firestore logging (action, resourceId, etc.)
+ *
  * Never throws — the entire body is wrapped in try/catch.
  */
-export function logError(code: string, error: unknown, context?: string): void {
+export function logError(
+  code: string,
+  error: unknown,
+  context?: string,
+  logToFirestore: boolean = IS_PRODUCTION,
+  logParams?: {
+    user?: { id: string; role?: string; email?: string };
+    action?: string;
+    resourceId?: string;
+    resourceType?: string;
+  }
+): void {
   try {
     const entry = ERROR_MESSAGES[code as EACode];
     const title = entry?.title ?? "Unknown Error";
@@ -118,6 +137,25 @@ export function logError(code: string, error: unknown, context?: string): void {
       if (error instanceof Error && error.stack) {
         console.error(error.stack);
       }
+    }
+
+    // Log to Firestore if enabled
+    if (logToFirestore) {
+      const errorLogParams: CreateErrorLogParams = {
+        code,
+        title,
+        message: entry?.message ?? "An error occurred",
+        originalError: error,
+        context,
+        action: logParams?.action,
+        resourceId: logParams?.resourceId,
+        resourceType: logParams?.resourceType,
+      };
+
+      // Fire-and-forget (don't await)
+      errorLogService.logError(errorLogParams, logParams?.user).catch(() => {
+        // Silently fail - already handled in service
+      });
     }
   } catch {
     // Silently swallow — if console.error itself throws, we cannot do anything

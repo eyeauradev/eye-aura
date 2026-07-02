@@ -362,7 +362,18 @@ export function PrescriptionForm({ mode, prescriptionId, appointmentId, patientI
       }
     } catch (error) {
       const appError = getDisplayError(error, ERROR_CODES.PRESCRIPTION.OPERATION_FAILED);
-      logError(appError.code, error, "PrescriptionForm");
+      logError(
+        appError.code, 
+        error, 
+        "PrescriptionForm",
+        true, // Log to Firestore
+        {
+          user: user ? { id: user.id, role: user.role, email: user.email } : undefined,
+          action: mode === "edit" ? "update_prescription" : "create_prescription",
+          resourceId: mode === "edit" ? existingPrescription?.id : undefined,
+          resourceType: "prescription",
+        }
+      );
       errorFromAppError(appError);
     } finally {
       setSaving(false);
