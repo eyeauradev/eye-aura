@@ -37,7 +37,9 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
           )}
         >
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/eye.png" alt="Eye Aura" width={46} height={46} className="rounded-full object-contain" priority />
+            <div className="rounded-full bg-[#f7f3ee] p-1">
+              <Image src="/eye.png" alt="Eye Aura" width={46} height={46} className="rounded-full object-contain" priority />
+            </div>
             <div className="flex flex-col gap-0.5 leading-none">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0f4f4b]">Eye Aura</p>
               <p className="text-[11px] font-light tracking-wide text-[#0f4f4b]/55 md:text-[11px] text-[10px]">
@@ -104,7 +106,9 @@ export function NavBar({ user, loading }: { user: any; loading?: boolean }) {
           >
             <div className="flex items-center justify-between px-6 py-5">
               <div className="flex items-center gap-2.5">
-                <Image src="/eye.png" alt="Eye Aura" width={42} height={42} className="rounded-full object-contain" />
+                <div className="rounded-full bg-[#f7f3ee] p-1">
+                  <Image src="/eye.png" alt="Eye Aura" width={42} height={42} className="rounded-full object-contain" />
+                </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Eye Aura</span>
                   <span className="text-[10px] font-light tracking-wide text-white/45">

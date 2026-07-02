@@ -38,9 +38,9 @@ export function FooterSection() {
           {/* Brand */}
           <div>
             <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-2xl bg-white px-3 py-2">
+              <div className="rounded-2xl bg-[#f7f3ee] px-3 py-2">
                 <Image
-                  src="/eye-aura-logo_transparent.png"
+                  src="/eye-aura-logo-v2.svg"
                   alt="Eye Aura"
                   width={100}
                   height={100}

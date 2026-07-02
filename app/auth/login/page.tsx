@@ -64,7 +64,7 @@ export default function LoginPage() {
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 rounded-lg"
           >
             <Image
-              src="/eye-aura-logo_transparent.png"
+              src="/eye-aura-logo-v2.svg"
               alt="Eye Aura"
               width={120}
               height={120}

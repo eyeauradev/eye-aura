@@ -76,9 +76,9 @@ export default function PrescriptionTemplate(props: PrescriptionTemplateProps) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
           {/* Full Eye Aura logo */}
           <img
-            src="/eye-aura-logo.png"
+            src="/eye-aura-logo-v2.svg"
             alt="Eye Aura"
-            style={{ height: "110px", width: "auto" }}
+            style={{ height: "110px", width: "auto", backgroundColor: "#f7f3ee", padding: "8px", borderRadius: "8px" }}
           />
           <div style={{ display: "flex", alignItems: "center", gap: "6px", width: "80%" }}>
             <div style={{ height: "1px", flex: 1, background: GOLD }} />

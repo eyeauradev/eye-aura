@@ -181,13 +181,15 @@ export default function ServicesPage() {
       <header className="border-b border-[#0f4f4b]/8 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 sm:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/eye.png"
-              alt="Eye Aura"
-              width={36}
-              height={36}
-              className="rounded-full object-contain"
-            />
+            <div className="rounded-full bg-[#f7f3ee] p-1">
+              <Image
+                src="/eye.png"
+                alt="Eye Aura"
+                width={36}
+                height={36}
+                className="rounded-full object-contain"
+              />
+            </div>
             <span className="text-xs font-black uppercase tracking-[0.2em] text-[#0f4f4b]">
               Eye Aura
             </span>

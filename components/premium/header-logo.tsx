@@ -64,7 +64,7 @@ export function HeaderLogo({
         className={`flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg ${className}`}
       >
         <Image
-          src="/eye-aura-logo_transparent.png"
+          src="/eye-aura-logo-v2.svg"
           alt="Eye Aura Home"
           width={logoPx}
           height={logoPx}

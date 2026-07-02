@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f5f2ec",
     theme_color: "#0f4f4b",
     icons: [
-      // /eye.png and /eye-aura-logo.png both confirmed to exist in public/ directory
+      // Using /eye.png for app icons (1254x1254)
       {
         src: "/eye.png",
         sizes: "1254x1254",

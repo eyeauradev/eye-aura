@@ -144,14 +144,16 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         >
           <div className="flex items-center justify-between">
             <Link href="/doctor/dashboard" className="flex items-center gap-2">
-              <Image
-                src="/eye.png"
-                alt="Eye Aura"
-                width={40}
-                height={40}
-                className="h-10 w-10 object-contain"
-                priority
-              />
+              <div className="rounded-full bg-[#f7f3ee] p-1">
+                <Image
+                  src="/eye.png"
+                  alt="Eye Aura"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 object-contain"
+                  priority
+                />
+              </div>
               <span className="font-display text-xl text-primary hidden sm:block">
                 Eye Aura
               </span>

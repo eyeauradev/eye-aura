@@ -18,9 +18,9 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/services`,
     images: [
       {
-        url: `${SITE_URL}/eye-aura-logo.png`,
-        width: 1254,
-        height: 1254,
+        url: `${SITE_URL}/eye-aura-logo-v2.svg`,
+        width: 909,
+        height: 449,
         alt: "Eye Aura — Premium Digital Eye Wellness",
       },
     ],
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     title: "Eye Care Services | Eye Aura",
     description:
       "Book an online eye consultation, screen your vision, or get contact lens guidance — all from home.",
-    images: [`${SITE_URL}/eye-aura-logo.png`],
+    images: [`${SITE_URL}/eye-aura-logo-v2.svg`],
   },
 };
 

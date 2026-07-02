@@ -72,9 +72,9 @@ export const metadata: Metadata = {
     siteName: "Eye Aura",
     images: [
       {
-        url: `${SITE_URL}/eye-aura-logo.png`,
-        width: 1254,
-        height: 1254,
+        url: `${SITE_URL}/eye-aura-logo-v2.svg`,
+        width: 909,
+        height: 449,
         alt: "Eye Aura — Premium Digital Eye Wellness",
       },
     ],
@@ -87,7 +87,7 @@ export const metadata: Metadata = {
     title: "Eye Aura | Because Every Eye Has A Story",
     description:
       "Premium, calming, accessibility-first eye wellness for modern living.",
-    images: [`${SITE_URL}/eye-aura-logo.png`],
+    images: [`${SITE_URL}/eye-aura-logo-v2.svg`],
   },
 };
 
@@ -107,9 +107,9 @@ const jsonLd = {
       url: SITE_URL,
       logo: {
         "@type": "ImageObject",
-        url: `${SITE_URL}/eye-aura-logo.png`,
-        width: 1254,
-        height: 1254,
+        url: `${SITE_URL}/eye-aura-logo-v2.svg`,
+        width: 909,
+        height: 449,
       },
       description:
         "Premium digital eye wellness for modern screen-led lives.",

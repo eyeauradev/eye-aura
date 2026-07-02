@@ -134,9 +134,22 @@ button {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes eyeBlink {
+  0%, 90%, 100% { 
+    transform: scaleY(1); 
+  }
+  93%, 97% { 
+    transform: scaleY(0.1); 
+  }
+}
+
 .blink-eyelid {
   animation: blinkEyelid 9s ease-in-out infinite, blinkEyelid2 13s ease-in-out infinite;
   animation-delay: 2s, 5s;
+}
+
+.eye-blink {
+  animation: eyeBlink 4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

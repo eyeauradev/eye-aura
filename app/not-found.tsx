@@ -98,7 +98,7 @@ export default function NotFound() {
       <header className="relative z-10 flex items-center px-6 py-5 sm:px-10">
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/eye-aura-logo.png"
+            src="/eye-aura-logo-v2.svg"
             alt="Eye Aura"
             width={80}
             height={80}

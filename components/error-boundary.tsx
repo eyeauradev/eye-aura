@@ -18,7 +18,7 @@ function ErrorFallbackUI() {
         {/* Logo */}
         <div className="flex items-center justify-center">
           <Image
-            src="/eye-aura-logo_transparent.png"
+            src="/eye-aura-logo-v2.svg"
             alt="Eye Aura"
             width={160}
             height={56}

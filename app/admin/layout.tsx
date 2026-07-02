@@ -150,14 +150,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
 
             <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <Image
-                src="/eye.png"
-                alt="Eye Aura"
-                width={36}
-                height={36}
-                className="h-9 w-9 object-contain"
-                priority
-              />
+              <div className="rounded-full bg-[#f7f3ee] p-1">
+                <Image
+                  src="/eye.png"
+                  alt="Eye Aura"
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 object-contain"
+                  priority
+                />
+              </div>
               <div>
                 <h1 className="font-display text-base sm:text-xl text-primary leading-tight">
                   Eye Aura
