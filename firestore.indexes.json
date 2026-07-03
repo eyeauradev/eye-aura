@@ -600,13 +600,6 @@
       "collectionGroup": "error_logs",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "error_logs",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "resolved", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
