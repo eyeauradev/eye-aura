@@ -22,6 +22,7 @@ import {
   Home,
   MoreHorizontal,
   Globe,
+  LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloatingSidebar, PageTransition } from "@/components/premium";
@@ -39,6 +40,7 @@ const adminNavItems: NavItem[] = [
   { label: "Assessments", href: "/admin/assessments", icon: ClipboardList, group: "main" },
   { label: "Recommendations", href: "/admin/recommendations", icon: Stethoscope, group: "main" },
   { label: "Appointments", href: "/admin/appointments", icon: Calendar, group: "main" },
+  { label: "Support", href: "/admin/support", icon: LifeBuoy, group: "main" },
   // User & finance
   { label: "Users", href: "/admin/users", icon: Users, group: "management" },
   { label: "Payments", href: "/admin/payments", icon: CreditCard, group: "management" },
@@ -53,6 +55,7 @@ const mobileNavItems = [
   { label: "Doctors", href: "/admin/doctors", icon: Stethoscope },
   { label: "Services", href: "/admin/services", icon: ClipboardList },
   { label: "Appointments", href: "/admin/appointments", icon: Calendar },
+  { label: "Support", href: "/admin/support", icon: LifeBuoy },
   { label: "More", href: "__more__", icon: MoreHorizontal },
 ];
 
@@ -282,6 +285,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       >
                         <Settings className="h-4 w-4 text-primary" />
                         Settings
+                      </Link>
+                      <Link
+                        href="/admin/support"
+                        onClick={() => setMoreMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                      >
+                        <LifeBuoy className="h-4 w-4 text-primary" />
+                        Support
                       </Link>
                     </div>
                   )}

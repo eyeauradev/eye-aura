@@ -299,7 +299,7 @@ export default function AdminDashboardPage() {
         </DashboardCard>
 
         <DashboardCard staggerIndex={1}>
-          <div className="p-6 min-h-[200px] flex flex-col">
+          <Link href="/admin/support" className="block p-6 min-h-[200px] flex flex-col">
             <h4 className={TYPOGRAPHY.subheading}>Support Tickets</h4>
             <div className="mt-4 flex-1 flex items-center justify-center rounded-3xl bg-muted/30 p-6">
               <div className="text-center space-y-2">
@@ -311,7 +311,7 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </Link>
         </DashboardCard>
       </motion.div>
 

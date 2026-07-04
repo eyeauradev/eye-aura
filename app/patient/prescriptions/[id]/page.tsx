@@ -99,7 +99,7 @@ export default function PrescriptionDetailPage() {
               <PremiumButton>View Prescriptions</PremiumButton>
             </Link>
             {user ? (
-              <Link href="/patient">
+              <Link href="/patient/dashboard">
                 <PremiumButton variant="outline" size="sm" icon={<LayoutDashboard className="h-4 w-4" />}>
                   Go to Dashboard
                 </PremiumButton>
@@ -382,7 +382,7 @@ export default function PrescriptionDetailPage() {
       {/* Navigation — Dashboard or Home */}
       <div className="flex justify-center pt-2 pb-4">
         {user ? (
-          <Link href="/patient">
+          <Link href="/patient/dashboard">
             <PremiumButton variant="outline" size="sm" icon={<LayoutDashboard className="h-4 w-4" />}>
               Go to Dashboard
             </PremiumButton>
