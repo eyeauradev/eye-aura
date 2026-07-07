@@ -9,12 +9,14 @@ import {
   appointmentsService,
   supportTicketsService,
   prescriptionsService,
+  paymentsService,
 } from "@/services/firestore";
 import type {
   UserDocument,
   AppointmentDocument,
   PrescriptionDocument,
   SupportTicketDocument,
+  PaymentDocument,
 } from "@/types/firestore";
 import {
   Users,
@@ -96,12 +98,13 @@ export default function AdminDashboardPage() {
         setLoading(true);
         setError(null);
 
-        const [allUsers, allAppointments, allTickets, allPrescriptions] =
+        const [allUsers, allAppointments, allTickets, allPrescriptions, allPayments] =
           await Promise.all([
             usersService.getAll(),
             appointmentsService.getAll(),
             supportTicketsService.getAll(),
             prescriptionsService.getAll(),
+            paymentsService.getAll(),
           ]);
 
         const now = new Date();
@@ -129,11 +132,21 @@ export default function AdminDashboardPage() {
             t.status === "open" || t.status === "in_progress"
         );
 
+        // Revenue = sum of completed payment amounts (mirrors the calculation
+        // used on the Payments page, so both screens stay consistent).
+        const completedPayments = allPayments.filter(
+          (p: PaymentDocument) => p.status === "completed"
+        );
+        const totalRevenue = completedPayments.reduce(
+          (sum: number, p: PaymentDocument) => sum + p.amount,
+          0
+        );
+
         setStats({
           totalUsers: allUsers.length,
           activeDoctors: doctors.length,
           appointmentsToday: appointmentsToday.length,
-          revenue: 0,
+          revenue: totalRevenue,
         });
 
         setPlatformHealth({

@@ -15,8 +15,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TYPOGRAPHY } from "@/lib/design-tokens";
 
 import Link from "next/link";
-import type { ServiceDocument, UserDocument, VisionAssessmentType, ServiceAssessmentAutomation } from "@/types/firestore";
+import type { ServiceDocument, ServiceType, UserDocument, VisionAssessmentType, ServiceAssessmentAutomation } from "@/types/firestore";
 import { AVAILABLE_ASSESSMENT_TYPES, getAssessmentLabel } from "@/lib/assessment-type-mapping";
+
+const SERVICE_TYPES: ServiceType[] = [
+  "visual_acuity_assessment",
+  "voice_consultation",
+  "video_consultation",
+  "contact_lens_consultation",
+  "digital_eye_strain_guidance",
+];
 
 export default function AdminServiceEditPage() {
   const params = useParams();
@@ -188,12 +196,19 @@ export default function AdminServiceEditPage() {
 
                 <div>
                   <Label htmlFor="type">Service Type</Label>
-                  <Input
+                  <select
                     id="type"
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    className="w-full h-10 px-3 border border-primary/10 rounded-xl bg-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                     required
-                  />
+                  >
+                    {SERVICE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

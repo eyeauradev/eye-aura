@@ -25,7 +25,7 @@ export default function AdminServiceCreatePage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    type: "comprehensive_eye_exam" as any,
+    type: "visual_acuity_assessment" as ServiceType,
     price: "",
     currency: "INR",
     duration: "30",
@@ -41,12 +41,13 @@ export default function AdminServiceCreatePage() {
   const [symptomInput, setSymptomInput] = useState("");
   const [error, setError] = useState("");
 
-  const serviceTypes = [
-    "comprehensive_eye_exam",
+  const serviceTypes: ServiceType[] = [
+    "visual_acuity_assessment",
+    "voice_consultation",
     "video_consultation",
     "contact_lens_consultation",
     "digital_eye_strain_guidance",
-  ] as const;
+  ];
 
   useEffect(() => {
     loadDoctors();
