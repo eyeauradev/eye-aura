@@ -42,19 +42,14 @@ async function getPrescriptionData(id: string) {
       va: prescriptionData.leftEye?.va || "",
       remarks: prescriptionData.leftEye?.remarks || "",
     },
-    pd: prescriptionData.pd || "",
-    nearPD: prescriptionData.nearPD || "",
     nearVisionRight: prescriptionData.nearVisionRight || { add: "", va: "", remarks: "" },
     nearVisionLeft: prescriptionData.nearVisionLeft || { add: "", va: "", remarks: "" },
     patientAge: prescriptionData.patientAge || "",
     patientGender: prescriptionData.patientGender || "",
     referredBy: prescriptionData.referredBy || "",
-    findings: prescriptionData.findings || "",
     diagnosis: prescriptionData.diagnosis || "",
-    medications: prescriptionData.medications || "",
     eyeDrops: prescriptionData.eyeDrops || "",
     exercises: prescriptionData.exercises || "",
-    recommendations: prescriptionData.recommendations || "",
     reviewAfter: prescriptionData.reviewAfter || "",
     followUpRequired: prescriptionData.followUpRequired || false,
     followUpDate: prescriptionData.followUpDate?.toDate(),
@@ -89,12 +84,9 @@ export default async function PrescriptionPrintPage({ params }: { params: Promis
         doctorName={doctor?.displayName || ""}
         rightEye={{ sph: prescription.rightEye.sph, cyl: prescription.rightEye.cyl, axis: prescription.rightEye.axis, va: prescription.rightEye.va, remarks: prescription.rightEye.remarks || "" } as const}
         leftEye={{ sph: prescription.leftEye.sph, cyl: prescription.leftEye.cyl, axis: prescription.leftEye.axis, va: prescription.leftEye.va, remarks: prescription.leftEye.remarks || "" } as const}
-        distancePD={prescription.pd}
-        nearPD={prescription.nearPD || ""}
         nearVisionRight={prescription.nearVisionRight || { add: "", va: "", remarks: "" } as const}
         nearVisionLeft={prescription.nearVisionLeft || { add: "", va: "", remarks: "" } as const}
-        findings={`${prescription.findings}${prescription.diagnosis ? `\n\nDiagnosis: ${prescription.diagnosis}` : ""}`}
-        glasses={prescription.medications}
+        diagnosis={prescription.diagnosis || ""}
         eyeDrops={prescription.eyeDrops}
         exercises={prescription.exercises}
         reviewAfter={prescription.reviewAfter || (prescription.followUpDate ? new Date(prescription.followUpDate).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "numeric" }) : "")}

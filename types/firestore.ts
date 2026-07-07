@@ -238,8 +238,8 @@ export interface PrescriptionDocument {
   // Eye examination data
   rightEye: EyeData;
   leftEye: EyeData;
-  pd: string; // Distance pupillary distance (kept for backward compat)
-  nearPD?: string; // Near pupillary distance
+  pd?: string; // Distance pupillary distance — deprecated, kept optional for backward compat with old records
+  nearPD?: string; // Near pupillary distance — deprecated, kept optional for backward compat with old records
   // Near vision (ADD)
   nearVisionRight?: NearVisionData;
   nearVisionLeft?: NearVisionData;
@@ -249,13 +249,13 @@ export interface PrescriptionDocument {
   // Referral
   referredBy?: string;
   // Clinical findings
-  findings: string;
+  findings?: string; // deprecated, kept optional for backward compat with old records
   diagnosis: string;
   // Treatments
-  medications: string; // Used for glasses recommendation in template
+  medications?: string; // deprecated, kept optional for backward compat with old records
   eyeDrops: string;
   // Recommendations
-  recommendations: string;
+  recommendations?: string; // deprecated, kept optional for backward compat with old records
   exercises: string;
   // Review
   reviewAfter?: string; // e.g. "1 month", "3 months"

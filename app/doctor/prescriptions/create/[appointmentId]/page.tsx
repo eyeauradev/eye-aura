@@ -32,19 +32,14 @@ interface NearVisionData {
 interface PrescriptionFormData {
   rightEye: EyeData;
   leftEye: EyeData;
-  pd: string;
-  nearPD: string;
   nearVisionRight: NearVisionData;
   nearVisionLeft: NearVisionData;
   patientAge: string;
   patientGender: string;
   referredBy: string;
   diagnosis: string;
-  findings: string;
-  medications: string;
   eyeDrops: string;
   exercises: string;
-  recommendations: string;
   consultationNotes: string;
   followUpRequired: boolean;
   followUpDate: string;
@@ -68,19 +63,14 @@ const initialNearVisionData: NearVisionData = {
 const initialFormData: PrescriptionFormData = {
   rightEye: { ...initialEyeData },
   leftEye: { ...initialEyeData },
-  pd: "",
-  nearPD: "",
   nearVisionRight: { ...initialNearVisionData },
   nearVisionLeft: { ...initialNearVisionData },
   patientAge: "",
   patientGender: "",
   referredBy: "",
   diagnosis: "",
-  findings: "",
-  medications: "",
   eyeDrops: "",
   exercises: "",
-  recommendations: "",
   consultationNotes: "",
   followUpRequired: false,
   followUpDate: "",
@@ -134,19 +124,14 @@ export default function DoctorPrescriptionCreatePage() {
               setFormData({
                 rightEye: { ...initialEyeData, ...existing.rightEye },
                 leftEye: { ...initialEyeData, ...existing.leftEye },
-                pd: existing.pd || "",
-                nearPD: existing.nearPD || "",
                 nearVisionRight: existing.nearVisionRight ? { ...initialNearVisionData, ...existing.nearVisionRight } : { ...initialNearVisionData },
                 nearVisionLeft: existing.nearVisionLeft ? { ...initialNearVisionData, ...existing.nearVisionLeft } : { ...initialNearVisionData },
                 patientAge: existing.patientAge || "",
                 patientGender: existing.patientGender || "",
                 referredBy: existing.referredBy || "",
                 diagnosis: existing.diagnosis || "",
-                findings: existing.findings || "",
-                medications: existing.medications || "",
                 eyeDrops: existing.eyeDrops || "",
                 exercises: existing.exercises || "",
-                recommendations: existing.recommendations || "",
                 consultationNotes: existing.consultationNotes || "",
                 followUpRequired: existing.followUpRequired || false,
                 followUpDate: existing.followUpDate ? new Date(existing.followUpDate).toISOString().split("T")[0] : "",
@@ -204,19 +189,14 @@ export default function DoctorPrescriptionCreatePage() {
         const previousData: Partial<PrescriptionDocument> = {
           rightEye: existingPrescription.rightEye,
           leftEye: existingPrescription.leftEye,
-          pd: existingPrescription.pd,
-          nearPD: existingPrescription.nearPD,
           nearVisionRight: existingPrescription.nearVisionRight,
           nearVisionLeft: existingPrescription.nearVisionLeft,
           patientAge: existingPrescription.patientAge,
           patientGender: existingPrescription.patientGender,
           referredBy: existingPrescription.referredBy,
           diagnosis: existingPrescription.diagnosis,
-          findings: existingPrescription.findings,
-          medications: existingPrescription.medications,
           eyeDrops: existingPrescription.eyeDrops,
           exercises: existingPrescription.exercises,
-          recommendations: existingPrescription.recommendations,
           consultationNotes: existingPrescription.consultationNotes,
           reviewAfter: existingPrescription.reviewAfter,
           followUpRequired: existingPrescription.followUpRequired,
@@ -226,19 +206,14 @@ export default function DoctorPrescriptionCreatePage() {
         const updates: Partial<PrescriptionDocument> = {
           rightEye: formData.rightEye,
           leftEye: formData.leftEye,
-          pd: formData.pd,
-          nearPD: formData.nearPD,
           nearVisionRight: formData.nearVisionRight,
           nearVisionLeft: formData.nearVisionLeft,
           patientAge: formData.patientAge,
           patientGender: formData.patientGender,
           referredBy: formData.referredBy,
           diagnosis: formData.diagnosis,
-          findings: formData.findings,
-          medications: formData.medications,
           eyeDrops: formData.eyeDrops,
           exercises: formData.exercises,
-          recommendations: formData.recommendations,
           consultationNotes: formData.consultationNotes,
           reviewAfter: formData.reviewAfter,
           followUpRequired: formData.followUpRequired,
@@ -262,19 +237,14 @@ export default function DoctorPrescriptionCreatePage() {
           ...(appointment ? { appointmentId: appointment.id } : {}),
           rightEye: formData.rightEye,
           leftEye: formData.leftEye,
-          pd: formData.pd,
-          nearPD: formData.nearPD,
           nearVisionRight: formData.nearVisionRight,
           nearVisionLeft: formData.nearVisionLeft,
           patientAge: formData.patientAge,
           patientGender: formData.patientGender,
           referredBy: formData.referredBy,
           diagnosis: formData.diagnosis,
-          findings: formData.findings,
-          medications: formData.medications,
           eyeDrops: formData.eyeDrops,
           exercises: formData.exercises,
-          recommendations: formData.recommendations,
           consultationNotes: formData.consultationNotes,
           reviewAfter: formData.reviewAfter,
           followUpRequired: formData.followUpRequired,
@@ -561,35 +531,6 @@ export default function DoctorPrescriptionCreatePage() {
               </CardContent>
             </Card>
 
-            {/* PD */}
-            <Card className="border-primary/10">
-              <CardHeader className="p-3 sm:p-6">
-                <CardTitle className="text-lg">Pupillary Distance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-3 sm:p-6">
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">Distance PD</label>
-                  <input
-                    type="text"
-                    value={formData.pd}
-                    onChange={(e) => handleInputChange("pd", e.target.value)}
-                    placeholder="e.g., 64"
-                    className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">Near PD</label>
-                  <input
-                    type="text"
-                    value={formData.nearPD}
-                    onChange={(e) => handleInputChange("nearPD", e.target.value)}
-                    placeholder="e.g., 62"
-                    className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Near Vision Right */}
             <Card className="border-primary/10">
               <CardHeader className="p-3 sm:p-6">
@@ -732,38 +673,6 @@ export default function DoctorPrescriptionCreatePage() {
               </CardContent>
             </Card>
 
-            {/* Findings */}
-            <Card className="border-primary/10">
-              <CardHeader className="p-3 sm:p-6">
-                <CardTitle className="text-lg">Findings</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-6">
-                <textarea
-                  value={formData.findings}
-                  onChange={(e) => handleInputChange("findings", e.target.value)}
-                  placeholder="Enter examination findings..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Medications */}
-            <Card className="border-primary/10">
-              <CardHeader className="p-3 sm:p-6">
-                <CardTitle className="text-lg">Medications</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-6">
-                <textarea
-                  value={formData.medications}
-                  onChange={(e) => handleInputChange("medications", e.target.value)}
-                  placeholder="Enter prescribed medications..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                />
-              </CardContent>
-            </Card>
-
             {/* Eye Drops */}
             <Card className="border-primary/10">
               <CardHeader className="p-3 sm:p-6">
@@ -790,22 +699,6 @@ export default function DoctorPrescriptionCreatePage() {
                   value={formData.exercises}
                   onChange={(e) => handleInputChange("exercises", e.target.value)}
                   placeholder="Enter recommended exercises..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Recommendations */}
-            <Card className="border-primary/10">
-              <CardHeader className="p-3 sm:p-6">
-                <CardTitle className="text-lg">Recommendations</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-6">
-                <textarea
-                  value={formData.recommendations}
-                  onChange={(e) => handleInputChange("recommendations", e.target.value)}
-                  placeholder="Enter recommendations..."
                   rows={3}
                   className="w-full px-4 py-2 border border-primary/10 rounded-xl bg-white/50 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                 />
@@ -975,37 +868,13 @@ function PrescriptionPreview({ formData, appointment, doctor, patient }: { formD
             </div>
           </div>
         </div>
-        {formData.pd && (
-          <div className="mt-4">
-            <p className="text-sm"><span className="text-muted-foreground">PD:</span> {formData.pd}</p>
-          </div>
-        )}
       </div>
 
-      {/* Findings & Diagnosis */}
-      {(formData.findings || formData.diagnosis) && (
+      {/* Diagnosis */}
+      {formData.diagnosis && (
         <div className="mb-6 pb-6 border-b border-primary/10">
-          <h3 className="font-display text-lg text-primary mb-4">Findings & Diagnosis</h3>
-          {formData.findings && (
-            <div className="mb-3">
-              <p className="text-sm font-medium text-primary mb-1">Findings:</p>
-              <p className="text-sm text-muted-foreground">{formData.findings}</p>
-            </div>
-          )}
-          {formData.diagnosis && (
-            <div>
-              <p className="text-sm font-medium text-primary mb-1">Diagnosis:</p>
-              <p className="text-sm text-muted-foreground">{formData.diagnosis}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Medications */}
-      {formData.medications && (
-        <div className="mb-6 pb-6 border-b border-primary/10">
-          <h3 className="font-display text-lg text-primary mb-4">Medications</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{formData.medications}</p>
+          <h3 className="font-display text-lg text-primary mb-4">Diagnosis</h3>
+          <p className="text-sm text-muted-foreground">{formData.diagnosis}</p>
         </div>
       )}
 
@@ -1022,14 +891,6 @@ function PrescriptionPreview({ formData, appointment, doctor, patient }: { formD
         <div className="mb-6 pb-6 border-b border-primary/10">
           <h3 className="font-display text-lg text-primary mb-4">Exercises</h3>
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">{formData.exercises}</p>
-        </div>
-      )}
-
-      {/* Recommendations */}
-      {formData.recommendations && (
-        <div className="mb-6 pb-6 border-b border-primary/10">
-          <h3 className="font-display text-lg text-primary mb-4">Recommendations</h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{formData.recommendations}</p>
         </div>
       )}
 

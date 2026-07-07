@@ -15,12 +15,9 @@ const TEST_PRESCRIPTION = {
   doctorName: "Dr. Priya Verma",
   rightEye: { sph: "-2.50", cyl: "-0.75", axis: "180", va: "6/9", remarks: "Mild myopia" },
   leftEye:  { sph: "-3.00", cyl: "-1.00", axis: "175", va: "6/12", remarks: "Moderate myopia" },
-  distancePD: "64",
-  nearPD: "61",
   nearVisionRight: { add: "+1.50", va: "N6", remarks: "" },
   nearVisionLeft:  { add: "+1.50", va: "N8", remarks: "" },
-  findings: "Bilateral myopia with mild astigmatism.\nAnterior segment: Normal OU.\nFundus: Disc and macula normal OU.",
-  glasses: "Single vision distance glasses.\nAnti-reflective coating recommended.",
+  diagnosis: "Bilateral myopia with mild astigmatism.\nAnterior segment: Normal OU.\nFundus: Disc and macula normal OU.",
   eyeDrops: "Carboxymethylcellulose 0.5% – 1 drop TID\nLubricating eye drops as needed",
   exercises: "20-20-20 rule: every 20 min look\nat something 20 ft away for 20 sec.\nPalming twice daily.",
   reviewAfter: "3 Months",
@@ -176,16 +173,6 @@ export function TestPreviewContent() {
                     <Row label="LEFT (OS)"  {...rx.leftEye}  />
                   </tbody>
                 </table>
-                <div style={{ width: 112, border: `1.5px solid ${BORDER}`, borderRadius: 6, padding: "8px 10px", flexShrink: 0, textAlign: "center" }}>
-                  <div style={{ fontSize: "7pt", fontWeight: 700, letterSpacing: "0.5px", color: G, marginBottom: 7 }}>PUPILLARY DISTANCE</div>
-                  {[{ label: "Distance PD", val: rx.distancePD }, { label: "Near PD", val: rx.nearPD }].map(({ label, val }) => (
-                    <div key={label} style={{ display: "flex", alignItems: "center", fontSize: "7pt", marginBottom: 5, gap: 2, justifyContent: "center" }}>
-                      <span style={{ color: "#555", fontSize: "6.5pt" }}>{label} :</span>
-                      <span style={{ borderBottom: "1px solid #ccc", minWidth: 26, textAlign: "center", paddingBottom: 1, fontWeight: 700 }}>{val}</span>
-                      <span style={{ color: "#555" }}>mm</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
 
@@ -210,8 +197,8 @@ export function TestPreviewContent() {
                   </tbody>
                 </table>
                 <div style={{ width: 112, border: `1.5px solid ${BORDER}`, borderRadius: 6, padding: "8px 10px", flexShrink: 0 }}>
-                  <div style={{ fontSize: "7pt", fontWeight: 700, letterSpacing: "1px", color: G, textAlign: "center", marginBottom: 5 }}>FINDINGS</div>
-                  <div style={{ fontSize: "7.5pt", color: G, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{rx.findings}</div>
+                  <div style={{ fontSize: "7pt", fontWeight: 700, letterSpacing: "1px", color: G, textAlign: "center", marginBottom: 5 }}>DIAGNOSIS</div>
+                  <div style={{ fontSize: "7.5pt", color: G, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{rx.diagnosis}</div>
                 </div>
               </div>
             </div>
@@ -224,7 +211,6 @@ export function TestPreviewContent() {
                 <div style={{ flex: 1, height: 1, background: BORDER }}/>
               </div>
               <div style={{ display: "flex", padding: "8px 0" }}>
-                <PlanCol icon={<svg width="22" height="13" viewBox="0 0 28 16" fill="none"><circle cx="7" cy="8" r="5.5" fill="none" stroke={G} strokeWidth="1.5"/><circle cx="21" cy="8" r="5.5" fill="none" stroke={G} strokeWidth="1.5"/><line x1="12.5" y1="8" x2="15.5" y2="8" stroke={G} strokeWidth="1.5"/></svg>} title="GLASSES" content={rx.glasses} borderRight />
                 <PlanCol icon={<svg width="16" height="20" viewBox="0 0 20 26" fill="none"><path d="M10 2 Q17 10 17 17 A7 7 0 0 1 3 17 Q3 10 10 2Z" fill="none" stroke={G} strokeWidth="1.5"/></svg>} title="RECOMMENDED EYE DROPS" content={rx.eyeDrops} borderRight />
                 <PlanCol icon={<svg width="20" height="24" viewBox="0 0 24 28" fill="none"><circle cx="12" cy="5" r="3" fill={G}/><path d="M8 12 Q12 9 16 12 L15 19 Q12 21 9 19Z" fill={G}/></svg>} title="EYE EXERCISES" content={rx.exercises} />
               </div>

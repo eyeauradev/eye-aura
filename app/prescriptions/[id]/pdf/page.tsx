@@ -206,24 +206,6 @@ export default function PrescriptionPdfPage() {
                   <Row label="LEFT (OS)" {...prescription.leftEye} />
                 </tbody>
               </table>
-              <div style={{ width: 112, border: `1.5px solid ${BORDER}`, borderRadius: 6, padding: "8px 10px", flexShrink: 0, textAlign: "center" }}>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
-                  <svg width="34" height="20" viewBox="0 0 36 22" fill="none">
-                    <path d="M2 11 Q18 0 34 11 Q18 22 2 11Z" fill="none" stroke={G} strokeWidth="1.5"/>
-                    <circle cx="18" cy="11" r="5" fill={G}/>
-                    <circle cx="18" cy="11" r="2.5" fill="white"/>
-                    <circle cx="18" cy="11" r="1.2" fill={G}/>
-                  </svg>
-                </div>
-                <div style={{ fontSize: "7pt", fontWeight: 700, letterSpacing: "0.5px", color: G, marginBottom: 7 }}>PUPILLARY DISTANCE</div>
-                {[{ label: "Distance PD", val: prescription.pd }, { label: "Near PD", val: prescription.nearPD }].map(({ label, val }) => (
-                  <div key={label} style={{ display: "flex", alignItems: "center", fontSize: "7pt", marginBottom: 5, gap: 2, justifyContent: "center" }}>
-                    <span style={{ color: "#555", fontSize: "6.5pt" }}>{label} :</span>
-                    <span style={{ borderBottom: "1px solid #ccc", minWidth: 26, textAlign: "center", paddingBottom: 1, fontWeight: val ? 700 : 400 }}>{val || "\u00A0"}</span>
-                    <span style={{ color: "#555" }}>mm</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
@@ -251,9 +233,9 @@ export default function PrescriptionPdfPage() {
                 </tbody>
               </table>
               <div style={{ width: 112, border: `1.5px solid ${BORDER}`, borderRadius: 6, padding: "8px 10px", flexShrink: 0 }}>
-                <div style={{ fontSize: "7pt", fontWeight: 700, letterSpacing: "1px", color: G, textAlign: "center", marginBottom: 5 }}>FINDINGS</div>
+                <div style={{ fontSize: "7pt", fontWeight: 700, letterSpacing: "1px", color: G, textAlign: "center", marginBottom: 5 }}>DIAGNOSIS</div>
                 <div style={{ fontSize: "7.5pt", color: G, lineHeight: 1.6 }}>
-                  {prescription.findings || <><span style={dotLine}/><span style={dotLine}/><span style={dotLine}/></>}
+                  {prescription.diagnosis || <><span style={dotLine}/><span style={dotLine}/><span style={dotLine}/></>}
                 </div>
                 <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
                   <svg width="44" height="20" viewBox="0 0 60 28" fill="none" opacity="0.5">
@@ -284,7 +266,6 @@ export default function PrescriptionPdfPage() {
               <div style={{ flex: 1, height: 1, background: BORDER }}/>
             </div>
             <div style={{ display: "flex", padding: "8px 0" }}>
-              <PlanCol icon={<svg width="22" height="13" viewBox="0 0 28 16" fill="none"><circle cx="7" cy="8" r="5.5" fill="none" stroke={G} strokeWidth="1.5"/><circle cx="21" cy="8" r="5.5" fill="none" stroke={G} strokeWidth="1.5"/><line x1="12.5" y1="8" x2="15.5" y2="8" stroke={G} strokeWidth="1.5"/><line x1="0.5" y1="6" x2="1.5" y2="3.5" stroke={G} strokeWidth="1.3"/><line x1="27.5" y1="6" x2="26.5" y2="3.5" stroke={G} strokeWidth="1.3"/></svg>} title="GLASSES" content={prescription.medications} />
               <PlanCol icon={<svg width="16" height="20" viewBox="0 0 20 26" fill="none"><path d="M10 2 Q17 10 17 17 A7 7 0 0 1 3 17 Q3 10 10 2Z" fill="none" stroke={G} strokeWidth="1.5"/></svg>} title="RECOMMENDED EYE DROPS" content={prescription.eyeDrops} />
               <div style={{ flex: 1, padding: "0 10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>

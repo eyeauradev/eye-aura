@@ -11,12 +11,9 @@ export interface PrescriptionTemplateProps {
   doctorName: string;
   rightEye: { sph: string; cyl: string; axis: string; va: string; remarks: string };
   leftEye: { sph: string; cyl: string; axis: string; va: string; remarks: string };
-  distancePD: string;
-  nearPD: string;
   nearVisionRight: { add: string; va: string; remarks: string };
   nearVisionLeft: { add: string; va: string; remarks: string };
-  findings: string;
-  glasses: string;
+  diagnosis: string;
   eyeDrops: string;
   exercises: string;
   reviewAfter: string;
@@ -44,9 +41,9 @@ export default function PrescriptionTemplate(props: PrescriptionTemplateProps) {
   const {
     prescriptionId, patientName, patientAge, patientGender, patientPhone,
     date, referredBy, doctorName,
-    rightEye, leftEye, distancePD, nearPD,
+    rightEye, leftEye,
     nearVisionRight, nearVisionLeft,
-    findings, glasses, eyeDrops, exercises, reviewAfter,
+    diagnosis, eyeDrops, exercises, reviewAfter,
   } = props;
 
   return (
@@ -130,65 +127,41 @@ export default function PrescriptionTemplate(props: PrescriptionTemplateProps) {
       </div>
 
       {/* ════════════════════════════════════
-          DISTANCE VISION + PD (side-by-side)
+          DISTANCE VISION
       ════════════════════════════════════ */}
-      <div style={{ display: "flex", gap: "3mm", marginBottom: "3mm", alignItems: "flex-start" }}>
-        {/* Distance Vision table */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <SectionHeader icon="glasses" label="DISTANCE VISION" />
-          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1.5mm" }}>
-            <thead>
-              <tr style={{ backgroundColor: TABLE_HEADER_BG }}>
-                {["EYE", "SPH (Sphere)", "CYL (Cylinder)", "AXIS", "VA (Visual Acuity)", "REMARKS"].map(h => (
-                  <th key={h} style={{ border: `1px solid ${BORDER_COLOR}`, padding: "4px 5px", fontSize: "7.5pt", fontWeight: 700, color: "white", textAlign: "center" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ backgroundColor: "white" }}>
-                <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: "4px 6px", fontSize: "8pt", fontWeight: 600, color: TEXT_DARK }}>RIGHT (OD)</td>
-                {cell(rightEye.sph, { textAlign: "center" })}
-                {cell(rightEye.cyl, { textAlign: "center" })}
-                {cell(rightEye.axis, { textAlign: "center" })}
-                {cell(rightEye.va, { textAlign: "center" })}
-                {cell(rightEye.remarks, { textAlign: "center" })}
-              </tr>
-              <tr style={{ backgroundColor: ROW_ALT }}>
-                <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: "4px 6px", fontSize: "8pt", fontWeight: 600, color: TEXT_DARK }}>LEFT (OS)</td>
-                {cell(leftEye.sph, { textAlign: "center" })}
-                {cell(leftEye.cyl, { textAlign: "center" })}
-                {cell(leftEye.axis, { textAlign: "center" })}
-                {cell(leftEye.va, { textAlign: "center" })}
-                {cell(leftEye.remarks, { textAlign: "center" })}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pupillary Distance box */}
-        <div style={{
-          border: `1px solid ${BORDER_COLOR}`, borderRadius: "7px",
-          padding: "6px 10px 8px 10px", width: "44mm", flexShrink: 0, textAlign: "center",
-        }}>
-          {/* Eye icon */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "4px" }}>
-            <svg width="28" height="20" viewBox="0 0 28 20" fill="none">
-              <ellipse cx="14" cy="10" rx="12" ry="7" stroke={GREEN} strokeWidth="1.5" fill="none" />
-              <circle cx="14" cy="10" r="4" fill={GREEN} />
-              <circle cx="14" cy="10" r="2.2" fill="#0D2B1F" />
-              <circle cx="15" cy="9" r="0.8" fill="white" />
-            </svg>
-          </div>
-          <div style={{ fontSize: "7.5pt", fontWeight: 800, color: GREEN, letterSpacing: "0.5px", marginBottom: "6px" }}>
-            PUPILLARY DISTANCE
-          </div>
-          <PDRow label="Distance PD" value={distancePD} />
-          <PDRow label="Near PD" value={nearPD} />
-        </div>
+      <div style={{ marginBottom: "3mm" }}>
+        <SectionHeader icon="glasses" label="DISTANCE VISION" />
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1.5mm" }}>
+          <thead>
+            <tr style={{ backgroundColor: TABLE_HEADER_BG }}>
+              {["EYE", "SPH (Sphere)", "CYL (Cylinder)", "AXIS", "VA (Visual Acuity)", "REMARKS"].map(h => (
+                <th key={h} style={{ border: `1px solid ${BORDER_COLOR}`, padding: "4px 5px", fontSize: "7.5pt", fontWeight: 700, color: "white", textAlign: "center" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{ backgroundColor: "white" }}>
+              <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: "4px 6px", fontSize: "8pt", fontWeight: 600, color: TEXT_DARK }}>RIGHT (OD)</td>
+              {cell(rightEye.sph, { textAlign: "center" })}
+              {cell(rightEye.cyl, { textAlign: "center" })}
+              {cell(rightEye.axis, { textAlign: "center" })}
+              {cell(rightEye.va, { textAlign: "center" })}
+              {cell(rightEye.remarks, { textAlign: "center" })}
+            </tr>
+            <tr style={{ backgroundColor: ROW_ALT }}>
+              <td style={{ border: `1px solid ${BORDER_COLOR}`, padding: "4px 6px", fontSize: "8pt", fontWeight: 600, color: TEXT_DARK }}>LEFT (OS)</td>
+              {cell(leftEye.sph, { textAlign: "center" })}
+              {cell(leftEye.cyl, { textAlign: "center" })}
+              {cell(leftEye.axis, { textAlign: "center" })}
+              {cell(leftEye.va, { textAlign: "center" })}
+              {cell(leftEye.remarks, { textAlign: "center" })}
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       {/* ════════════════════════════════════
-          NEAR VISION + FINDINGS (side-by-side)
+          NEAR VISION + DIAGNOSIS (side-by-side)
       ════════════════════════════════════ */}
       <div style={{ display: "flex", gap: "3mm", marginBottom: "3mm", alignItems: "flex-start" }}>
         {/* Near Vision table */}
@@ -219,16 +192,16 @@ export default function PrescriptionTemplate(props: PrescriptionTemplateProps) {
           </table>
         </div>
 
-        {/* Findings box */}
+        {/* Diagnosis box */}
         <div style={{
           border: `1px solid ${BORDER_COLOR}`, borderRadius: "7px",
           padding: "6px 10px 8px 10px", width: "44mm", flexShrink: 0,
         }}>
           <div style={{ fontSize: "7.5pt", fontWeight: 800, color: GREEN, textAlign: "center", letterSpacing: "0.5px", marginBottom: "5px" }}>
-            FINDINGS
+            DIAGNOSIS
           </div>
           <div style={{ fontSize: "7.5pt", color: TEXT_DARK, lineHeight: 1.5, minHeight: "28mm", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-            {findings || ""}
+            {diagnosis || ""}
           </div>
           {/* Decorative leaf at bottom */}
           <div style={{ textAlign: "center", marginTop: "4px", opacity: 0.4 }}>
@@ -251,9 +224,8 @@ export default function PrescriptionTemplate(props: PrescriptionTemplateProps) {
         <div style={{
           border: `1px solid ${BORDER_COLOR}`, borderRadius: "0 7px 7px 7px",
           marginTop: "-1px",
-          display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
+          display: "grid", gridTemplateColumns: "1fr 1fr",
         }}>
-          <PlanColumn icon="glasses-icon" title="GLASSES" content={glasses} borderRight />
           <PlanColumn icon="drop" title="RECOMMENDED EYE DROPS" content={eyeDrops} borderRight />
           <PlanColumn icon="meditation" title="EYE EXERCISES" content={exercises} />
         </div>
@@ -370,20 +342,6 @@ function InfoRow({ label, value }: { label: string; value: string }) {
         paddingBottom: "1px", fontWeight: value ? 600 : 400,
         color: value ? TEXT_DARK : "transparent", minHeight: "12px",
       }}>{value || "\u00A0"}</span>
-    </div>
-  );
-}
-
-function PDRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: "4px", fontSize: "7.5pt", marginBottom: "5px" }}>
-      <span style={{ color: TEXT_MID, flex: 1 }}>{label}</span>
-      <span style={{ color: TEXT_MID }}>:</span>
-      <span style={{
-        borderBottom: `1px solid #9ABAA8`, minWidth: "32px",
-        paddingBottom: "1px", fontWeight: 600, color: TEXT_DARK, textAlign: "center",
-      }}>{value || "\u00A0"}</span>
-      <span style={{ fontSize: "7pt", color: TEXT_MID }}>mm</span>
     </div>
   );
 }
