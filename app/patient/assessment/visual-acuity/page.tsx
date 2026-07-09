@@ -135,10 +135,11 @@ export default function VisualAcuityPage() {
           return;
         }
 
-        // Mark in_progress
-        if (doc.status === "assigned" || doc.status === "completed") {
+        // Mark in_progress only if not already started and has no results yet
+        if (doc.status === "assigned") {
           await visionAssessmentsService.updateStatus(assessmentId, "in_progress");
         }
+        // If status is "completed", leave it as completed so doctor can see existing results
         setAssessment(doc);
 
         // Find the next pending sibling (same appointment, different doc, not yet completed)

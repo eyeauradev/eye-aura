@@ -819,6 +819,9 @@ export default function DoctorAppointmentDetailPage() {
           const hasFar  = a.assessmentTypes.includes("far");
           const hasNear = a.assessmentTypes.includes("near");
           const done    = a.status === "completed";
+          // Show results if completed OR if any results exist (partial completion)
+          const hasAnyResults = !!(a.resultFar || a.resultNear);
+          const showResults = done || hasAnyResults;
           return (
             <Card key={a.id} className="border-[#0f4f4b]/12">
               <CardContent className="p-4 sm:p-6 space-y-5">
@@ -852,21 +855,40 @@ export default function DoctorAppointmentDetailPage() {
                 </div>
 
                 {/* Patient-reported results */}
-                {done && (
+                {showResults && (
                   <div className="space-y-3">
                     {a.resultFar && (
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest text-[#0f4f4b]/40 mb-2">Far Vision — Patient Reported</p>
                         <div className="grid grid-cols-2 gap-2">
-                          {(["rightEye", "leftEye"] as const).map((eye) => (
-                            <div key={eye} className="rounded-xl bg-[#0f4f4b]/4 border border-[#0f4f4b]/10 p-3">
-                              <p className="text-[10px] font-bold uppercase text-[#0f4f4b]/40 mb-0.5">{eye === "rightEye" ? "Right Eye" : "Left Eye"}</p>
-                              <p className="text-2xl font-black text-[#0f4f4b] leading-none">{a.resultFar![eye]}</p>
-                              {a.doctorCorrectedFar?.[eye] && (
-                                <p className="text-xs font-semibold text-[#b5964d] mt-1">Corrected → {a.doctorCorrectedFar[eye]}</p>
-                              )}
-                            </div>
-                          ))}
+                          {(["rightEye", "leftEye"] as const).map((eye) => {
+                            const result = a.resultFar![eye];
+                            const couldNotRead = result === "—";
+                            return (
+                              <div key={eye} className={`rounded-xl p-3 ${
+                                couldNotRead 
+                                  ? "bg-red-50 border border-red-200" 
+                                  : "bg-[#0f4f4b]/4 border border-[#0f4f4b]/10"
+                              }`}>
+                                <p className={`text-[10px] font-bold uppercase mb-0.5 ${
+                                  couldNotRead ? "text-red-600" : "text-[#0f4f4b]/40"
+                                }`}>
+                                  {eye === "rightEye" ? "Right Eye" : "Left Eye"}
+                                </p>
+                                <p className={`text-2xl font-black leading-none ${
+                                  couldNotRead ? "text-red-600" : "text-[#0f4f4b]"
+                                }`}>
+                                  {result}
+                                </p>
+                                {couldNotRead && (
+                                  <p className="text-xs font-semibold text-red-600 mt-1">⚠️ Could not read any line</p>
+                                )}
+                                {a.doctorCorrectedFar?.[eye] && (
+                                  <p className="text-xs font-semibold text-[#b5964d] mt-1">Corrected → {a.doctorCorrectedFar[eye]}</p>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -874,15 +896,34 @@ export default function DoctorAppointmentDetailPage() {
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest text-[#b5964d]/60 mb-2">Near Vision — Patient Reported</p>
                         <div className="grid grid-cols-2 gap-2">
-                          {(["rightEye", "leftEye"] as const).map((eye) => (
-                            <div key={eye} className="rounded-xl bg-[#b5964d]/6 border border-[#b5964d]/12 p-3">
-                              <p className="text-[10px] font-bold uppercase text-[#b5964d]/50 mb-0.5">{eye === "rightEye" ? "Right Eye" : "Left Eye"}</p>
-                              <p className="text-2xl font-black text-[#b5964d] leading-none">{a.resultNear![eye]}</p>
-                              {a.doctorCorrectedNear?.[eye] && (
-                                <p className="text-xs font-semibold text-[#0f4f4b] mt-1">Corrected → {a.doctorCorrectedNear[eye]}</p>
-                              )}
-                            </div>
-                          ))}
+                          {(["rightEye", "leftEye"] as const).map((eye) => {
+                            const result = a.resultNear![eye];
+                            const couldNotRead = result === "—";
+                            return (
+                              <div key={eye} className={`rounded-xl p-3 ${
+                                couldNotRead 
+                                  ? "bg-red-50 border border-red-200" 
+                                  : "bg-[#b5964d]/6 border border-[#b5964d]/12"
+                              }`}>
+                                <p className={`text-[10px] font-bold uppercase mb-0.5 ${
+                                  couldNotRead ? "text-red-600" : "text-[#b5964d]/50"
+                                }`}>
+                                  {eye === "rightEye" ? "Right Eye" : "Left Eye"}
+                                </p>
+                                <p className={`text-2xl font-black leading-none ${
+                                  couldNotRead ? "text-red-600" : "text-[#b5964d]"
+                                }`}>
+                                  {result}
+                                </p>
+                                {couldNotRead && (
+                                  <p className="text-xs font-semibold text-red-600 mt-1">⚠️ Could not read any line</p>
+                                )}
+                                {a.doctorCorrectedNear?.[eye] && (
+                                  <p className="text-xs font-semibold text-[#0f4f4b] mt-1">Corrected → {a.doctorCorrectedNear[eye]}</p>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -896,7 +937,11 @@ export default function DoctorAppointmentDetailPage() {
                     a.status === "expired"     ? "bg-gray-50 border border-gray-200 text-gray-500" :
                     "bg-[#b5964d]/6 border border-[#b5964d]/20 text-[#b5964d]"
                   }`}>
-                    {a.status === "in_progress" ? "Patient is currently taking this assessment" :
+                    {a.status === "in_progress" ? (
+                      hasAnyResults 
+                        ? `Partially completed — ${a.resultFar ? 'Far vision done' : ''}${a.resultFar && a.resultNear ? ', ' : ''}${a.resultNear ? 'Near vision done' : ''}. Waiting for remaining tests.`
+                        : "Patient is currently taking this assessment"
+                    ) :
                      a.status === "expired"     ? "Expired without completion" :
                      "Waiting for patient to start"}
                   </div>

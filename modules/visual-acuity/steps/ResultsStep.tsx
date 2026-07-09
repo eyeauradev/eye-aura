@@ -44,27 +44,29 @@ function EyeCard({
 
   return (
     <div className={`rounded-2xl border p-5 space-y-3 ${config.bg}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Eye className="h-4 w-4 text-[#0f4f4b]" />
-          <span className="text-sm font-bold text-[#0f4f4b]">{label}</span>
+          <span className="text-sm font-bold text-[#0f4f4b] whitespace-nowrap">{label}</span>
         </div>
-        <Badge className={`text-xs font-bold border-0 ${config.badge}`}>{config.label}</Badge>
+        <Badge className={`text-xs font-bold border-0 flex-shrink-0 ${config.badge}`}>{config.label}</Badge>
       </div>
 
       {notation ? (
         <>
-          <div className="flex items-center justify-between">
-            <div className="flex items-baseline gap-2">
-              <span className={`text-4xl font-black ${config.color}`}>{notation}</span>
-              <span className="text-sm text-[#0f4f4b]/50">{notationLabel}</span>
-              {jaegerEquivalent && (
-                <span className="text-sm font-bold text-[#0f4f4b]/60">({jaegerEquivalent})</span>
-              )}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className={`text-4xl font-black ${config.color}`}>{notation}</span>
+                <span className="text-sm text-[#0f4f4b]/50 whitespace-nowrap">{notationLabel}</span>
+                {jaegerEquivalent && (
+                  <span className="text-sm font-bold text-[#0f4f4b]/60 whitespace-nowrap">({jaegerEquivalent})</span>
+                )}
+              </div>
             </div>
             {level !== null && (
-              <div className="text-right">
-                <span className="text-xs text-[#0f4f4b]/40 block mb-0.5">Level</span>
+              <div className="text-right flex-shrink-0">
+                <span className="text-xs text-[#0f4f4b]/40 block mb-0.5 whitespace-nowrap">Level</span>
                 <span className={`text-3xl font-black ${config.color} leading-none`}>{level}</span>
               </div>
             )}
@@ -151,10 +153,6 @@ export function ResultsStep({ result, onRetake, nextAssessmentHref, nextAssessme
           <span className="font-bold text-[#0f4f4b]">{result.timerDuration} seconds</span>
           <span className="text-[#0f4f4b]/55">Calibration</span>
           <span className="font-bold text-[#0f4f4b]">{result.calibration.pxPerMm.toFixed(3)} px/mm</span>
-          <span className="text-[#0f4f4b]/55">Lines (R / L)</span>
-          <span className="font-bold text-[#0f4f4b]">
-            {result.rightEye.lineResults.length} / {result.leftEye.lineResults.length}
-          </span>
           <span className="text-[#0f4f4b]/55">Completed at</span>
           <span className="font-bold text-[#0f4f4b]">
             {new Date(result.completedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}

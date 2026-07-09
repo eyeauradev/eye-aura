@@ -263,11 +263,10 @@ function AssessmentCard({ assessment, staggerIndex = 0 }: AssessmentCardProps) {
       </div>
 
       {/* Results section */}
-      {assessment.status === "completed" &&
-        (assessment.resultFar || assessment.resultNear) && (
+      {(assessment.status === "completed" || assessment.resultFar || assessment.resultNear) && (
           <div className="mb-4 p-3 rounded-2xl bg-primary/5 border border-primary/10 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Patient Results
+              Patient Results {assessment.status === "in_progress" && (assessment.resultFar || assessment.resultNear) && "(Partial)"}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {assessment.resultFar && (
@@ -390,17 +389,34 @@ interface ResultBlockProps {
 }
 
 function ResultBlock({ label, rightEye, leftEye, completedAt }: ResultBlockProps) {
+  const rightCouldNotRead = rightEye === "—";
+  const leftCouldNotRead = leftEye === "—";
+  
   return (
     <div className="space-y-1">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <span className="text-muted-foreground text-xs">Right Eye</span>
-          <p className="font-semibold text-foreground">{rightEye || "—"}</p>
+        <div className={`rounded-lg p-2 ${rightCouldNotRead ? "bg-red-50 border border-red-200" : ""}`}>
+          <span className={`text-xs ${rightCouldNotRead ? "text-red-600 font-semibold" : "text-muted-foreground"}`}>
+            Right Eye
+          </span>
+          <p className={`font-semibold ${rightCouldNotRead ? "text-red-600" : "text-foreground"}`}>
+            {rightEye || "—"}
+          </p>
+          {rightCouldNotRead && (
+            <p className="text-xs text-red-600 mt-0.5">⚠️ Could not read</p>
+          )}
         </div>
-        <div>
-          <span className="text-muted-foreground text-xs">Left Eye</span>
-          <p className="font-semibold text-foreground">{leftEye || "—"}</p>
+        <div className={`rounded-lg p-2 ${leftCouldNotRead ? "bg-red-50 border border-red-200" : ""}`}>
+          <span className={`text-xs ${leftCouldNotRead ? "text-red-600 font-semibold" : "text-muted-foreground"}`}>
+            Left Eye
+          </span>
+          <p className={`font-semibold ${leftCouldNotRead ? "text-red-600" : "text-foreground"}`}>
+            {leftEye || "—"}
+          </p>
+          {leftCouldNotRead && (
+            <p className="text-xs text-red-600 mt-0.5">⚠️ Could not read</p>
+          )}
         </div>
       </div>
       {completedAt && (

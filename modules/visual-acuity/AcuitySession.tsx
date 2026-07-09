@@ -173,11 +173,41 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
           leftEye:  eyeResults.left.bestNotation  ?? "—",
           completedAt: new Date(completedAt),
         };
+        
+        // Fetch current assessment to check if both tests are done
+        const currentAssessment = await visionAssessmentsService.getById(_assessmentId);
+        if (!currentAssessment) {
+          console.error("[AcuitySession] assessment not found:", _assessmentId);
+          return;
+        }
+
+        // Determine if assessment is fully completed:
+        // - If only "far" is assigned → complete when resultFar exists
+        // - If only "near" is assigned → complete when resultNear exists
+        // - If both are assigned → complete when BOTH resultFar and resultNear exist
+        const hasFar = assessmentTypes?.includes("far");
+        const hasNear = assessmentTypes?.includes("near");
+        const isSavingFar = testType === "far";
+        const isSavingNear = testType === "near";
+        
+        let newStatus: "in_progress" | "completed" = "in_progress";
+        
+        if (hasFar && hasNear) {
+          // Both tests required - only complete when both have results
+          const willHaveBothResults = isSavingFar 
+            ? (currentAssessment.resultNear !== undefined) // Saving far, check if near already exists
+            : (currentAssessment.resultFar !== undefined);  // Saving near, check if far already exists
+          newStatus = willHaveBothResults ? "completed" : "in_progress";
+        } else {
+          // Only one test required - mark complete immediately
+          newStatus = "completed";
+        }
+
         await visionAssessmentsService.update(
           _assessmentId,
           testType === "far"
-            ? { resultFar: resultPayload,  status: "completed" }
-            : { resultNear: resultPayload, status: "completed" }
+            ? { resultFar: resultPayload, status: newStatus }
+            : { resultNear: resultPayload, status: newStatus }
         );
       } catch (err) {
         console.error("[AcuitySession] failed to save result to Firestore:", err);
