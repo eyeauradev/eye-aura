@@ -81,7 +81,7 @@ export function AssessmentOrientationGate({
   // The portrait overlay is layered on top when needed.
 
   return (
-    <div data-testid="assessment-orientation-gate" className="relative">
+    <div data-testid="assessment-orientation-gate">
       {/* Children — always mounted, hidden when portrait */}
       <div 
         className={isPortrait ? "invisible pointer-events-none" : "visible"}
