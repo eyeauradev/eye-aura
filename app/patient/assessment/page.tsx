@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { visionAssessmentsService, usersService } from "@/services/firestore";
 import type { VisionAssessmentDocument, UserDocument } from "@/types/firestore";
-import { Eye, BookOpen, ArrowRight, Clock, Lock, CheckCircle2, Activity, RefreshCw } from "lucide-react";
+import { Eye, BookOpen, ArrowRight, Clock, Lock, CheckCircle2, Activity, RefreshCw, Smartphone, X, Share } from "lucide-react";
 import Link from "next/link";
 import {
   DashboardCard,
@@ -13,6 +13,7 @@ import {
   SectionHeader,
   GlassPanel,
 } from "@/components/patient-portal";
+import { usePWAStatus } from "@/modules/visual-acuity/hooks/usePWAStatus";
 
 const TYPE_LABELS: Record<string, { label: string; icon: typeof Eye; desc: string }> = {
   far:  { label: "Far Vision",  icon: Eye,      desc: "3-metre Snellen chart" },
@@ -38,6 +39,104 @@ const STATUS_LABEL_MAP: Record<string, string> = {
   completed: "Completed",
   expired: "Expired",
 };
+
+// ---------------------------------------------------------------------------
+// PWA Install Banner
+// ---------------------------------------------------------------------------
+
+/**
+ * Non-blocking, dismissible banner suggesting PWA installation.
+ * Shown only when the app is not already installed and the browser supports it.
+ * Handles both iOS Safari (manual share flow) and non-iOS (beforeinstallprompt).
+ */
+function PWAInstallBanner() {
+  const { isPWA, isIOSSafari } = usePWAStatus();
+  const [dismissed, setDismissed] = useState(false);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const deferredPrompt = useRef<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      deferredPrompt.current = e;
+      setCanInstall(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  // Show banner if: not installed AND (iOS Safari OR browser supports install)
+  const shouldShow = !isPWA && !dismissed && (isIOSSafari || canInstall);
+  if (!shouldShow) return null;
+
+  const handleInstall = async () => {
+    if (isIOSSafari) {
+      setShowIOSGuide((v) => !v);
+      return;
+    }
+    if (deferredPrompt.current) {
+      deferredPrompt.current.prompt();
+      const { outcome } = await deferredPrompt.current.userChoice;
+      deferredPrompt.current = null;
+      if (outcome === "accepted") setDismissed(true);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+      <div className="flex items-start gap-3">
+        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <Smartphone className="h-4 w-4 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-foreground leading-none mb-0.5">Install Eye Aura App</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Install the app for a better fullscreen testing experience.
+          </p>
+          {showIOSGuide && (
+            <div className="mt-2 rounded-xl bg-primary/8 border border-primary/15 p-3 space-y-1">
+              <p className="text-xs font-semibold text-foreground mb-1.5">How to install on iOS:</p>
+              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Tap the <Share className="inline h-3 w-3 mx-0.5" /> <strong>Share</strong> button</li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>"Add"</strong> in the top right</li>
+              </ol>
+              <button
+                onClick={() => setShowIOSGuide(false)}
+                className="mt-2 text-xs text-primary font-semibold hover:underline"
+              >
+                Got it
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleInstall}
+            className="h-8 px-3 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Install
+          </button>
+          <button
+            onClick={() => setDismissed(true)}
+            className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-muted/60 transition-colors"
+            aria-label="Dismiss"
+          >
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export default function AssessmentHubPage() {
   const { user } = useAuth();
@@ -90,6 +189,9 @@ export default function AssessmentHubPage() {
           Assessments assigned by your doctor will appear here.
         </p>
       </div>
+
+      {/* PWA install banner — non-blocking, dismissible */}
+      <PWAInstallBanner />
 
       {/* Active / Ready */}
       {active.length > 0 && (

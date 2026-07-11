@@ -10,7 +10,6 @@ import { EyeSelectionStep } from "./steps/EyeSelectionStep";
 import { TestingStep } from "./steps/TestingStep";
 import { NearTestingStep } from "./steps/NearTestingStep";
 import { ResultsStep } from "./steps/ResultsStep";
-import { AssessmentPreparationCard } from "./steps/AssessmentPreparationCard";
 import { AssessmentImmersiveShell, AssessmentOrientationGate } from "./immersive";
 import { useAssessmentStorage } from "./hooks/useAssessmentStorage";
 import { useNavigationProtection } from "./hooks/useNavigationProtection";
@@ -75,7 +74,6 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
   const [timerCountdown, setTimerCountdown] = useState<number>(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
-  const [showPreparation, setShowPreparation] = useState(false);
 
   const sessionId  = useRef(restored?.sessionId ?? uuidv4());
   const startedAt  = useRef<number>(restored?.startedAt ?? 0);
@@ -110,14 +108,6 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
       lastUpdated: Date.now(),
     });
   }, [phase, testType, timerDuration, calibration, _assessmentId, saveState]);
-
-  // Show preparation card before starting testing
-  useEffect(() => {
-    if (phase === "eye_selection" || (phase === "duration_select" && testType === "near")) {
-      // Next step will be testing, show preparation
-      setShowPreparation(true);
-    }
-  }, [phase, testType]);
 
   useEffect(() => {
     if (phase === "testing") startedAt.current = Date.now();
@@ -157,18 +147,11 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
     if (testType === "far") {
       setPhase("eye_selection");
     } else {
-      // For near test, show preparation before testing
-      setShowPreparation(true);
+      setPhase("testing");
     }
   };
 
   const handleEyeSelected = () => {
-    // Show preparation before starting test
-    setShowPreparation(true);
-  };
-
-  const handlePreparationComplete = () => {
-    setShowPreparation(false);
     setPhase("testing");
   };
 
@@ -322,14 +305,6 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
 
   return (
     <>
-      {/* Preparation card (shown before testing starts) */}
-      {showPreparation && (
-        <AssessmentPreparationCard
-          testType={testType}
-          onContinue={handlePreparationComplete}
-        />
-      )}
-
       <AssessmentImmersiveShell
         timerDisplay={timerDisplay}
         progressDisplay={progressDisplay}
