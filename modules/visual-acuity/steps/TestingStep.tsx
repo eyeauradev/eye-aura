@@ -5,6 +5,7 @@ import { SNELLEN_LINES } from "../snellen-data";
 import type { CalibrationData, EyeAcuityResult, TimerDuration } from "../types";
 
 interface TestingStepProps {
+  assessmentId?: string;
   calibration: CalibrationData;
   timerDuration: TimerDuration;
   onComplete: (results: { right: EyeAcuityResult; left: EyeAcuityResult }) => void;

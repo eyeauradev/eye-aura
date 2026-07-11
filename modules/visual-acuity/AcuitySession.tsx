@@ -10,7 +10,11 @@ import { EyeSelectionStep } from "./steps/EyeSelectionStep";
 import { TestingStep } from "./steps/TestingStep";
 import { NearTestingStep } from "./steps/NearTestingStep";
 import { ResultsStep } from "./steps/ResultsStep";
+import { AssessmentPreparationCard } from "./steps/AssessmentPreparationCard";
 import { AssessmentImmersiveShell, AssessmentOrientationGate } from "./immersive";
+import { useAssessmentStorage } from "./hooks/useAssessmentStorage";
+import { useNavigationProtection } from "./hooks/useNavigationProtection";
+import { useScreenWakeLock } from "./hooks/useScreenWakeLock";
 import type {
   TestPhase,
   TestType,
@@ -50,34 +54,19 @@ interface AcuitySessionProps {
 }
 
 export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, nextAssessmentHref, nextAssessmentLabel }: AcuitySessionProps = {}) {
+  // Initialize storage hooks
+  const { saveState, restoreState, clearState } = useAssessmentStorage();
+  const router = useRouter();
+
+  // Attempt to restore state from unified storage
+  const restored = restoreState();
+
   // If assessment types are pre-determined by assignment, skip type_select
-  const initialPhase: TestPhase = assessmentTypes?.length ? "instructions" : "type_select";
-  const initialType: TestType   = assessmentTypes?.includes("far") ? "far" : "near";
+  const initialPhase: TestPhase = restored?.phase ?? (assessmentTypes?.length ? "instructions" : "type_select");
+  const initialType: TestType   = restored?.testType ?? (assessmentTypes?.includes("far") ? "far" : "near");
 
-  // ── State persistence key (Issue 5: survive orientation changes) ─────────
-  const storageKey = `ea_session_${_assessmentId ?? "local"}`;
-
-  // Attempt to restore state from sessionStorage
-  const getRestoredState = () => {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = sessionStorage.getItem(storageKey);
-      if (!raw) return null;
-      return JSON.parse(raw) as {
-        phase: TestPhase;
-        testType: TestType;
-        timerDuration: TimerDuration;
-        calibration: CalibrationData | null;
-        sessionId: string;
-        startedAt: number;
-      };
-    } catch { return null; }
-  };
-
-  const restored = getRestoredState();
-
-  const [phase, setPhase]             = useState<TestPhase>(restored?.phase ?? initialPhase);
-  const [testType, setTestType]       = useState<TestType>(restored?.testType ?? initialType);
+  const [phase, setPhase]             = useState<TestPhase>(initialPhase);
+  const [testType, setTestType]       = useState<TestType>(initialType);
   const [timerDuration, setTimerDuration] = useState<TimerDuration>(restored?.timerDuration ?? 5);
   const [calibration, setCalibration] = useState<CalibrationData | null>(restored?.calibration ?? null);
   const [result, setResult]           = useState<AcuityTestResult | null>(null);
@@ -86,25 +75,49 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
   const [timerCountdown, setTimerCountdown] = useState<number>(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [showPreparation, setShowPreparation] = useState(false);
 
-  const router = useRouter();
   const sessionId  = useRef(restored?.sessionId ?? uuidv4());
   const startedAt  = useRef<number>(restored?.startedAt ?? 0);
 
-  // Persist state to sessionStorage on changes (Issue 5)
+  // Navigation protection - enabled during active assessment (not during results)
+  const isAssessmentActive = phase !== "type_select" && phase !== "results";
+  useNavigationProtection(isAssessmentActive);
+
+  // Screen wake lock - enabled during testing phase only
+  const { isSupported: wakeLockSupported, isActive: wakeLockActive } = useScreenWakeLock(
+    phase === "testing"
+  );
+
+  // Persist state changes to unified storage
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      sessionStorage.setItem(storageKey, JSON.stringify({
-        phase,
-        testType,
-        timerDuration,
-        calibration,
-        sessionId: sessionId.current,
-        startedAt: startedAt.current,
-      }));
-    } catch { /* storage full — ignore */ }
-  }, [phase, testType, timerDuration, calibration, storageKey]);
+    // Don't persist if we're at results or initial phase
+    if (phase === "results" || phase === "type_select") return;
+
+    saveState({
+      sessionId: sessionId.current,
+      assessmentId: _assessmentId,
+      phase,
+      testType,
+      timerDuration,
+      calibration,
+      currentEye: "right", // Will be updated by TestingShell
+      currentLetterIndex: 0, // Will be updated by TestingShell
+      eyePhase: "eye_intro", // Will be updated by TestingShell
+      rightEyeBest: null, // Will be updated by TestingShell
+      leftEyeBest: null, // Will be updated by TestingShell
+      startedAt: startedAt.current,
+      lastUpdated: Date.now(),
+    });
+  }, [phase, testType, timerDuration, calibration, _assessmentId, saveState]);
+
+  // Show preparation card before starting testing
+  useEffect(() => {
+    if (phase === "eye_selection" || (phase === "duration_select" && testType === "near")) {
+      // Next step will be testing, show preparation
+      setShowPreparation(true);
+    }
+  }, [phase, testType]);
 
   useEffect(() => {
     if (phase === "testing") startedAt.current = Date.now();
@@ -140,10 +153,22 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
     setPhase("duration_select");
   };
 
-  const handleDurationContinue = () => setPhase(testType === "far" ? "eye_selection" : "testing");
+  const handleDurationContinue = () => {
+    if (testType === "far") {
+      setPhase("eye_selection");
+    } else {
+      // For near test, show preparation before testing
+      setShowPreparation(true);
+    }
+  };
 
-  const handleEyeSelected = (selectedEye: "right" | "left") => {
-    // Go directly to testing — TestingShell handles the eye_intro and countdown internally
+  const handleEyeSelected = () => {
+    // Show preparation before starting test
+    setShowPreparation(true);
+  };
+
+  const handlePreparationComplete = () => {
+    setShowPreparation(false);
     setPhase("testing");
   };
 
@@ -165,6 +190,9 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
     setResult(testResult);
     setPhase("results");
 
+    // Clean up unified session storage on successful completion
+    clearState();
+
     // Persist result to Firestore if this session is linked to an assessment
     if (_assessmentId) {
       try {
@@ -181,22 +209,18 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
           return;
         }
 
-        // Determine if assessment is fully completed:
-        // - If only "far" is assigned → complete when resultFar exists
-        // - If only "near" is assigned → complete when resultNear exists
-        // - If both are assigned → complete when BOTH resultFar and resultNear exist
+        // Determine if assessment is fully completed
         const hasFar = assessmentTypes?.includes("far");
         const hasNear = assessmentTypes?.includes("near");
         const isSavingFar = testType === "far";
-        const isSavingNear = testType === "near";
         
         let newStatus: "in_progress" | "completed" = "in_progress";
         
         if (hasFar && hasNear) {
           // Both tests required - only complete when both have results
           const willHaveBothResults = isSavingFar 
-            ? (currentAssessment.resultNear !== undefined) // Saving far, check if near already exists
-            : (currentAssessment.resultFar !== undefined);  // Saving near, check if far already exists
+            ? (currentAssessment.resultNear !== undefined)
+            : (currentAssessment.resultFar !== undefined);
           newStatus = willHaveBothResults ? "completed" : "in_progress";
         } else {
           // Only one test required - mark complete immediately
@@ -218,6 +242,7 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
   const handleRetake = () => {
     sessionId.current = uuidv4();
     setResult(null);
+    clearState();
     setPhase("type_select");
   };
 
@@ -296,115 +321,127 @@ export function AcuitySession({ assessmentId: _assessmentId, assessmentTypes, ne
   }, [isPaused]);
 
   return (
-    <AssessmentImmersiveShell
-      timerDisplay={timerDisplay}
-      progressDisplay={progressDisplay}
-      levelDisplay={phase === "testing" ? levelDisplay : undefined}
-      phase={phase}
-      isPaused={isPaused}
-      onPause={handlePause}
-      onResume={handleResume}
-      onReturnToDetails={handleReturnToDetails}
-      onReturnToDashboard={handleReturnToDashboard}
-      onExit={handleExit}
-    >
-      {phase === "type_select" && (
-        <TestTypeSelector onSelect={handleTypeSelect} />
-      )}
-
-      {phase === "instructions" && (
-        <InstructionsStep
+    <>
+      {/* Preparation card (shown before testing starts) */}
+      {showPreparation && (
+        <AssessmentPreparationCard
           testType={testType}
-          onContinue={() => setPhase("calibration")}
+          onContinue={handlePreparationComplete}
         />
       )}
 
-      {phase === "calibration" && (
-        <AssessmentOrientationGate>
-          <CalibrationStep
-            onCalibrated={handleCalibrated}
-            existingCalibration={calibration}
-          />
-        </AssessmentOrientationGate>
-      )}
+      <AssessmentImmersiveShell
+        timerDisplay={timerDisplay}
+        progressDisplay={progressDisplay}
+        levelDisplay={phase === "testing" ? levelDisplay : undefined}
+        phase={phase}
+        isPaused={isPaused}
+        onPause={handlePause}
+        onResume={handleResume}
+        onReturnToDetails={handleReturnToDetails}
+        onReturnToDashboard={handleReturnToDashboard}
+        onExit={handleExit}
+      >
+        {phase === "type_select" && (
+          <TestTypeSelector onSelect={handleTypeSelect} />
+        )}
 
-      {phase === "duration_select" && (
-        <AssessmentOrientationGate>
-          <DurationSelector
+        {phase === "instructions" && (
+          <InstructionsStep
             testType={testType}
-            selected={timerDuration}
-            onSelect={setTimerDuration}
-            onContinue={handleDurationContinue}
+            onContinue={() => setPhase("calibration")}
           />
-        </AssessmentOrientationGate>
-      )}
+        )}
 
-      {phase === "eye_selection" && (
-        <AssessmentOrientationGate>
-          <EyeSelectionStep onContinue={handleEyeSelected} />
-        </AssessmentOrientationGate>
-      )}
+        {phase === "calibration" && (
+          <AssessmentOrientationGate>
+            <CalibrationStep
+              onCalibrated={handleCalibrated}
+              existingCalibration={calibration}
+            />
+          </AssessmentOrientationGate>
+        )}
 
-      {phase === "testing" && calibration && testType === "far" && (
-        <AssessmentOrientationGate>
-          <TestingStep
-            calibration={calibration}
-            timerDuration={timerDuration}
-            onComplete={handleTestComplete}
-            onLevelChange={handleLevelChange}
-            onTimerUpdate={handleTimerUpdate}
-            pauseRequested={isPaused}
+        {phase === "duration_select" && (
+          <AssessmentOrientationGate>
+            <DurationSelector
+              testType={testType}
+              selected={timerDuration}
+              onSelect={setTimerDuration}
+              onContinue={handleDurationContinue}
+            />
+          </AssessmentOrientationGate>
+        )}
+
+        {phase === "eye_selection" && (
+          <AssessmentOrientationGate>
+            <EyeSelectionStep onContinue={handleEyeSelected} />
+          </AssessmentOrientationGate>
+        )}
+
+        {phase === "testing" && calibration && testType === "far" && (
+          <AssessmentOrientationGate>
+            <TestingStep
+              assessmentId={_assessmentId}
+              calibration={calibration}
+              timerDuration={timerDuration}
+              onComplete={handleTestComplete}
+              onLevelChange={handleLevelChange}
+              onTimerUpdate={handleTimerUpdate}
+              pauseRequested={isPaused}
+            />
+          </AssessmentOrientationGate>
+        )}
+
+        {phase === "testing" && calibration && testType === "near" && (
+          <AssessmentOrientationGate>
+            <NearTestingStep
+              assessmentId={_assessmentId}
+              calibration={calibration}
+              timerDuration={timerDuration}
+              onComplete={handleTestComplete}
+              onLevelChange={handleLevelChange}
+              onTimerUpdate={handleTimerUpdate}
+              pauseRequested={isPaused}
+            />
+          </AssessmentOrientationGate>
+        )}
+
+        {phase === "results" && result && (
+          <ResultsStep
+            result={result}
+            onRetake={handleRetake}
+            nextAssessmentHref={nextAssessmentHref}
+            nextAssessmentLabel={nextAssessmentLabel}
           />
-        </AssessmentOrientationGate>
-      )}
+        )}
 
-      {phase === "testing" && calibration && testType === "near" && (
-        <AssessmentOrientationGate>
-          <NearTestingStep
-            calibration={calibration}
-            timerDuration={timerDuration}
-            onComplete={handleTestComplete}
-            onLevelChange={handleLevelChange}
-            onTimerUpdate={handleTimerUpdate}
-            pauseRequested={isPaused}
-          />
-        </AssessmentOrientationGate>
-      )}
-
-      {phase === "results" && result && (
-        <ResultsStep
-          result={result}
-          onRetake={handleRetake}
-          nextAssessmentHref={nextAssessmentHref}
-          nextAssessmentLabel={nextAssessmentLabel}
-        />
-      )}
-
-      {/* Exit confirmation dialog */}
-      {showExitConfirm && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 mx-4 max-w-sm w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-[#0f4f4b]">Leave Assessment?</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Your assessment is still in progress. If you leave now, your current progress may be lost.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleCancelExit}
-                className="flex-1 py-3 px-4 rounded-xl border border-[#0f4f4b]/20 text-sm font-semibold text-[#0f4f4b] hover:bg-[#0f4f4b]/5 transition-colors"
-              >
-                Continue Test
-              </button>
-              <button
-                onClick={handleConfirmExit}
-                className="flex-1 py-3 px-4 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
-              >
-                Leave
-              </button>
+        {/* Exit confirmation dialog */}
+        {showExitConfirm && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl p-6 mx-4 max-w-sm w-full shadow-2xl space-y-4">
+              <h3 className="text-lg font-bold text-[#0f4f4b]">Leave Assessment?</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Your assessment is still in progress. If you leave now, your current progress may be lost.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelExit}
+                  className="flex-1 py-3 px-4 rounded-xl border border-[#0f4f4b]/20 text-sm font-semibold text-[#0f4f4b] hover:bg-[#0f4f4b]/5 transition-colors"
+                >
+                  Continue Test
+                </button>
+                <button
+                  onClick={handleConfirmExit}
+                  className="flex-1 py-3 px-4 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+                >
+                  Leave
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </AssessmentImmersiveShell>
+        )}
+      </AssessmentImmersiveShell>
+    </>
   );
 }

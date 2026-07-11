@@ -13,8 +13,8 @@ import { useAssessmentProgress } from "../engine/useAssessmentProgress";
 import { useCalibrationSync } from "../engine/useCalibrationSync";
 import { useLetterTimer } from "../engine/useLetterTimer";
 import { CountdownStep } from "./CountdownStep";
-// Note: Timer ring constants (RING_SIZE, ARC_R, ARC_C) removed — timer UI
-// now rendered by parent ImmersiveTopBar via AssessmentImmersiveShell.
+import { useOrientationPause } from "../hooks/useOrientationPause";
+import { useAssessmentStorage } from "../hooks/useAssessmentStorage";
 import type {
   CalibrationData,
   Eye as EyeType,
@@ -40,6 +40,7 @@ export type TestingShellAccent = {
 };
 
 export interface TestingShellProps {
+  assessmentId?: string;
   calibration: CalibrationData;
   timerDuration: TimerDuration;
   chart: TestingShellChartLine[];
@@ -68,6 +69,7 @@ type EyePhase = "eye_intro" | "countdown" | "reading" | "self_report";
 // ---------------------------------------------------------------------------
 
 export function TestingShell({
+  assessmentId,
   calibration,
   timerDuration,
   chart,
@@ -79,26 +81,59 @@ export function TestingShell({
   onTimerUpdate,
   pauseRequested,
 }: TestingShellProps): JSX.Element {
-  // Recalculate calibration when DPR/resize/orientation changes.
-  // useCalibrationSync accepts CalibrationData | null but TestingShell always
-  // receives a non-null CalibrationData, so fall back to the original prop if
-  // the hook hasn't emitted a value yet (initial render race).
+  // Unified storage hook
+  const { saveState, restoreState } = useAssessmentStorage();
+  
+  // Recalculate calibration when DPR/resize/orientation changes
   const effectiveCalibration = useCalibrationSync(calibration) ?? calibration;
 
-  const [currentEye, setCurrentEye] = useState<EyeType>("right");
-  const [eyePhase, setEyePhase] = useState<EyePhase>("eye_intro");
-  const [rightBest, setRightBest] = useState<string | null>(null);
+  // Attempt to restore state from unified storage
+  const restored = restoreState();
 
-  // ── Timer engine ──────────────────────────────────────────────────────────
-  // Single source of truth. userPaused is now exposed directly from the hook
-  // so there's no separate mirror state that can desync.
+  // Initialize state - use restored values if available and matches current test
+  const [currentEye, setCurrentEye] = useState<EyeType>(
+    restored?.testType === testKind ? (restored.currentEye ?? "right") : "right"
+  );
+  const [eyePhase, setEyePhase] = useState<EyePhase>(
+    restored?.testType === testKind ? (restored.eyePhase ?? "eye_intro") : "eye_intro"
+  );
+  const [rightBest, setRightBest] = useState<string | null>(
+    restored?.testType === testKind ? (restored.rightEyeBest ?? null) : null
+  );
+
+  // Orientation-based pause
+  const isPortrait = useOrientationPause();
+
+  // Timer engine
   const timer = useLetterTimer({
     totalLetters: chart.length,
     durationMs: timerDuration * 1000,
     onAllComplete: () => setEyePhase("self_report"),
   });
 
-  // ── Progress ──────────────────────────────────────────────────────────────
+  // Simplified restoration: Jump directly to restored letter
+  // Do NOT restore timer milliseconds - restart from beginning for current letter
+  const hasRestoredRef = useRef(false);
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    if (!restored || restored.testType !== testKind) return;
+    if (eyePhase !== "reading") return;
+
+    // Jump directly to the saved letter index
+    const targetIndex = restored.currentLetterIndex ?? 0;
+    if (targetIndex > 0 && targetIndex < chart.length) {
+      // Directly set the timer's letter index without replaying
+      // Timer will restart from beginning for this letter
+      for (let i = 0; i < targetIndex; i++) {
+        timer.nextLetter();
+      }
+    }
+
+    hasRestoredRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eyePhase]);
+
+  // Progress tracking
   const progress = useAssessmentProgress({
     currentEye,
     letterIndex: timer.letterIndex,
@@ -108,6 +143,19 @@ export function TestingShell({
   const isRight = currentEye === "right";
   const safeIndex = Math.max(0, Math.min(timer.letterIndex, chart.length - 1));
   const currentLine = chart[safeIndex];
+
+  // Persist testing state to unified storage
+  useEffect(() => {
+    if (eyePhase === "self_report" || eyePhase === "eye_intro") return;
+
+    saveState({
+      currentEye,
+      eyePhase,
+      currentLetterIndex: timer.letterIndex,
+      rightEyeBest: rightBest,
+      leftEyeBest: null,
+    });
+  }, [currentEye, eyePhase, timer.letterIndex, rightBest, saveState]);
 
   // ── Report current level to parent shell ──────────────────────────────────
   // Only report during reading phase; clear when not reading.
@@ -132,6 +180,19 @@ export function TestingShell({
     }
   }, [timer.remainingSeconds, eyePhase, onTimerUpdate]);
 
+  // ── Sync orientation pause with timer ──────────────────────────────────────
+  // When device rotates to portrait, pause the timer automatically
+  useEffect(() => {
+    if (eyePhase === "reading") {
+      if (isPortrait && !timer.userPaused) {
+        timer.pause();
+      } else if (!isPortrait && timer.userPaused && !pauseRequested) {
+        // Resume when returning to landscape, unless explicitly paused by user
+        timer.resume();
+      }
+    }
+  }, [isPortrait, eyePhase, timer, pauseRequested]);
+
   // ── Sync external pause request with internal timer ───────────────────────
   // Track previous pauseRequested to only react to changes (not re-enforce)
   const prevPauseRef = useRef(pauseRequested);
@@ -140,11 +201,11 @@ export function TestingShell({
       prevPauseRef.current = pauseRequested;
       if (pauseRequested && !timer.userPaused) {
         timer.pause();
-      } else if (!pauseRequested && timer.userPaused) {
+      } else if (!pauseRequested && timer.userPaused && !isPortrait) {
         timer.resume();
       }
     }
-  }, [pauseRequested, timer]);
+  }, [pauseRequested, timer, isPortrait]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 

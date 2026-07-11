@@ -5,6 +5,7 @@ import { NEAR_VISION_LINES } from "../near/near-vision-data";
 import type { CalibrationData, EyeAcuityResult, TimerDuration } from "../types";
 
 interface NearTestingStepProps {
+  assessmentId?: string;
   calibration: CalibrationData;
   timerDuration: TimerDuration;
   onComplete: (results: { right: EyeAcuityResult; left: EyeAcuityResult }) => void;

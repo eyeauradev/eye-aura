@@ -54,12 +54,13 @@ interface ImmersiveTopBarProps {
  * Minimal top bar displaying timer (left) and progress (right).
  * Opacity transitions based on user inactivity state.
  * Uses shrink-0 so it never gets compressed by flex children.
+ * Minimal padding to maximize chart space.
  */
 function ImmersiveTopBar({ timerDisplay, progressDisplay, isIdle }: ImmersiveTopBarProps) {
   return (
     <div
       data-testid="immersive-top-bar"
-      className="flex w-full shrink-0 items-center justify-between px-4 py-2"
+      className="flex w-full shrink-0 items-center justify-between px-3 py-1.5"
       style={{
         opacity: isIdle ? 0.3 : 1,
         transition: "opacity 300ms ease",
@@ -67,7 +68,7 @@ function ImmersiveTopBar({ timerDisplay, progressDisplay, isIdle }: ImmersiveTop
     >
       {/* Timer — left side */}
       <div
-        className="text-[20px] font-semibold text-slate-700 tabular-nums"
+        className="text-[18px] font-semibold text-slate-700 tabular-nums"
         aria-label={`Timer: ${timerDisplay}`}
       >
         {timerDisplay}
@@ -153,8 +154,11 @@ export function AssessmentImmersiveShell({
       className="fixed inset-0 z-[100] flex flex-col bg-[#f8f9fa]"
       style={{
         height: "100dvh",
+        minHeight: "100dvh",
         paddingTop: "env(safe-area-inset-top, 0px)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        paddingLeft: "env(safe-area-inset-left, 0px)",
+        paddingRight: "env(safe-area-inset-right, 0px)",
       }}
     >
       {/* Top bar — timer and progress, auto-fades on inactivity */}
@@ -165,10 +169,11 @@ export function AssessmentImmersiveShell({
       />
 
       {/* Content area — fills remaining viewport height.
+          Uses minimal padding to maximize screen space for the chart.
           Always allows overflow-y-auto so content is always scrollable/reachable.
           The optotype reading phase naturally centers without needing overflow-hidden. */}
       <div
-        className="relative flex min-h-0 flex-1 items-start justify-center px-4 pb-2 overflow-y-auto"
+        className="relative flex min-h-0 flex-1 items-start justify-center px-2 pb-1 overflow-y-auto"
       >
         {children}
       </div>
