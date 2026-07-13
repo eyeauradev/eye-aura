@@ -23,6 +23,7 @@ import {
   MoreHorizontal,
   Globe,
   LifeBuoy,
+  Quote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FloatingSidebar, PageTransition } from "@/components/premium";
@@ -37,6 +38,7 @@ const adminNavItems: NavItem[] = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, group: "main" },
   { label: "Doctors", href: "/admin/doctors", icon: Stethoscope, group: "main" },
   { label: "Services", href: "/admin/services", icon: ClipboardList, group: "main" },
+  { label: "Testimonials", href: "/admin/testimonials", icon: Quote, group: "main" },
   { label: "Assessments", href: "/admin/assessments", icon: ClipboardList, group: "main" },
   { label: "Recommendations", href: "/admin/recommendations", icon: Stethoscope, group: "main" },
   { label: "Appointments", href: "/admin/appointments", icon: Calendar, group: "main" },
@@ -285,6 +287,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       >
                         <Settings className="h-4 w-4 text-primary" />
                         Settings
+                      </Link>
+                      <Link
+                        href="/admin/testimonials"
+                        onClick={() => setMoreMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-primary/5 transition-colors"
+                      >
+                        <Quote className="h-4 w-4 text-primary" />
+                        Testimonials
                       </Link>
                       <Link
                         href="/admin/support"

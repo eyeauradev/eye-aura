@@ -13,6 +13,7 @@ import type {
   PrescriptionDocument,
   SupportTicketDocument,
   ServiceDocument,
+  TestimonialDocument,
   DoctorInviteDocument,
   DoctorAvailabilityDocument,
   DoctorBlockDocument,
@@ -169,6 +170,56 @@ export const serviceConverter = {
       isActive: data.isActive,
       doctorIds: data.doctorIds || [],
       assessmentAutomation: data.assessmentAutomation ?? undefined,
+      displayOrder: typeof data.displayOrder === "number" ? data.displayOrder : undefined,
+      createdAt: fromTimestamp(data.createdAt),
+      updatedAt: fromTimestamp(data.updatedAt),
+    };
+  },
+};
+
+// Testimonial converter
+export const testimonialConverter = {
+  toFirestore: (testimonial: TestimonialDocument): DocumentData => {
+    // Explicitly build the object — never spread the full document because
+    // optional fields set to `undefined` are rejected by Firestore.
+    const data: DocumentData = {
+      name: testimonial.name,
+      designation: testimonial.designation,
+      testimonial: testimonial.testimonial,
+      rating: testimonial.rating,
+      isActive: testimonial.isActive,
+      createdAt: toTimestamp(testimonial.createdAt),
+      updatedAt: toTimestamp(testimonial.updatedAt),
+    };
+
+    // Only write displayOrder when it is a valid number.
+    if (typeof testimonial.displayOrder === "number") {
+      data.displayOrder = testimonial.displayOrder;
+    }
+
+    // Only write imageUrl when it has a value.
+    if (testimonial.imageUrl) {
+      data.imageUrl = testimonial.imageUrl;
+    }
+
+    // Only write tag when it has a value.
+    if (testimonial.tag) {
+      data.tag = testimonial.tag;
+    }
+
+    return data;
+  },
+  fromFirestore: (snapshot: QueryDocumentSnapshot): TestimonialDocument => {
+    const data = snapshot.data();
+    return {
+      id: snapshot.id,
+      name: data.name,
+      designation: data.designation,
+      testimonial: data.testimonial,
+      rating: data.rating,
+      imageUrl: data.imageUrl ?? undefined,
+      tag: data.tag ?? undefined,
+      isActive: data.isActive ?? true,
       displayOrder: typeof data.displayOrder === "number" ? data.displayOrder : undefined,
       createdAt: fromTimestamp(data.createdAt),
       updatedAt: fromTimestamp(data.updatedAt),

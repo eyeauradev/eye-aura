@@ -152,6 +152,30 @@ export interface ServiceDocument {
   updatedAt: Date;
 }
 
+// Testimonials Collection
+export interface TestimonialDocument {
+  id: string;
+  /** Person who gave the testimonial */
+  name: string;
+  /** Short role/title/affiliation shown under the name (e.g. "Product designer") */
+  designation: string;
+  /** The testimonial quote/text */
+  testimonial: string;
+  /** Rating from 1 to 5 */
+  rating: number;
+  /** Optional profile image URL */
+  imageUrl?: string;
+  /** Optional short label/category shown as a pill (e.g. "Prescription Renewal") */
+  tag?: string;
+  /** Whether the testimonial is shown on the public homepage */
+  isActive: boolean;
+  /** Optional display order set by admin. Lower numbers appear first.
+   *  Testimonials without a rank (undefined/null) are sorted last. */
+  displayOrder?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Vision Assessments Collection
 export type VisionAssessmentStatus =
   | "assigned"

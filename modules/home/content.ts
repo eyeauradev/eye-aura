@@ -97,24 +97,3 @@ export const steps = [
   { title: "Consult Online", text: "Meet through voice or video from wherever you are.", icon: Video },
   { title: "Receive Guidance", text: "Leave with next steps, routines, and follow-up clarity.", icon: MessageCircle },
 ];
-
-export const testimonials = [
-  {
-    quote:
-      "I expected a rushed clinic-style call, but it felt calm and personal. My screen fatigue finally made sense.",
-    name: "Aarav M.",
-    role: "Product designer",
-  },
-  {
-    quote:
-      "The guidance was practical for my work-from-home routine. It felt like care designed for how I actually live.",
-    name: "Meera S.",
-    role: "Remote consultant",
-  },
-  {
-    quote:
-      "I felt heard about contact lens discomfort instead of being given generic advice. That changed everything.",
-    name: "Rhea K.",
-    role: "Graduate student",
-  },
-];

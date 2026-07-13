@@ -4,6 +4,7 @@ import { doctorSlotsService } from "./doctor-slots.service";
 import { prescriptionsService } from "./prescriptions.service";
 import { supportTicketsService } from "./support-tickets.service";
 import { servicesService } from "./services.service";
+import { testimonialsService } from "./testimonials.service";
 import { doctorInvitesService } from "./doctor-invites.service";
 import { doctorAvailabilityService } from "./doctor-availability.service";
 import { doctorBlocksService } from "./doctor-blocks.service";
@@ -20,6 +21,7 @@ export {
   prescriptionsService,
   supportTicketsService,
   servicesService,
+  testimonialsService,
   doctorInvitesService,
   doctorAvailabilityService,
   doctorBlocksService,

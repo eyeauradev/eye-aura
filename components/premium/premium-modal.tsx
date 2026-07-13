@@ -128,7 +128,7 @@ export function PremiumModal({
               SHADOWS.elevated,
               "rounded-3xl",
               SPACING.cardPadding,
-              "w-full mx-4"
+              "w-full mx-4 my-4 max-h-[90vh] overflow-y-auto"
             )}
             style={{ maxWidth }}
             variants={shouldReduceMotion ? undefined : { ...modalEntrance, exit: modalExit.hidden }}
