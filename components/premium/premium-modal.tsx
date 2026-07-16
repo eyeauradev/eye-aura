@@ -30,32 +30,42 @@ export function PremiumModal({
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const shouldReduceMotion = useReducedMotion();
 
+  // Keep the latest onClose in a ref so the keydown listener (and the open
+  // effect) never has to depend on onClose's identity. An inline onClose in the
+  // parent is recreated every render, which previously re-ran the effect on
+  // every keystroke and yanked focus back to the first input.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   // Handle Escape key press
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    },
-    [onClose]
-  );
-
-  // Focus trap and keyboard listener
-  useEffect(() => {
-    if (open) {
-      previousFocusRef.current = document.activeElement as HTMLElement;
-      document.addEventListener("keydown", handleKeyDown);
-      // Focus the modal container for accessibility
-      requestAnimationFrame(() => {
-        modalRef.current?.focus();
-      });
-
-      return () => {
-        document.removeEventListener("keydown", handleKeyDown);
-        // Restore focus on close
-        previousFocusRef.current?.focus();
-      };
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      onCloseRef.current();
     }
+  }, []);
+
+  // Focus management: runs only when `open` transitions, never on parent
+  // re-renders (e.g. while the user is typing into an input).
+  useEffect(() => {
+    if (!open) return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Focus the first focusable element exactly once when the modal opens.
+    const rafId = requestAnimationFrame(() => {
+      const firstFocusable = modalRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      (firstFocusable ?? modalRef.current)?.focus();
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      document.removeEventListener("keydown", handleKeyDown);
+      // Restore focus on close
+      previousFocusRef.current?.focus();
+    };
   }, [open, handleKeyDown]);
 
   // Prevent body scroll when modal is open
