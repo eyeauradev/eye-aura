@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { doctorInvitesService } from "@/services/firestore/doctor-invites.service";
 import { sendDoctorInviteEmail } from "@/lib/send-email";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +44,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, invite: updatedInvite, inviteLink });
   } catch (error: any) {
     console.error("Resend invite error:", error);
+    logServerError({
+      code: ERROR_CODES.DOCTOR.OPERATION_FAILED,
+      title: "Doctor Invite Failed",
+      message: "Failed to resend doctor invite",
+      originalError: error,
+      context: "doctor-invites/resend",
+    });
     return NextResponse.json(
       { error: error.message || "Failed to resend invite" },
       { status: 500 }

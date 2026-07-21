@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 import crypto from "crypto";
 import { hasTimeRangeOverlap, computeEndTime } from "@/services/booking/slot-filter.service";
 
@@ -247,6 +249,13 @@ export async function POST(req: NextRequest) {
     if (error.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    logServerError({
+      code: ERROR_CODES.PAYMENT.VERIFICATION_FAILED,
+      title: "Payment Verification Failed",
+      message: "Failed to verify payment",
+      originalError: error,
+      context: "verify-payment",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

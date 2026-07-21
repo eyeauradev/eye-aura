@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +40,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[create-user-document] Error:", error);
+    logServerError({
+      code: ERROR_CODES.AUTH.GENERIC,
+      title: "Auth Error",
+      message: "Failed to create user document",
+      originalError: error,
+      context: "auth/create-user-document",
+    });
     return NextResponse.json(
       { error: "Failed to create user document" },
       { status: 500 }

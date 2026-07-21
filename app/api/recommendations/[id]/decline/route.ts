@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 /**
  * Strips HTML tags and truncates to maxLength characters.
@@ -113,6 +115,13 @@ export async function POST(
     if (error.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    logServerError({
+      code: ERROR_CODES.API.SERVER_ERROR,
+      title: "Server Error",
+      message: "Failed to decline recommendation",
+      originalError: error,
+      context: "recommendations/decline",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 async function verifyPatientToken(req: NextRequest) {
   const authHeader = req.headers.get("Authorization");
@@ -204,6 +206,13 @@ export async function POST(req: NextRequest) {
     if (error.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    logServerError({
+      code: ERROR_CODES.PAYMENT.CREATION_FAILED,
+      title: "Payment Creation Failed",
+      message: "Failed to create payment order",
+      originalError: error,
+      context: "payments/create-order",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

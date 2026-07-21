@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 async function verifyAuthToken(req: NextRequest) {
   const authHeader = req.headers.get("Authorization");
@@ -123,6 +125,13 @@ export async function GET(req: NextRequest) {
     if (error.code === 9 || error.message?.includes("index")) {
       return NextResponse.json({ error: "Query requires a composite index. Please deploy Firestore indexes." }, { status: 500 });
     }
+    logServerError({
+      code: ERROR_CODES.API.SERVER_ERROR,
+      title: "Server Error",
+      message: "Failed to list recommendations",
+      originalError: error,
+      context: "recommendations/list",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

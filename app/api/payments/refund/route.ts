@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 export const maxDuration = 30;
 
@@ -229,6 +231,13 @@ export async function POST(req: NextRequest) {
     if (error.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    logServerError({
+      code: ERROR_CODES.PAYMENT.CREATION_FAILED,
+      title: "Refund Failed",
+      message: "Failed to process refund",
+      originalError: error,
+      context: "payments/refund",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

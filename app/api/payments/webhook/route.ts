@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 import crypto from "crypto";
 import { hasTimeRangeOverlap, computeEndTime } from "@/services/booking/slot-filter.service";
 
@@ -341,6 +343,13 @@ export async function POST(req: NextRequest) {
     // Log but still return 200 — prevents Razorpay from retrying on non-transient errors.
     // For transient errors (network, DB unavailable) you'd return 500 to trigger retries.
     console.error(`[webhook] Error handling ${eventType}:`, err?.message);
+    logServerError({
+      code: ERROR_CODES.PAYMENT.VERIFICATION_FAILED,
+      title: "Webhook Error",
+      message: `Failed to process webhook event: ${eventType}`,
+      originalError: err,
+      context: "payments/webhook",
+    });
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 

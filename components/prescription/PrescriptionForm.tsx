@@ -182,6 +182,7 @@ export function PrescriptionForm({ mode, prescriptionId, appointmentId, patientI
         new Error("Please provide right eye SPH or CYL values"),
         ERROR_CODES.PRESCRIPTION.OPERATION_FAILED
       );
+      logError(error.code, new Error("Please provide right eye SPH or CYL values"), "PrescriptionForm.validate");
       errorFromAppError(error);
       return false;
     }
@@ -190,6 +191,7 @@ export function PrescriptionForm({ mode, prescriptionId, appointmentId, patientI
         new Error("Please provide left eye SPH or CYL values"),
         ERROR_CODES.PRESCRIPTION.OPERATION_FAILED
       );
+      logError(error.code, new Error("Please provide left eye SPH or CYL values"), "PrescriptionForm.validate");
       errorFromAppError(error);
       return false;
     }
@@ -198,6 +200,7 @@ export function PrescriptionForm({ mode, prescriptionId, appointmentId, patientI
         new Error("Diagnosis is required"),
         ERROR_CODES.PRESCRIPTION.OPERATION_FAILED
       );
+      logError(error.code, new Error("Diagnosis is required"), "PrescriptionForm.validate");
       errorFromAppError(error);
       return false;
     }
@@ -223,6 +226,7 @@ export function PrescriptionForm({ mode, prescriptionId, appointmentId, patientI
         new Error("Patient ID is required"),
         ERROR_CODES.PRESCRIPTION.OPERATION_FAILED
       );
+      logError(error.code, new Error("Patient ID is required"), "PrescriptionForm.submit");
       errorFromAppError(error);
       return;
     }

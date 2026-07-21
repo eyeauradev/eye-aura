@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 /**
  * POST /api/assessments/unassign
@@ -85,6 +87,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: unknown) {
     console.error("[assessments/unassign]", err);
+    logServerError({
+      code: ERROR_CODES.API.SERVER_ERROR,
+      title: "Server Error",
+      message: "Failed to unassign assessment",
+      originalError: err,
+      context: "assessments/unassign",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

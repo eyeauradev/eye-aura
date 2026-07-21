@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(request: NextRequest) {
@@ -179,6 +181,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("Doctor onboarding error:", error);
+    logServerError({
+      code: ERROR_CODES.DOCTOR.OPERATION_FAILED,
+      title: "Doctor Onboarding Failed",
+      message: "Failed to complete doctor onboarding",
+      originalError: error,
+      context: "doctor-onboarding/complete",
+    });
     return NextResponse.json(
       { error: error.message || "Failed to complete onboarding" },
       { status: 500 }

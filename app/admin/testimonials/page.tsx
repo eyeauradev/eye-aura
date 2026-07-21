@@ -117,6 +117,7 @@ export default function AdminTestimonialsPage() {
     } catch (err) {
       console.error("Error loading testimonials:", err);
       const appError = getDisplayError(err, ERROR_CODES.ADMIN.OPERATION_FAILED);
+      logError(appError.code, err, "AdminTestimonialsPage.loadTestimonials");
       errorFromAppError(appError);
     } finally {
       setLoading(false);

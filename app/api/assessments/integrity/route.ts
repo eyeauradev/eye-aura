@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 /**
  * GET /api/assessments/integrity
@@ -146,6 +148,13 @@ export async function GET(req: NextRequest) {
     );
   } catch (err: unknown) {
     console.error("[assessments/integrity]", err);
+    logServerError({
+      code: ERROR_CODES.API.SERVER_ERROR,
+      title: "Server Error",
+      message: "Failed to run integrity check",
+      originalError: err,
+      context: "assessments/integrity",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

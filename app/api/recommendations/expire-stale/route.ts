@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 
 /**
  * POST /api/recommendations/expire-stale
@@ -78,6 +80,13 @@ export async function POST(req: NextRequest) {
     if (error.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    logServerError({
+      code: ERROR_CODES.API.SERVER_ERROR,
+      title: "Server Error",
+      message: "Failed to expire stale recommendations",
+      originalError: error,
+      context: "recommendations/expire-stale",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

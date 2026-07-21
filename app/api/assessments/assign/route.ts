@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 import type { VisionAssessmentType, AssignedByRole, AssignmentTiming } from "@/types/firestore";
 import { assessmentNotificationsService } from "@/services/notifications/assessment-notifications.service";
 import { assessmentAuditService } from "@/services/audit/assessment-audit.service";
@@ -251,6 +253,13 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     console.error("[assessments/assign]", err);
+    logServerError({
+      code: ERROR_CODES.API.SERVER_ERROR,
+      title: "Server Error",
+      message: "Failed to assign assessment",
+      originalError: err,
+      context: "assessments/assign",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

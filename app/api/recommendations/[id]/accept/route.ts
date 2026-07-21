@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb } from "@/services/firebase/admin";
+import { logServerError } from "@/services/error-logging/error-log.service.server";
+import { ERROR_CODES } from "@/lib/errors";
 import crypto from "crypto";
 
 async function verifyPatientToken(req: NextRequest) {
@@ -168,6 +170,13 @@ export async function POST(
     if (error.message === "Forbidden") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    logServerError({
+      code: ERROR_CODES.API.SERVER_ERROR,
+      title: "Server Error",
+      message: "Failed to accept recommendation",
+      originalError: error,
+      context: "recommendations/accept",
+    });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -197,6 +197,7 @@ export default function BookingPage() {
         logError(appError.code, new Error("Authentication required"), "BookingPage");
         errorFromAppError(appError);
       } catch {
+        logError(ERROR_CODES.SYSTEM.UNEXPECTED, new Error("Failed to display authentication error"), "BookingPage");
         errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
       }
       return;
@@ -235,6 +236,7 @@ export default function BookingPage() {
         logError(appError.code, error, "BookingPage");
         errorFromAppError(appError);
       } catch {
+        logError(ERROR_CODES.SYSTEM.UNEXPECTED, new Error("Failed to display payment creation error"), "BookingPage");
         errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
       }
       return;
@@ -249,6 +251,7 @@ export default function BookingPage() {
         logError(appError.code, new Error("Payment gateway failed to load"), "BookingPage");
         errorFromAppError(appError);
       } catch {
+        logError(ERROR_CODES.SYSTEM.UNEXPECTED, new Error("Failed to display script load error"), "BookingPage");
         errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
       }
       return;
@@ -316,6 +319,7 @@ export default function BookingPage() {
               logError(appError.code, error, "BookingPage");
               errorFromAppError(appError);
             } catch {
+              logError(ERROR_CODES.SYSTEM.UNEXPECTED, new Error("Failed to display payment verification error"), "BookingPage");
               errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
             }
             resolve();
@@ -362,6 +366,7 @@ export default function BookingPage() {
           logError(slotError.code, resp?.error ?? resp, "BookingPage");
           errorFromAppError(slotError);
         } catch {
+          logError(ERROR_CODES.SYSTEM.UNEXPECTED, new Error("Failed to display payment failed error"), "BookingPage");
           errorFromAppError({ code: ERROR_CODES.SYSTEM.UNEXPECTED, ...ERROR_MESSAGES[ERROR_CODES.SYSTEM.UNEXPECTED] });
         }
         resolve();
