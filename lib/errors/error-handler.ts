@@ -106,7 +106,7 @@ export function logError(
   code: string,
   error: unknown,
   context?: string,
-  logToFirestore: boolean = IS_PRODUCTION,
+  logToFirestore: boolean = true,
   logParams?: {
     user?: { id: string; role?: string; email?: string };
     action?: string;

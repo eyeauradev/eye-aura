@@ -85,7 +85,7 @@ interface PrescriptionFormProps {
 export function PrescriptionForm({ mode, prescriptionId, appointmentId, patientId, onSuccess }: PrescriptionFormProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const { errorFromAppError, success } = useToast();
+  const { errorFromAppError, error, success } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [appointment, setAppointment] = useState<AppointmentDocument | null>(null);
@@ -178,30 +178,15 @@ export function PrescriptionForm({ mode, prescriptionId, appointmentId, patientI
   const validateForm = (): boolean => {
     // Validate required fields based on requirements 3.2, 3.3, 3.4
     if (!formData.rightEye.sph && !formData.rightEye.cyl) {
-      const error = getDisplayError(
-        new Error("Please provide right eye SPH or CYL values"),
-        ERROR_CODES.PRESCRIPTION.OPERATION_FAILED
-      );
-      logError(error.code, new Error("Please provide right eye SPH or CYL values"), "PrescriptionForm.validate");
-      errorFromAppError(error);
+      error("Please provide right eye SPH or CYL values");
       return false;
     }
     if (!formData.leftEye.sph && !formData.leftEye.cyl) {
-      const error = getDisplayError(
-        new Error("Please provide left eye SPH or CYL values"),
-        ERROR_CODES.PRESCRIPTION.OPERATION_FAILED
-      );
-      logError(error.code, new Error("Please provide left eye SPH or CYL values"), "PrescriptionForm.validate");
-      errorFromAppError(error);
+      error("Please provide left eye SPH or CYL values");
       return false;
     }
     if (!formData.diagnosis.trim()) {
-      const error = getDisplayError(
-        new Error("Diagnosis is required"),
-        ERROR_CODES.PRESCRIPTION.OPERATION_FAILED
-      );
-      logError(error.code, new Error("Diagnosis is required"), "PrescriptionForm.validate");
-      errorFromAppError(error);
+      error("Diagnosis is required");
       return false;
     }
     return true;

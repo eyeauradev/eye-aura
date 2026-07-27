@@ -8,8 +8,6 @@ const COLLECTION_NAME = "error_logs";
  * Service for logging application errors to Firestore
  */
 class ErrorLogService {
-  private db = getFirebaseDb();
-
   /**
    * Log an error to Firestore
    * This runs fire-and-forget - we don't want logging failures to crash the app
@@ -48,8 +46,9 @@ class ErrorLogService {
         resolved: false,
       };
 
-      // Save to Firestore (fire-and-forget)
-      const collectionRef = collection(this.db, COLLECTION_NAME);
+      // Save to Firestore (fire-and-forget) — call getFirebaseDb() lazily here,
+      // not at class construction time, to avoid SSR/module-init timing issues.
+      const collectionRef = collection(getFirebaseDb(), COLLECTION_NAME);
       await addDoc(collectionRef, {
         ...errorLog,
         timestamp: serverTimestamp(), // Use server timestamp
